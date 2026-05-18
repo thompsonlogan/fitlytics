@@ -1,19 +1,59 @@
-import { Button } from "@/components/ui/button"
+import { useState } from "react"
+
+import { AppHeader, type Section } from "@/components/workout/app-header"
+import { DayBoard } from "@/components/workout/day-board"
+import { Footer } from "@/components/workout/footer"
+import { SubBar } from "@/components/workout/sub-bar"
+import { useWorkoutProgram } from "@/hooks/use-workout-program"
+
+const TODAY_INDEX = 0
 
 export function App() {
-  return (
-    <div className="flex min-h-svh p-6">
-      <div className="flex max-w-md min-w-0 flex-col gap-4 text-sm leading-loose">
-        <div>
-          <h1 className="font-medium">Project ready!</h1>
-          <p>You may now add components and start building.</p>
-          <p>We&apos;ve already added the button component for you.</p>
-          <Button className="mt-2">Button</Button>
-        </div>
-        <div className="font-mono text-xs text-muted-foreground">
-          (Press <kbd>d</kbd> to toggle dark mode)
-        </div>
+  const [section, setSection] = useState<Section>("today")
+  const [week, setWeek] = useState(1)
+  const [dayIndex, setDayIndex] = useState(TODAY_INDEX)
+
+  const { data: program, isLoading } = useWorkoutProgram()
+
+  if (isLoading || !program) {
+    return (
+      <div className="grid h-svh place-items-center text-sm text-muted-foreground">
+        Loading…
       </div>
+    )
+  }
+
+  const dayData = program.days[dayIndex]
+  const completedDays: Record<string, boolean> = { "1-3": true }
+  const initialCompleted: Record<string, boolean> =
+    week === 1 && dayIndex === 0 ? { "0-0": true } : {}
+
+  return (
+    <div
+      className="grid min-h-svh bg-background text-foreground"
+      style={{ gridTemplateRows: "auto auto minmax(0,1fr) auto" }}
+    >
+      <AppHeader
+        section={section}
+        onSectionChange={setSection}
+        onLogout={() => alert("Logged out (demo)")}
+      />
+      <SubBar
+        program={program}
+        week={week}
+        dayIndex={dayIndex}
+        todayIndex={TODAY_INDEX}
+        dayData={dayData}
+        completedDays={completedDays}
+        onWeekChange={setWeek}
+        onDayChange={setDayIndex}
+        onResetToToday={() => {
+          setWeek(1)
+          setDayIndex(TODAY_INDEX)
+        }}
+      />
+      <DayBoard key={`${week}-${dayIndex}`} day={dayData} initialCompleted={initialCompleted} />
+      <Footer />
     </div>
   )
 }

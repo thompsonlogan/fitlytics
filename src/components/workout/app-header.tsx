@@ -1,0 +1,174 @@
+import {
+  Bell,
+  CalendarCheck2,
+  ChartLine,
+  ChevronDown,
+  ClipboardList,
+  Download,
+  History,
+  Keyboard,
+  LifeBuoy,
+  LogOut,
+  Moon,
+  Search,
+  Settings,
+  Sun,
+  Trophy,
+  User,
+} from "lucide-react"
+
+import { useTheme } from "@/components/theme-provider"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Separator } from "@/components/ui/separator"
+import { cn } from "@/lib/utils"
+
+export type Section = "today" | "program" | "history" | "analytics"
+
+type NavItem = {
+  id: Section
+  label: string
+  Icon: typeof CalendarCheck2
+}
+
+const NAV_ITEMS: NavItem[] = [
+  { id: "today", label: "Today", Icon: CalendarCheck2 },
+  { id: "program", label: "Programs", Icon: ClipboardList },
+  { id: "history", label: "History", Icon: History },
+  { id: "analytics", label: "Analytics", Icon: ChartLine },
+]
+
+type AppHeaderProps = {
+  section: Section
+  onSectionChange: (next: Section) => void
+  onLogout: () => void
+}
+
+export function AppHeader({ section, onSectionChange, onLogout }: AppHeaderProps) {
+  const { theme, setTheme } = useTheme()
+  const isDark = theme === "dark"
+
+  return (
+    <header className="flex items-center gap-3 border-b bg-background px-5 py-2.5">
+      <div className="flex items-center gap-2 pr-3">
+        <span className="inline-flex h-5 w-5 items-center justify-center rounded-sm bg-primary text-[0.75rem] font-bold text-primary-foreground">
+          F
+        </span>
+        <span className="text-[0.9375rem] font-semibold tracking-tight">Fitlytics</span>
+      </div>
+      <Separator orientation="vertical" className="h-6" />
+
+      <nav className="flex items-center gap-0.5">
+        {NAV_ITEMS.map(({ id, label, Icon }) => (
+          <Button
+            key={id}
+            variant={section === id ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => onSectionChange(id)}
+            className={cn(
+              "h-7 gap-1.5 px-2.5 text-[0.8125rem] font-medium",
+              section === id ? "text-foreground" : "text-muted-foreground",
+            )}
+          >
+            <Icon className="size-3.5" strokeWidth={1.75} />
+            <span>{label}</span>
+          </Button>
+        ))}
+      </nav>
+
+      <div className="flex-1" />
+
+      <button
+        type="button"
+        className="hidden items-center gap-2 rounded-lg border bg-background px-2 text-[0.8125rem] text-muted-foreground transition-colors hover:bg-muted md:inline-flex"
+        style={{ height: "1.75rem", minWidth: "13rem" }}
+      >
+        <Search className="size-3.5" />
+        <span>Search exercises…</span>
+        <span className="flex-1" />
+        <kbd className="rounded-sm border bg-muted px-1 font-mono text-[0.625rem] text-muted-foreground">
+          ⌘K
+        </kbd>
+      </button>
+
+      <Button variant="ghost" size="icon-sm" aria-label="Notifications" className="relative">
+        <Bell className="size-4" strokeWidth={1.75} />
+        <span className="absolute top-1 right-1.5 size-1.5 rounded-full bg-foreground ring-2 ring-background" />
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        aria-label="Toggle theme"
+        onClick={() => setTheme(isDark ? "light" : "dark")}
+      >
+        {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+      </Button>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <button
+              type="button"
+              className="inline-flex h-7 items-center gap-1.5 rounded-full border bg-background py-0.5 pr-1.5 pl-0.5 text-xs transition-colors hover:bg-muted"
+            >
+              <span className="inline-flex size-[1.375rem] items-center justify-center rounded-full bg-foreground text-[0.6875rem] font-semibold text-background">
+                JH
+              </span>
+              <ChevronDown className="size-3 text-muted-foreground" />
+            </button>
+          }
+        />
+        <DropdownMenuContent align="end" className="min-w-56 p-1.5">
+          <DropdownMenuLabel className="flex flex-col gap-0.5 py-1 pb-2">
+            <span className="text-[0.8125rem] font-semibold text-foreground">Jordan Hall</span>
+            <span className="text-xs font-normal text-muted-foreground">
+              jordan@fitlytics.app
+            </span>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem>
+            <User className="size-3.5" />
+            <span>Profile</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem>
+            <Settings className="size-3.5" />
+            <span>Settings</span>
+            <DropdownMenuShortcut>,</DropdownMenuShortcut>
+          </DropdownMenuItem>
+          <DropdownMenuItem>
+            <Trophy className="size-3.5" />
+            <span>Achievements</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem>
+            <Download className="size-3.5" />
+            <span>Export data</span>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem>
+            <LifeBuoy className="size-3.5" />
+            <span>Help &amp; feedback</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem>
+            <Keyboard className="size-3.5" />
+            <span>Keyboard shortcuts</span>
+            <DropdownMenuShortcut>?</DropdownMenuShortcut>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem variant="destructive" onClick={onLogout}>
+            <LogOut className="size-3.5" />
+            <span>Log out</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </header>
+  )
+}
