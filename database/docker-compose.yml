@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: fitlytics_db
+    environment:
+      POSTGRES_USER: fitlytics
+      POSTGRES_PASSWORD: fitlytics
+      POSTGRES_DB: fitlytics
+    ports:
+      - "5432:5432"
+    volumes:
+      - fitlytics_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fitlytics -d fitlytics"]
+      interval: 5s
+      retries: 5
+
+  flyway:
+    image: flyway/flyway:latest
+    container_name: fitlytics_flyway
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./flyway/sql_versioned:/flyway/sql_versioned
+      - ./flyway/sql_repeatable:/flyway/sql_repeatable
+    command: >
+      -cleanDisabled=false
+      -url=jdbc:postgresql://postgres:5432/fitlytics
+      -user=fitlytics
+      -password=fitlytics
+      -schemas=fitlytics
+      -locations=filesystem:/flyway/sql_versioned,filesystem:/flyway/sql_repeatable
+      clean migrate
+    restart: "no"
+
+volumes:
+  fitlytics_pgdata:
