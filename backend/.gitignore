@@ -1,0 +1,9 @@
+# Local environment
+.env
+
+# Build output
+/bin/
+api
+api.exe
+gen
+gen.exe
