@@ -111,9 +111,33 @@ Vite dev server with HMR on `http://localhost:5173`.
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | GET | `/healthz` | none | Liveness + DB connection check |
+| GET | `/swagger/index.html` | none (dev only) | Swagger UI for the OpenAPI spec |
 | GET | `/api/me` | yes  | Returns the authenticated caller's profile |
+| GET | `/api/programs/:id` | yes  | Full program tree (weeks → days → exercises → set targets) |
 
 Protected routes (`/api/*`) require an `Authorization: Bearer <WorkOS access token>` header. See the auth section below for how the middleware validates it.
+
+### OpenAPI / Swagger
+
+The OpenAPI 2.0 spec is generated from the `@Summary` / `@Param` / `@Success`
+doc comments on each controller and lands at `backend/docs/swagger.{json,yaml}`.
+The `docs/` directory is **git-ignored** — it's a build artifact, regenerated
+locally and on CI.
+
+```bash
+cd backend
+make swagger-install       # one-time: installs the swag CLI into $GOPATH/bin
+make swagger               # forces a regen of docs/ from current handler comments
+```
+
+`make build` and `make run` depend on `docs/docs.go` via a file rule, so a
+fresh clone auto-generates the spec on first build — you only need to call
+`make swagger` explicitly when you've changed a doc comment / DTO and the API
+is already running.
+
+The Swagger UI is mounted at `http://localhost:8080/swagger/index.html` when
+the API runs in non-production mode. Use `docs/swagger.json` as the input to
+the frontend's TypeScript client codegen.
 
 ## Environment variables
 
@@ -152,7 +176,11 @@ only need to be set if the derivation is wrong.
 | `go vet ./...` | Static checks |
 | `go mod tidy` | Sync `go.mod` / `go.sum` |
 | `go run ./cmd/gen` | Regenerate GORM models from the live DB schema |
-| `make run` / `make build` / `make generate` | Same as above via Makefile |
+| `make run` / `make build` / `make generate` | Same as above via Makefile (auto-runs `swag` if `docs/` is missing) |
+| `make test` | Run the test suite (auto-bootstraps `docs/`) |
+| `make test-cover` | Run tests + write `cover.out` and an HTML report at `cover.html` |
+| `make swagger-install` | One-time install of the `swag` CLI |
+| `make swagger` | Force-regenerate `docs/swagger.{json,yaml,go}` from handler doc comments |
 
 ### Database (from `database/`)
 
@@ -194,6 +222,20 @@ cd ../backend && go run ./cmd/gen
 # 4. Build to catch any breakage from the regen
 go build ./...
 ```
+
+## Seed data for local development
+
+A repeatable Flyway migration at
+[`database/flyway/sql_repeatable/R__seed_dev_data.sql`](database/flyway/sql_repeatable/R__seed_dev_data.sql)
+seeds a test user (`workos_user_id = 'seed_user_logan'`), a canonical exercise
+catalog, an 8-week powerlifting program, and four sample logged sessions for
+week 1. It applies automatically on `docker compose up`.
+
+**Idempotency**: every row uses a deterministic md5-based UUID, and every
+insert ends in `on conflict (id) do nothing`. Re-running the migration is a
+no-op when the data is already present, and a partial backfill when rows are
+missing — never an error, never a duplicate. The same UUIDs appear in every
+environment, which is handy for hard-coding fixtures during frontend dev.
 
 ## Regenerating Go models from the schema
 

@@ -1,9 +1,19 @@
 # Local environment
 .env
 
-# Build output
+# Build output. Patterns are anchored to backend/ root so they don't shadow
+# the cmd/api/ and cmd/gen/ source directories.
 /bin/
-api
-api.exe
-gen
-gen.exe
+/api
+/api.exe
+/gen
+/gen.exe
+
+# Generated OpenAPI spec — regenerate locally with `make swagger`.
+# The directory is recreated by swag; the blank import in cmd/api/main.go
+# requires the package to exist before the API will compile.
+/docs/
+
+# Coverage artifacts from `make test-cover`.
+cover.out
+cover.html
