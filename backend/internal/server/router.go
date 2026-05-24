@@ -5,11 +5,14 @@ import (
 	"log/slog"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"gorm.io/gorm"
 
 	"github.com/thompsonlogan/fitlytics/backend/internal/auth"
 	"github.com/thompsonlogan/fitlytics/backend/internal/handlers"
 	"github.com/thompsonlogan/fitlytics/backend/internal/middleware"
+	"github.com/thompsonlogan/fitlytics/backend/internal/programs"
 	"github.com/thompsonlogan/fitlytics/backend/internal/users"
 )
 
@@ -34,12 +37,24 @@ func NewRouter(deps Dependencies, isProduction bool) *gin.Engine {
 	// Public routes.
 	r.GET("/healthz", handlers.Health(deps.DB))
 
+	// Swagger UI — dev/staging only. The generated spec lives in backend/docs
+	// and is registered via the blank import in cmd/api/main.go.
+	if !isProduction {
+		r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	}
+
+	// Feature wiring. The repository/service/handler triad is built here so
+	// each feature can be tested in isolation without booting the router.
+	programsRepo := programs.NewRepository(deps.DB)
+	programsSvc := programs.NewService(programsRepo)
+	programsHandler := programs.NewHandler(programsSvc, deps.Log)
+
 	// Authenticated routes — every handler below can call auth.MustPrincipal.
 	api := r.Group("/api")
 	api.Use(middleware.RequireAuth(deps.Verifier, deps.Users, deps.Log))
 	{
 		api.GET("/me", handlers.Me())
-		// Feature route groups (programs, sessions, exercises, ...) mount here.
+		programsHandler.Register(api)
 	}
 
 	return r
