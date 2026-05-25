@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -29,7 +30,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Separator } from "@/components/ui/separator"
-import type { Me } from "@/hooks/use-auth"
+import type { MeResponse } from "@/services/generated"
 import { cn } from "@/lib/utils"
 
 export type Section = "today" | "program" | "history" | "analytics"
@@ -51,7 +52,7 @@ type AppHeaderProps = {
   section: Section
   onSectionChange: (next: Section) => void
   onLogout: () => void
-  user: Me | null
+  user: MeResponse | null
 }
 
 export function AppHeader({ section, onSectionChange, onLogout, user }: AppHeaderProps) {
@@ -134,12 +135,14 @@ export function AppHeader({ section, onSectionChange, onLogout, user }: AppHeade
           }
         />
         <DropdownMenuContent align="end" className="min-w-56 p-1.5">
-          <DropdownMenuLabel className="flex flex-col gap-0.5 py-1 pb-2">
-            <span className="text-[0.8125rem] font-semibold text-foreground">{displayName}</span>
-            {email && (
-              <span className="text-xs font-normal text-muted-foreground">{email}</span>
-            )}
-          </DropdownMenuLabel>
+          <DropdownMenuGroup>
+            <DropdownMenuLabel className="flex flex-col gap-0.5 py-1 pb-2">
+              <span className="text-[0.8125rem] font-semibold text-foreground">{displayName}</span>
+              {email && (
+                <span className="text-xs font-normal text-muted-foreground">{email}</span>
+              )}
+            </DropdownMenuLabel>
+          </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem>
             <User className="size-3.5" />
@@ -179,7 +182,7 @@ export function AppHeader({ section, onSectionChange, onLogout, user }: AppHeade
   )
 }
 
-function getInitials(user: Me | null): string {
+function getInitials(user: MeResponse | null): string {
   const name = user?.displayName?.trim()
   if (name) {
     const parts = name.split(/\s+/).filter(Boolean)

@@ -1,13 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { useServices } from "@/services/context"
-import type { AuthApi } from "@/services/generated"
-import type { MeResponse } from "@/services/generated"
+import type { AuthApi, MeResponse } from "@/services/generated"
 import { ResponseError } from "@/services/generated/runtime"
-
-// Me is re-exported from the generated client so consumers can keep importing
-// it from "@/hooks/use-auth" without knowing about the OpenAPI layer.
-export type Me = MeResponse
 
 // ME_KEY is exported so route guards (beforeLoad in the router) can read the
 // cached value via queryClient.ensureQueryData without re-declaring the key.
@@ -17,7 +12,7 @@ export const ME_KEY = ["me"] as const
 // triggers one silent refresh; if the refresh also fails we return null so
 // the route guard can redirect to /login. Any other error bubbles so React
 // Query can surface it.
-export async function fetchMe(authApi: AuthApi): Promise<Me | null> {
+export async function fetchMe(authApi: AuthApi): Promise<MeResponse | null> {
   try {
     return await authApi.apiMeGet()
   } catch (err) {

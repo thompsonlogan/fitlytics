@@ -10,7 +10,7 @@
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
-    "api:generate": "docker compose -f tools/docker-compose.yml run --rm main"
+    "api_generate": "docker compose -f tools/docker-compose.yml run --rm main"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
