@@ -29,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Separator } from "@/components/ui/separator"
+import type { Me } from "@/hooks/use-auth"
 import { cn } from "@/lib/utils"
 
 export type Section = "today" | "program" | "history" | "analytics"
@@ -50,11 +51,16 @@ type AppHeaderProps = {
   section: Section
   onSectionChange: (next: Section) => void
   onLogout: () => void
+  user: Me | null
 }
 
-export function AppHeader({ section, onSectionChange, onLogout }: AppHeaderProps) {
+export function AppHeader({ section, onSectionChange, onLogout, user }: AppHeaderProps) {
   const { theme, setTheme } = useTheme()
   const isDark = theme === "dark"
+
+  const displayName = user?.displayName?.trim() || user?.email || "Account"
+  const email = user?.email ?? ""
+  const initials = getInitials(user)
 
   return (
     <header className="flex items-center gap-3 border-b bg-background px-5 py-2.5">
@@ -121,7 +127,7 @@ export function AppHeader({ section, onSectionChange, onLogout }: AppHeaderProps
               className="inline-flex h-7 items-center gap-1.5 rounded-full border bg-background py-0.5 pr-1.5 pl-0.5 text-xs transition-colors hover:bg-muted"
             >
               <span className="inline-flex size-[1.375rem] items-center justify-center rounded-full bg-foreground text-[0.6875rem] font-semibold text-background">
-                JH
+                {initials}
               </span>
               <ChevronDown className="size-3 text-muted-foreground" />
             </button>
@@ -129,10 +135,10 @@ export function AppHeader({ section, onSectionChange, onLogout }: AppHeaderProps
         />
         <DropdownMenuContent align="end" className="min-w-56 p-1.5">
           <DropdownMenuLabel className="flex flex-col gap-0.5 py-1 pb-2">
-            <span className="text-[0.8125rem] font-semibold text-foreground">Jordan Hall</span>
-            <span className="text-xs font-normal text-muted-foreground">
-              jordan@fitlytics.app
-            </span>
+            <span className="text-[0.8125rem] font-semibold text-foreground">{displayName}</span>
+            {email && (
+              <span className="text-xs font-normal text-muted-foreground">{email}</span>
+            )}
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem>
@@ -171,4 +177,19 @@ export function AppHeader({ section, onSectionChange, onLogout }: AppHeaderProps
       </DropdownMenu>
     </header>
   )
+}
+
+function getInitials(user: Me | null): string {
+  const name = user?.displayName?.trim()
+  if (name) {
+    const parts = name.split(/\s+/).filter(Boolean)
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    }
+    return parts[0].slice(0, 2).toUpperCase()
+  }
+  if (user?.email) {
+    return user.email[0].toUpperCase()
+  }
+  return "?"
 }

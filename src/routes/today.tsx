@@ -4,16 +4,18 @@ import { AppHeader, type Section } from "@/components/workout/app-header"
 import { DayBoard } from "@/components/workout/day-board"
 import { Footer } from "@/components/workout/footer"
 import { SubBar } from "@/components/workout/sub-bar"
+import { useAuth } from "@/hooks/use-auth"
 import { useWorkoutProgram } from "@/hooks/use-workout-program"
 
 const TODAY_INDEX = 0
 
-export function App() {
+export function TodayPage() {
   const [section, setSection] = useState<Section>("today")
   const [week, setWeek] = useState(1)
   const [dayIndex, setDayIndex] = useState(TODAY_INDEX)
 
   const { data: program, isLoading } = useWorkoutProgram()
+  const { user, signOut } = useAuth()
 
   if (isLoading || !program) {
     return (
@@ -36,7 +38,8 @@ export function App() {
       <AppHeader
         section={section}
         onSectionChange={setSection}
-        onLogout={() => alert("Logged out (demo)")}
+        onLogout={signOut}
+        user={user}
       />
       <SubBar
         program={program}
@@ -57,5 +60,3 @@ export function App() {
     </div>
   )
 }
-
-export default App

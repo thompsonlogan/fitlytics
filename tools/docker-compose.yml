@@ -1,0 +1,24 @@
+# OpenAPI client generator for the Fitlytics SPA.
+#
+# Usage (from this folder):
+#   docker compose run --rm main
+#
+# Pulls the live swagger spec from the local backend over host.docker.internal
+# (the Go API must be running — `go run ./cmd/api` from backend/), then writes
+# the typescript-fetch client into src/services/generated. Regenerate every
+# time a handler's swag comments change.
+services:
+  main:
+    image: "openapitools/openapi-generator-cli"
+    command:
+      [
+        "generate",
+        "-i",
+        "http://host.docker.internal:8080/swagger/doc.json",
+        "-g",
+        "typescript-fetch",
+        "-o",
+        "/local",
+      ]
+    volumes:
+      - ../src/services/generated:/local
