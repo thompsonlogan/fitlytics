@@ -21,9 +21,9 @@ import (
 // request logger and gin.Recovery.
 func RequireAuth(verifier *auth.Verifier, userSvc *users.Service, log *slog.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		raw, ok := bearerToken(c)
+		raw, ok := extractToken(c)
 		if !ok {
-			abortUnauthorized(c, "missing bearer token")
+			abortUnauthorized(c, "missing access token")
 			return
 		}
 
@@ -50,18 +50,23 @@ func RequireAuth(verifier *auth.Verifier, userSvc *users.Service, log *slog.Logg
 	}
 }
 
-// bearerToken extracts the token from an "Authorization: Bearer <token>" header.
-func bearerToken(c *gin.Context) (string, bool) {
-	header := c.GetHeader("Authorization")
-	if header == "" {
-		return "", false
+// extractToken returns the access token from either an
+// "Authorization: Bearer <token>" header or the session cookie set by the
+// /auth/callback handler. The header wins when both are present so tools like
+// curl and Swagger continue to work alongside browser sessions.
+func extractToken(c *gin.Context) (string, bool) {
+	if header := c.GetHeader("Authorization"); header != "" {
+		const prefix = "Bearer "
+		if len(header) > len(prefix) && strings.EqualFold(header[:len(prefix)], prefix) {
+			if tok := strings.TrimSpace(header[len(prefix):]); tok != "" {
+				return tok, true
+			}
+		}
 	}
-	const prefix = "Bearer "
-	if len(header) <= len(prefix) || !strings.EqualFold(header[:len(prefix)], prefix) {
-		return "", false
+	if cookie, err := c.Cookie(auth.AccessCookie); err == nil && cookie != "" {
+		return cookie, true
 	}
-	token := strings.TrimSpace(header[len(prefix):])
-	return token, token != ""
+	return "", false
 }
 
 func abortUnauthorized(c *gin.Context, reason string) {

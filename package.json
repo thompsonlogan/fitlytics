@@ -9,13 +9,15 @@
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "api_generate": "docker compose -f tools/docker-compose.yml run --rm main"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
     "@fontsource-variable/inter": "^5.2.8",
     "@tailwindcss/vite": "^4.2.1",
     "@tanstack/react-query": "^5.100.10",
+    "@tanstack/react-router": "^1.170.8",
     "@tanstack/react-table": "^8.21.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

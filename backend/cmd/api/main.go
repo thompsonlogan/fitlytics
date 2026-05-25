@@ -25,6 +25,7 @@ import (
 	"github.com/thompsonlogan/fitlytics/backend/internal/auth"
 	"github.com/thompsonlogan/fitlytics/backend/internal/config"
 	"github.com/thompsonlogan/fitlytics/backend/internal/database"
+	"github.com/thompsonlogan/fitlytics/backend/internal/handlers"
 	"github.com/thompsonlogan/fitlytics/backend/internal/logger"
 	"github.com/thompsonlogan/fitlytics/backend/internal/server"
 	"github.com/thompsonlogan/fitlytics/backend/internal/users"
@@ -65,6 +66,14 @@ func main() {
 		Verifier: verifier,
 		Users:    userSvc,
 		Log:      log,
+		Auth: handlers.AuthDeps{
+			ClientID:    cfg.WorkOSClientID,
+			RedirectURI: cfg.WorkOSRedirectURI,
+			AppURL:      cfg.AppURL,
+			Cookies:     auth.CookieOpts{Secure: cfg.IsProduction()},
+			Verifier:    verifier,
+			Log:         log,
+		},
 	}, cfg.IsProduction())
 
 	if err := server.Run(ctx, ":"+cfg.HTTPPort, router, log); err != nil {
