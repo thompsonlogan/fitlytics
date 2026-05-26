@@ -96,6 +96,74 @@ func TestServiceGetFullTree_RepoErrorIsWrapped(t *testing.T) {
 	}
 }
 
+// ─── ListByOwner ────────────────────────────────────────────────────────────
+
+func TestServiceListByOwner_PassesOwnerAndMapsRows(t *testing.T) {
+	ownerID := fixedID("user:1")
+	rows := []models.Program{
+		{ID: fixedID("program:1"), Name: "A", CreatedAt: builtAt, UpdatedAt: builtAt},
+		{ID: fixedID("program:2"), Name: "B", CreatedAt: builtAt, UpdatedAt: builtAt},
+	}
+
+	repo := &fakeRepository{
+		listByOwnerFn: func(_ context.Context, _ uuid.UUID) ([]models.Program, error) {
+			return rows, nil
+		},
+	}
+
+	got, err := NewService(repo).ListByOwner(context.Background(), ownerID)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if repo.listByOwnerCallCount != 1 {
+		t.Errorf("repo ListByOwner calls: want 1, got %d", repo.listByOwnerCallCount)
+	}
+	if repo.lastListOwnerID != ownerID {
+		t.Errorf("owner id passed to repo: want %v, got %v", ownerID, repo.lastListOwnerID)
+	}
+	if len(got) != 2 || got[0].Name != "A" || got[1].Name != "B" {
+		t.Errorf("mapped rows: %+v", got)
+	}
+}
+
+func TestServiceListByOwner_EmptyRowsReturnsEmptySlice(t *testing.T) {
+	repo := &fakeRepository{
+		listByOwnerFn: func(_ context.Context, _ uuid.UUID) ([]models.Program, error) {
+			return nil, nil
+		},
+	}
+
+	got, err := NewService(repo).ListByOwner(context.Background(), uuid.New())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Must be non-nil for JSON [] rendering — the API contract is "always
+	// an array, never null".
+	if got == nil {
+		t.Fatal("returned slice must be non-nil")
+	}
+	if len(got) != 0 {
+		t.Errorf("expected empty slice, got %d entries", len(got))
+	}
+}
+
+func TestServiceListByOwner_RepoErrorIsWrapped(t *testing.T) {
+	boom := errors.New("connection refused")
+	repo := &fakeRepository{
+		listByOwnerFn: func(_ context.Context, _ uuid.UUID) ([]models.Program, error) {
+			return nil, boom
+		},
+	}
+
+	got, err := NewService(repo).ListByOwner(context.Background(), uuid.New())
+	if got != nil {
+		t.Errorf("expected nil slice on error, got %v", got)
+	}
+	if !errors.Is(err, boom) {
+		t.Errorf("error should wrap underlying repo error; got %v", err)
+	}
+}
+
 func TestServiceGetFullTree_NameLookupErrorIsWrapped(t *testing.T) {
 	boom := errors.New("exercise table unavailable")
 	repo := &fakeRepository{

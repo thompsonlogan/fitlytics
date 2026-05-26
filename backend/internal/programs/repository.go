@@ -20,6 +20,11 @@ type Repository interface {
 	// belong to the caller — the service maps that to a 404.
 	GetFullTree(ctx context.Context, programID, ownerUserID uuid.UUID) (*models.Program, error)
 
+	// ListByOwner returns the bare program rows owned by the caller, ordered
+	// by created_at ASC. No children are preloaded — this powers the program
+	// picker, which only needs id + name.
+	ListByOwner(ctx context.Context, ownerUserID uuid.UUID) ([]models.Program, error)
+
 	// LookupExerciseNames returns a {exercise_id: name} map for the given ids.
 	// Used by the service to enrich program_exercises with the canonical name
 	// in one round-trip instead of N+1 queries.
@@ -52,6 +57,17 @@ func (r *repository) GetFullTree(ctx context.Context, programID, ownerUserID uui
 	}
 
 	return &program, nil
+}
+
+func (r *repository) ListByOwner(ctx context.Context, ownerUserID uuid.UUID) ([]models.Program, error) {
+	var rows []models.Program
+	if err := r.db.WithContext(ctx).
+		Where("owner_user_id = ?", ownerUserID).
+		Order("created_at ASC").
+		Find(&rows).Error; err != nil {
+		return nil, fmt.Errorf("list programs: %w", err)
+	}
+	return rows, nil
 }
 
 func (r *repository) LookupExerciseNames(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]string, error) {

@@ -97,6 +97,23 @@ func mapExercise(e models.ProgramExercise, names map[uuid.UUID]string) ProgramEx
 	return out
 }
 
+// mapProgramSummaries converts a flat list of program rows into the lighter
+// summary shape returned by the list endpoint. Returns an empty (non-nil)
+// slice when there are no rows so JSON serializes as `[]` instead of `null`.
+func mapProgramSummaries(rows []models.Program) []ProgramSummaryResponse {
+	out := make([]ProgramSummaryResponse, 0, len(rows))
+	for _, p := range rows {
+		out = append(out, ProgramSummaryResponse{
+			ID:          p.ID,
+			Name:        p.Name,
+			Description: p.Description,
+			CreatedAt:   p.CreatedAt,
+			UpdatedAt:   p.UpdatedAt,
+		})
+	}
+	return out
+}
+
 func mapSetTarget(t models.ProgramSetTarget) ProgramSetTargetResponse {
 	return ProgramSetTargetResponse{
 		ID:                     t.ID,

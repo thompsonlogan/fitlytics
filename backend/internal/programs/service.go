@@ -22,6 +22,10 @@ type Service interface {
 	// GetFullTree returns the program tree owned by ownerUserID. Returns
 	// ErrNotFound if the program is missing or owned by someone else.
 	GetFullTree(ctx context.Context, programID, ownerUserID uuid.UUID) (*ProgramResponse, error)
+
+	// ListByOwner returns the caller's programs in created_at ASC order.
+	// Returns an empty slice — never nil — so JSON serialization is stable.
+	ListByOwner(ctx context.Context, ownerUserID uuid.UUID) ([]ProgramSummaryResponse, error)
 }
 
 type service struct {
@@ -51,4 +55,12 @@ func (s *service) GetFullTree(ctx context.Context, programID, ownerUserID uuid.U
 	}
 
 	return mapProgram(program, names), nil
+}
+
+func (s *service) ListByOwner(ctx context.Context, ownerUserID uuid.UUID) ([]ProgramSummaryResponse, error) {
+	rows, err := s.repo.ListByOwner(ctx, ownerUserID)
+	if err != nil {
+		return nil, fmt.Errorf("list programs: %w", err)
+	}
+	return mapProgramSummaries(rows), nil
 }

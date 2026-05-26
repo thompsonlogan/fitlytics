@@ -6,4 +6,5 @@ export * from './ProgramDayResponse';
 export * from './ProgramExerciseResponse';
 export * from './ProgramResponse';
 export * from './ProgramSetTargetResponse';
+export * from './ProgramSummaryResponse';
 export * from './ProgramWeekResponse';

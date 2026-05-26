@@ -15,9 +15,15 @@
 
 set search_path to fitlytics, public;
 
--- 1. Test user
+-- 1. Owner user
+--
+-- Pinned to Logan's real WorkOS identity so the seeded program lights up the
+-- UI on first login. The users.ResolveOrProvision flow upserts on
+-- workos_user_id, so this row becomes the canonical local mirror — the
+-- provisioning path on first auth resolves to it instead of creating a
+-- duplicate row with a different UUID.
 insert into users (id, workos_user_id, display_name, email, unit_pref, timezone) values
-  ('05bfa01a-3609-4e57-b34c-267f0762204c', 'seed_user_logan', 'Logan (seed)', 'logan+seed@fitlytics.local', 'imperial', 'America/Los_Angeles')
+  ('265f6d7d-c361-4189-ac41-3f053b2b217d', 'user_01KSD69HT48DQP44SCN92F9NSC', 'Logan Thompson', 'thompsonlogan78@gmail.com', 'imperial', 'UTC')
 on conflict (id) do nothing;
 
 -- 2. Canonical exercises referenced by the program.
@@ -43,7 +49,7 @@ on conflict (id) do nothing;
 
 -- 3. Program
 insert into programs (id, owner_user_id, name, description) values
-  ('8d645f69-e0a2-4b07-a30b-0a20634e2abb', '05bfa01a-3609-4e57-b34c-267f0762204c', 'Logan PL — May/June 2026 Block', '8-week powerlifting block parsed from Logan PL.xlsx. Weeks 1-4 from sheet 542026, weeks 5-8 from sheet 612026.')
+  ('8d645f69-e0a2-4b07-a30b-0a20634e2abb', '265f6d7d-c361-4189-ac41-3f053b2b217d', 'Logan PL — May/June 2026 Block', '8-week powerlifting block parsed from Logan PL.xlsx. Weeks 1-4 from sheet 542026, weeks 5-8 from sheet 612026.')
 on conflict (id) do nothing;
 
 -- 4. Weeks 1-8
@@ -540,10 +546,10 @@ insert into sessions
   (id, user_id, program_day_id, program_name_snap, day_name_snap, state,
    scheduled_for, started_at, completed_at, notes)
 values
-  ('89489b1f-6ad2-4314-88ba-abc8fb40957f', '05bfa01a-3609-4e57-b34c-267f0762204c', '78a3a15f-b735-4bf1-bdbc-ace8ac318e77', 'Logan PL — May/June 2026 Block', 'Day 1', 'completed', '2026-05-04', '2026-05-04 17:30:00+00', '2026-05-04 18:45:00+00', null),
-  ('df727df5-b1ca-46c8-90db-f70dabe8353a', '05bfa01a-3609-4e57-b34c-267f0762204c', 'c826cd6f-21cb-492c-b181-194feb2a57ec', 'Logan PL — May/June 2026 Block', 'Day 2', 'completed', '2026-05-06', '2026-05-06 17:30:00+00', '2026-05-06 18:45:00+00', null),
-  ('1f8c575e-5b22-4e98-9ea5-f56b2d92e135', '05bfa01a-3609-4e57-b34c-267f0762204c', '9f113763-bf66-4840-94cf-5b54f150f6af', 'Logan PL — May/June 2026 Block', 'Day 3', 'completed', '2026-05-07', '2026-05-07 17:30:00+00', '2026-05-07 18:45:00+00', null),
-  ('77201cf5-b5c4-46ad-9994-84d1aa5e5e67', '05bfa01a-3609-4e57-b34c-267f0762204c', 'f2485f21-f719-4c9d-92d2-3007128f3619', 'Logan PL — May/June 2026 Block', 'Day 4', 'completed', '2026-05-08', '2026-05-08 17:30:00+00', '2026-05-08 18:45:00+00', null)
+  ('89489b1f-6ad2-4314-88ba-abc8fb40957f', '265f6d7d-c361-4189-ac41-3f053b2b217d', '78a3a15f-b735-4bf1-bdbc-ace8ac318e77', 'Logan PL — May/June 2026 Block', 'Day 1', 'completed', '2026-05-04', '2026-05-04 17:30:00+00', '2026-05-04 18:45:00+00', null),
+  ('df727df5-b1ca-46c8-90db-f70dabe8353a', '265f6d7d-c361-4189-ac41-3f053b2b217d', 'c826cd6f-21cb-492c-b181-194feb2a57ec', 'Logan PL — May/June 2026 Block', 'Day 2', 'completed', '2026-05-06', '2026-05-06 17:30:00+00', '2026-05-06 18:45:00+00', null),
+  ('1f8c575e-5b22-4e98-9ea5-f56b2d92e135', '265f6d7d-c361-4189-ac41-3f053b2b217d', '9f113763-bf66-4840-94cf-5b54f150f6af', 'Logan PL — May/June 2026 Block', 'Day 3', 'completed', '2026-05-07', '2026-05-07 17:30:00+00', '2026-05-07 18:45:00+00', null),
+  ('77201cf5-b5c4-46ad-9994-84d1aa5e5e67', '265f6d7d-c361-4189-ac41-3f053b2b217d', 'f2485f21-f719-4c9d-92d2-3007128f3619', 'Logan PL — May/June 2026 Block', 'Day 4', 'completed', '2026-05-08', '2026-05-08 17:30:00+00', '2026-05-08 18:45:00+00', null)
 on conflict (id) do nothing;
 
 insert into session_exercises

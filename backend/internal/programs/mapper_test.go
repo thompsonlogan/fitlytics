@@ -167,6 +167,52 @@ func TestMapExercise_AllFieldsAndEmptySetTargets(t *testing.T) {
 	}
 }
 
+// ─── mapProgramSummaries ────────────────────────────────────────────────────
+
+func TestMapProgramSummaries(t *testing.T) {
+	t.Run("nil input returns empty non-nil slice (JSON [])", func(t *testing.T) {
+		out := mapProgramSummaries(nil)
+		if out == nil {
+			t.Fatal("returned slice must be non-nil so JSON renders []")
+		}
+		if len(out) != 0 {
+			t.Errorf("expected empty slice, got %d entries", len(out))
+		}
+	})
+
+	t.Run("copies all scalar fields and preserves order", func(t *testing.T) {
+		p1 := models.Program{
+			ID:          fixedID("program:a"),
+			Name:        "A",
+			Description: ptr("first"),
+			CreatedAt:   builtAt,
+			UpdatedAt:   builtAt,
+		}
+		p2 := models.Program{
+			ID:        fixedID("program:b"),
+			Name:      "B",
+			CreatedAt: builtAt,
+			UpdatedAt: builtAt,
+		}
+
+		out := mapProgramSummaries([]models.Program{p1, p2})
+
+		if len(out) != 2 {
+			t.Fatalf("len: want 2, got %d", len(out))
+		}
+		if out[0].ID != p1.ID || out[0].Name != "A" || *out[0].Description != "first" {
+			t.Errorf("p1 not copied: %+v", out[0])
+		}
+		// Nil Description on input must round-trip as nil pointer.
+		if out[1].Description != nil {
+			t.Errorf("p2 Description should be nil, got %v", out[1].Description)
+		}
+		if !out[0].CreatedAt.Equal(builtAt) {
+			t.Errorf("CreatedAt not preserved: %v", out[0].CreatedAt)
+		}
+	})
+}
+
 func TestMapSetTarget_AllScalarFieldsCopied(t *testing.T) {
 	t.Run("populated", func(t *testing.T) {
 		in := models.ProgramSetTarget{

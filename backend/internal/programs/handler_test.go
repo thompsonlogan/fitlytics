@@ -152,9 +152,100 @@ func TestHandlerGetByID_SuccessReturns200WithJSON(t *testing.T) {
 	}
 }
 
+// ─── List ───────────────────────────────────────────────────────────────────
+
+// newListTestContext mirrors newTestContext but targets the list endpoint
+// (no :id param required).
+func newListTestContext(t *testing.T, principalUserID uuid.UUID) (*gin.Context, *httptest.ResponseRecorder) {
+	t.Helper()
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/api/programs", nil)
+	auth.SetPrincipal(c, &auth.Principal{User: &models.User{ID: principalUserID}})
+	return c, w
+}
+
+func TestHandlerList_SuccessReturnsArray(t *testing.T) {
+	userID := uuid.New()
+	want := []ProgramSummaryResponse{
+		{ID: uuid.New(), Name: "Alpha"},
+		{ID: uuid.New(), Name: "Beta"},
+	}
+
+	var gotOwnerID uuid.UUID
+	svc := &fakeService{
+		listByOwnerFn: func(_ context.Context, oid uuid.UUID) ([]ProgramSummaryResponse, error) {
+			gotOwnerID = oid
+			return want, nil
+		},
+	}
+
+	c, w := newListTestContext(t, userID)
+	NewHandler(svc, silentLogger()).List(c)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status: want 200, got %d (body=%s)", w.Code, w.Body.String())
+	}
+	// Auth boundary: handler must filter by the principal, not by anything
+	// reachable from the request body or query string.
+	if gotOwnerID != userID {
+		t.Errorf("owner id passed to service: want %v (principal), got %v", userID, gotOwnerID)
+	}
+
+	var body []ProgramSummaryResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode body: %v", err)
+	}
+	if len(body) != 2 || body[0].Name != "Alpha" || body[1].Name != "Beta" {
+		t.Errorf("response body: %+v", body)
+	}
+}
+
+func TestHandlerList_EmptyReturnsEmptyArray(t *testing.T) {
+	svc := &fakeService{
+		listByOwnerFn: func(_ context.Context, _ uuid.UUID) ([]ProgramSummaryResponse, error) {
+			return []ProgramSummaryResponse{}, nil
+		},
+	}
+
+	c, w := newListTestContext(t, uuid.New())
+	NewHandler(svc, silentLogger()).List(c)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status: want 200, got %d", w.Code)
+	}
+	// Should be `[]`, not `null`. Decode into a non-nil slice and check
+	// the raw body to be sure.
+	if body := w.Body.String(); body != "[]" {
+		t.Errorf("body: want []\\n, got %q", body)
+	}
+}
+
+func TestHandlerList_ServiceErrorReturns500(t *testing.T) {
+	svc := &fakeService{
+		listByOwnerFn: func(_ context.Context, _ uuid.UUID) ([]ProgramSummaryResponse, error) {
+			return nil, errors.New("db unreachable")
+		},
+	}
+
+	c, w := newListTestContext(t, uuid.New())
+	NewHandler(svc, silentLogger()).List(c)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("status: want 500, got %d", w.Code)
+	}
+	var body ErrorResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode body: %v", err)
+	}
+	if body.Error != "internal server error" {
+		t.Errorf("error message: want %q, got %q", "internal server error", body.Error)
+	}
+}
+
 func TestHandlerRegisterMountsRoute(t *testing.T) {
-	// Belt-and-suspenders test: confirm the path string the handler registers
-	// matches the documented route. A typo here would otherwise only be caught
+	// Belt-and-suspenders test: confirm the path strings the handler registers
+	// match the documented routes. A typo here would otherwise only be caught
 	// by a hand test of the live server.
 	r := gin.New()
 	g := r.Group("/api")
@@ -162,6 +253,9 @@ func TestHandlerRegisterMountsRoute(t *testing.T) {
 	svc := &fakeService{
 		getFullTreeFn: func(_ context.Context, _, _ uuid.UUID) (*ProgramResponse, error) {
 			return &ProgramResponse{ID: uuid.New()}, nil
+		},
+		listByOwnerFn: func(_ context.Context, _ uuid.UUID) ([]ProgramSummaryResponse, error) {
+			return []ProgramSummaryResponse{}, nil
 		},
 	}
 
@@ -176,11 +270,22 @@ func TestHandlerRegisterMountsRoute(t *testing.T) {
 	})
 	h.Register(g)
 
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/programs/"+uuid.NewString(), nil)
-	r.ServeHTTP(w, req)
+	cases := []struct {
+		name string
+		path string
+	}{
+		{"GetByID", "/api/programs/" + uuid.NewString()},
+		{"List", "/api/programs"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodGet, tc.path, nil)
+			r.ServeHTTP(w, req)
 
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected route to be reachable; got status %d (body=%s)", w.Code, w.Body.String())
+			if w.Code != http.StatusOK {
+				t.Fatalf("expected route to be reachable; got status %d (body=%s)", w.Code, w.Body.String())
+			}
+		})
 	}
 }

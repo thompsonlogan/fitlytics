@@ -109,6 +109,70 @@ func TestRepositoryLookupExerciseNames_DBError(t *testing.T) {
 	}
 }
 
+// ─── ListByOwner ────────────────────────────────────────────────────────────
+
+func TestRepositoryListByOwner_FiltersByOwnerAndOrders(t *testing.T) {
+	db, mock := newMockDB(t)
+
+	ownerID := uuid.New()
+	p1, p2 := uuid.New(), uuid.New()
+	now := time.Now()
+
+	// soft-delete tables get "deleted_at" IS NULL appended.
+	mock.ExpectQuery(`SELECT \* FROM "programs" WHERE owner_user_id = \$1 AND "programs"\."deleted_at" IS NULL ORDER BY created_at ASC`).
+		WithArgs(uuidArg(ownerID)).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "owner_user_id", "name", "description", "created_at", "updated_at", "deleted_at",
+		}).
+			AddRow(p1, ownerID, "Alpha", nil, now, now, nil).
+			AddRow(p2, ownerID, "Beta", nil, now, now, nil))
+
+	got, err := NewRepository(db).ListByOwner(context.Background(), ownerID)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(got) != 2 || got[0].Name != "Alpha" || got[1].Name != "Beta" {
+		t.Errorf("unexpected rows: %+v", got)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
+func TestRepositoryListByOwner_EmptyResultReturnsEmpty(t *testing.T) {
+	db, mock := newMockDB(t)
+	ownerID := uuid.New()
+
+	mock.ExpectQuery(`SELECT \* FROM "programs"`).
+		WithArgs(uuidArg(ownerID)).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}))
+
+	got, err := NewRepository(db).ListByOwner(context.Background(), ownerID)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(got) != 0 {
+		t.Errorf("expected empty slice, got %d entries", len(got))
+	}
+}
+
+func TestRepositoryListByOwner_DBErrorBubbles(t *testing.T) {
+	db, mock := newMockDB(t)
+	ownerID := uuid.New()
+
+	mock.ExpectQuery(`SELECT \* FROM "programs"`).
+		WithArgs(uuidArg(ownerID)).
+		WillReturnError(errors.New("conn closed"))
+
+	_, err := NewRepository(db).ListByOwner(context.Background(), ownerID)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
 // ─── GetFullTree ────────────────────────────────────────────────────────────
 
 func TestRepositoryGetFullTree_HappyPathPreloadsEntireAggregate(t *testing.T) {
