@@ -160,10 +160,13 @@ func exerciseNames() map[uuid.UUID]string {
 // tests that only exercise one method.
 type fakeRepository struct {
 	getFullTreeFn        func(ctx context.Context, programID, ownerUserID uuid.UUID) (*models.Program, error)
+	listByOwnerFn        func(ctx context.Context, ownerUserID uuid.UUID) ([]models.Program, error)
 	lookupExerciseFn     func(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]string, error)
 	lastLookupIDs        []uuid.UUID
 	lookupCalledCount    int
 	getFullTreeCallCount int
+	listByOwnerCallCount int
+	lastListOwnerID      uuid.UUID
 }
 
 func (f *fakeRepository) GetFullTree(ctx context.Context, programID, ownerUserID uuid.UUID) (*models.Program, error) {
@@ -172,6 +175,15 @@ func (f *fakeRepository) GetFullTree(ctx context.Context, programID, ownerUserID
 		return nil, nil
 	}
 	return f.getFullTreeFn(ctx, programID, ownerUserID)
+}
+
+func (f *fakeRepository) ListByOwner(ctx context.Context, ownerUserID uuid.UUID) ([]models.Program, error) {
+	f.listByOwnerCallCount++
+	f.lastListOwnerID = ownerUserID
+	if f.listByOwnerFn == nil {
+		return nil, nil
+	}
+	return f.listByOwnerFn(ctx, ownerUserID)
 }
 
 func (f *fakeRepository) LookupExerciseNames(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]string, error) {
@@ -186,6 +198,7 @@ func (f *fakeRepository) LookupExerciseNames(ctx context.Context, ids []uuid.UUI
 // fakeService implements Service for the handler tests.
 type fakeService struct {
 	getFullTreeFn func(ctx context.Context, programID, ownerUserID uuid.UUID) (*ProgramResponse, error)
+	listByOwnerFn func(ctx context.Context, ownerUserID uuid.UUID) ([]ProgramSummaryResponse, error)
 }
 
 func (f *fakeService) GetFullTree(ctx context.Context, programID, ownerUserID uuid.UUID) (*ProgramResponse, error) {
@@ -193,4 +206,11 @@ func (f *fakeService) GetFullTree(ctx context.Context, programID, ownerUserID uu
 		return nil, nil
 	}
 	return f.getFullTreeFn(ctx, programID, ownerUserID)
+}
+
+func (f *fakeService) ListByOwner(ctx context.Context, ownerUserID uuid.UUID) ([]ProgramSummaryResponse, error) {
+	if f.listByOwnerFn == nil {
+		return []ProgramSummaryResponse{}, nil
+	}
+	return f.listByOwnerFn(ctx, ownerUserID)
 }

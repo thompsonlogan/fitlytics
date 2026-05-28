@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import path from "path"
 import tailwindcss from "@tailwindcss/vite"
 import react from "@vitejs/plugin-react"
@@ -24,6 +25,18 @@ export default defineConfig(({ mode }) => {
         "/api": { target: apiTarget, changeOrigin: true },
         "/auth": { target: apiTarget, changeOrigin: true },
       },
+    },
+    test: {
+      // jsdom rather than happy-dom because @tanstack/react-router relies on a
+      // few DOM APIs that happy-dom misses; testing-library targets jsdom by
+      // default. Globals expose describe/it/expect without per-file imports.
+      environment: "jsdom",
+      globals: true,
+      setupFiles: ["./src/test/test_setup.ts"],
+      // Generated OpenAPI client is a fixture, not application code — exclude
+      // from runs so it doesn't get scanned for stray *.test.ts files.
+      exclude: ["node_modules", "dist", "src/services/generated/**"],
+      css: false,
     },
   }
 })

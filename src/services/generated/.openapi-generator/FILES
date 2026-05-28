@@ -8,6 +8,7 @@ models/ProgramDayResponse.ts
 models/ProgramExerciseResponse.ts
 models/ProgramResponse.ts
 models/ProgramSetTargetResponse.ts
+models/ProgramSummaryResponse.ts
 models/ProgramWeekResponse.ts
 models/index.ts
 runtime.ts

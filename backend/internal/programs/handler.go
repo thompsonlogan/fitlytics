@@ -25,7 +25,36 @@ func NewHandler(service Service, log *slog.Logger) *Handler {
 
 // Register mounts the program routes on the given (authenticated) router group.
 func (h *Handler) Register(rg *gin.RouterGroup) {
+	rg.GET("/programs", h.List)
 	rg.GET("/programs/:id", h.GetByID)
+}
+
+// List returns the bare program rows owned by the authenticated user, ordered
+// by created_at ASC.
+//
+// @Summary      List the caller's programs
+// @Description  Returns the lightweight program summaries (id, name, description, timestamps) for the authenticated user, ordered by created_at ASC. The frontend's program picker uses this to populate its list before fetching the full tree via GET /api/programs/{id}.
+// @Tags         Programs
+// @Produce      json
+// @Success      200  {array}   ProgramSummaryResponse
+// @Failure      401  {object}  ErrorResponse  "missing or invalid auth token"
+// @Failure      500  {object}  ErrorResponse  "internal server error"
+// @Security     BearerAuth
+// @Router       /api/programs [get]
+func (h *Handler) List(c *gin.Context) {
+	principal := auth.MustPrincipal(c)
+
+	programs, err := h.service.ListByOwner(c.Request.Context(), principal.User.ID)
+	if err != nil {
+		h.log.Error("list programs failed",
+			slog.String("user_id", principal.User.ID.String()),
+			slog.Any("error", err),
+		)
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, programs)
 }
 
 // GetByID returns the full program tree for the authenticated user.

@@ -7,11 +7,13 @@ import {
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { DAY_LETTERS, type Program, type ProgramDay } from "@/lib/program-data"
+import { DAY_LETTERS, type ProgramDay } from "@/lib/program-data"
 import { cn } from "@/lib/utils"
 
 type SubBarProps = {
-  program: Program
+  programName: string
+  weekCount: number
+  days: ProgramDay[]
   week: number
   dayIndex: number
   todayIndex: number
@@ -23,7 +25,9 @@ type SubBarProps = {
 }
 
 export function SubBar({
-  program,
+  programName,
+  weekCount,
+  days,
   week,
   dayIndex,
   todayIndex,
@@ -39,7 +43,7 @@ export function SubBar({
         <div className="mb-1 flex items-center gap-1.5 text-[0.6875rem] font-medium tracking-wider text-muted-foreground uppercase">
           <span>Programs</span>
           <ChevronRight className="size-2.5" />
-          <span>{program.name}</span>
+          <span>{programName}</span>
         </div>
         <div className="flex items-center gap-2 text-[1.0625rem] font-semibold tracking-tight whitespace-nowrap">
           <span>{dayData.off ? "Rest day" : dayData.name}</span>
@@ -75,8 +79,8 @@ export function SubBar({
         <button
           type="button"
           className="inline-flex w-7 items-center justify-center text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
-          onClick={() => onWeekChange(Math.min(program.weeks, week + 1))}
-          disabled={week === program.weeks}
+          onClick={() => onWeekChange(Math.min(weekCount, week + 1))}
+          disabled={week === weekCount}
           title="Next week"
         >
           <ChevronRight className="size-3.5" />
@@ -88,7 +92,7 @@ export function SubBar({
         role="tablist"
         aria-label="Day selector"
       >
-        {program.days.map((d, i) => {
+        {days.map((d, i) => {
           const isActive = dayIndex === i
           const isComplete = !!completedDays[`${week}-${i}`]
           const isToday = i === todayIndex

@@ -8,6 +8,18 @@ import (
 	"github.com/google/uuid"
 )
 
+// ProgramSummaryResponse is the lightweight shape returned by
+// GET /api/programs (no children). The frontend's program picker only needs
+// id + name to render an entry; full detail is loaded lazily via
+// GET /api/programs/:id.
+type ProgramSummaryResponse struct {
+	ID          uuid.UUID `json:"id" example:"8d645f69-e0a2-4b07-a30b-0a20634e2abb"`
+	Name        string    `json:"name" example:"Logan PL — May/June 2026 Block"`
+	Description *string   `json:"description,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+} // @name ProgramSummaryResponse
+
 // ProgramResponse is the full program tree returned by GET /api/programs/:id.
 //
 // Stable, hand-curated shape (separate from the generated GORM models) so the

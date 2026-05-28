@@ -227,9 +227,9 @@ go build ./...
 
 A repeatable Flyway migration at
 [`database/flyway/sql_repeatable/R__seed_dev_data.sql`](database/flyway/sql_repeatable/R__seed_dev_data.sql)
-seeds a test user (`workos_user_id = 'seed_user_logan'`), a canonical exercise
-catalog, an 8-week powerlifting program, and four sample logged sessions for
-week 1. It applies automatically on `docker compose up`.
+seeds the owner user (pinned to Logan's real `workos_user_id`), a canonical
+exercise catalog, an 8-week powerlifting program, and four sample logged
+sessions for week 1. It applies automatically on `docker compose up`.
 
 **Idempotency**: every row uses a deterministic md5-based UUID, and every
 insert ends in `on conflict (id) do nothing`. Re-running the migration is a

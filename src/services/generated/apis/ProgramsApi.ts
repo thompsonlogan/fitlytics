@@ -17,12 +17,15 @@ import * as runtime from '../runtime';
 import type {
   ErrorResponse,
   ProgramResponse,
+  ProgramSummaryResponse,
 } from '../models/index';
 import {
     ErrorResponseFromJSON,
     ErrorResponseToJSON,
     ProgramResponseFromJSON,
     ProgramResponseToJSON,
+    ProgramSummaryResponseFromJSON,
+    ProgramSummaryResponseToJSON,
 } from '../models/index';
 
 export interface ApiProgramsIdGetRequest {
@@ -33,6 +36,38 @@ export interface ApiProgramsIdGetRequest {
  * 
  */
 export class ProgramsApi extends runtime.BaseAPI {
+
+    /**
+     * Returns the lightweight program summaries (id, name, description, timestamps) for the authenticated user, ordered by created_at ASC. The frontend\'s program picker uses this to populate its list before fetching the full tree via GET /api/programs/{id}.
+     * List the caller\'s programs
+     */
+    async apiProgramsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<ProgramSummaryResponse>>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["Authorization"] = await this.configuration.apiKey("Authorization"); // BearerAuth authentication
+        }
+
+        const response = await this.request({
+            path: `/api/programs`,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(ProgramSummaryResponseFromJSON));
+    }
+
+    /**
+     * Returns the lightweight program summaries (id, name, description, timestamps) for the authenticated user, ordered by created_at ASC. The frontend\'s program picker uses this to populate its list before fetching the full tree via GET /api/programs/{id}.
+     * List the caller\'s programs
+     */
+    async apiProgramsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<ProgramSummaryResponse>> {
+        const response = await this.apiProgramsGetRaw(initOverrides);
+        return await response.value();
+    }
 
     /**
      * Returns the full program tree (program → weeks → days → exercises → set targets) for the authenticated user. The program must be owned by the caller; otherwise 404 is returned (existence is not leaked across users).
