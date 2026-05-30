@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 
 	"github.com/thompsonlogan/fitlytics/backend/internal/auth"
 	"github.com/thompsonlogan/fitlytics/backend/internal/users"
@@ -44,6 +45,28 @@ func RequireAuth(verifier *auth.Verifier, userSvc *users.Service, log *slog.Logg
 				gin.H{"error": "could not establish session"})
 			return
 		}
+
+		auth.SetPrincipal(c, &auth.Principal{User: user, Claims: claims})
+		c.Next()
+	}
+}
+
+// DevAuthBypass skips JWT verification and authenticates every request as the
+// given user. Development only — never enable in production.
+func DevAuthBypass(userSvc *users.Service, userID uuid.UUID, log *slog.Logger) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		user, err := userSvc.FindByID(c.Request.Context(), userID)
+		if err != nil {
+			log.ErrorContext(c.Request.Context(), "dev auth bypass: user not found",
+				slog.String("user_id", userID.String()),
+				slog.String("error", err.Error()))
+			c.AbortWithStatusJSON(http.StatusInternalServerError,
+				gin.H{"error": "dev auth bypass: user not found"})
+			return
+		}
+
+		claims := &auth.Claims{}
+		claims.Subject = user.WorkosUserID
 
 		auth.SetPrincipal(c, &auth.Principal{User: user, Claims: claims})
 		c.Next()

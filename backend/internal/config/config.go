@@ -29,6 +29,11 @@ type Config struct {
 	// AppURL is the absolute URL of the SPA. The callback handler bounces the
 	// user back here after a successful sign-in (e.g. http://localhost:5173).
 	AppURL string
+
+	// AuthBypassUserID, when set (development only), skips WorkOS JWT
+	// verification and authenticates every request as this local user.
+	// Set to the users.id UUID from the database.
+	AuthBypassUserID string
 }
 
 func (c Config) IsProduction() bool { return c.Env == "production" }
@@ -50,6 +55,7 @@ func Load() (Config, error) {
 		JWTIssuer:         env("WORKOS_JWT_ISSUER", ""),
 		WorkOSRedirectURI: env("WORKOS_REDIRECT_URI", ""),
 		AppURL:            env("APP_URL", ""),
+		AuthBypassUserID:  env("AUTH_BYPASS_USER_ID", ""),
 	}
 
 	var missing []string

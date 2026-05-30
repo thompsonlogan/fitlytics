@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
@@ -57,6 +58,14 @@ func (s *Service) ResolveOrProvision(ctx context.Context, claims *auth.Claims) (
 	// Re-read: OnConflict/DoNothing leaves row.ID unset when another request
 	// won the race, so always fetch the canonical row.
 	return s.findByWorkOSID(ctx, workosUserID)
+}
+
+func (s *Service) FindByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
+	var user models.User
+	if err := s.db.WithContext(ctx).First(&user, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 
 func (s *Service) findByWorkOSID(ctx context.Context, workosUserID string) (*models.User, error) {

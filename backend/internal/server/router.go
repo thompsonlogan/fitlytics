@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"gorm.io/gorm"
@@ -19,11 +20,12 @@ import (
 
 // Dependencies are the wired-up services a router needs.
 type Dependencies struct {
-	DB       *gorm.DB
-	Verifier *auth.Verifier
-	Users    *users.Service
-	Log      *slog.Logger
-	Auth     handlers.AuthDeps
+	DB               *gorm.DB
+	Verifier         *auth.Verifier
+	Users            *users.Service
+	Log              *slog.Logger
+	Auth             handlers.AuthDeps
+	AuthBypassUserID uuid.UUID
 }
 
 // NewRouter builds the Gin engine: a public health check plus an authenticated
@@ -67,7 +69,13 @@ func NewRouter(deps Dependencies, isProduction bool) *gin.Engine {
 
 	// Authenticated routes — every handler below can call auth.MustPrincipal.
 	api := r.Group("/api")
-	api.Use(middleware.RequireAuth(deps.Verifier, deps.Users, deps.Log))
+	if deps.AuthBypassUserID != uuid.Nil {
+		deps.Log.Warn("auth bypass enabled — all requests authenticated as user",
+			slog.String("user_id", deps.AuthBypassUserID.String()))
+		api.Use(middleware.DevAuthBypass(deps.Users, deps.AuthBypassUserID, deps.Log))
+	} else {
+		api.Use(middleware.RequireAuth(deps.Verifier, deps.Users, deps.Log))
+	}
 	{
 		api.GET("/me", handlers.Me())
 		programsHandler.Register(api)
