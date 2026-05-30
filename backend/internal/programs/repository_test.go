@@ -282,4 +282,3 @@ func TestRepositoryGetFullTree_DBErrorBubbles(t *testing.T) {
 		t.Fatalf("unmet expectations: %v", err)
 	}
 }
-

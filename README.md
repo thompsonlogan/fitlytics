@@ -10,7 +10,7 @@ flowchart LR
     User((User))
 
     subgraph Local[" "]
-        SPA["React + Vite SPA<br/>(src/)"]
+        SPA["React + Vite SPA<br/>(frontend/)"]
         API["Go API · Gin + GORM<br/>(backend/)"]
         DB[("Postgres 16<br/>schema: fitlytics")]
         Flyway["Flyway in Docker<br/>(database/)"]
@@ -39,11 +39,10 @@ flowchart LR
 
 | Path | What lives here |
 |------|-----------------|
-| `src/` | React + TypeScript frontend (Vite, shadcn/ui, Tailwind) |
-| `public/` | Static frontend assets served by Vite |
+| `frontend/` | React + TypeScript SPA (Vite, shadcn/ui, Tailwind CSS) |
 | `backend/` | Go API service |
 | `database/` | docker-compose for Postgres + Flyway, and the migration files |
-| `index.html`, `vite.config.ts`, `tsconfig*.json` | Frontend toolchain config at repo root |
+| `tools/` | Docker tooling (OpenAPI client generator) |
 
 ## Tech stack
 
@@ -96,6 +95,7 @@ curl http://localhost:8080/healthz
 ### 3. Frontend
 
 ```bash
+cd frontend
 pnpm install
 pnpm dev
 ```
@@ -155,7 +155,7 @@ only need to be set if the derivation is wrong.
 
 ## Common commands
 
-### Frontend (from repo root)
+### Frontend (from `frontend/`)
 
 | Command | What it does |
 |---------|--------------|

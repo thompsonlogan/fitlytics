@@ -21,4 +21,4 @@ services:
         "/local",
       ]
     volumes:
-      - ../src/services/generated:/local
+      - ../frontend/src/services/generated:/local
