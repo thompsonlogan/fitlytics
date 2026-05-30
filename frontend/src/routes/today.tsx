@@ -13,8 +13,8 @@ const TODAY_INDEX = 0
 // PLACEHOLDER_DAY keeps the SubBar's "current day" panel populated while the
 // program is loading so the header chrome doesn't pop in alongside the table
 // body. Strings deliberately match the visual weight of real data so layout
-// stays steady.
-const PLACEHOLDER_DAY: ProgramDay = { name: "Loading…", tag: "—" }
+// stays steady. The empty id is fine — DayBoard never renders this placeholder.
+const PLACEHOLDER_DAY: ProgramDay = { id: "", name: "Loading…", tag: "—" }
 
 export function TodayPage() {
   const [section, setSection] = useState<Section>("today")
@@ -34,9 +34,11 @@ export function TodayPage() {
   const days = activeWeek?.days ?? []
   const dayData = days[dayIndex] ?? PLACEHOLDER_DAY
 
-  const completedDays: Record<string, boolean> = { "1-3": true }
-  const initialCompleted: Record<string, boolean> =
-    week === 1 && dayIndex === 0 ? { "0-0": true } : {}
+  // Until session completion analytics ship, no day or set is pre-marked done —
+  // the source of truth is set_logs.was_completed, which only exists once the
+  // user starts a session and toggles a checkbox.
+  const completedDays: Record<string, boolean> = {}
+  const initialCompleted: Record<string, boolean> = {}
 
   if (isError) {
     return (
@@ -71,7 +73,13 @@ export function TodayPage() {
       {isLoading || !program ? (
         <DayBoardSkeleton />
       ) : (
-        <DayBoard key={`${week}-${dayIndex}`} day={dayData} initialCompleted={initialCompleted} />
+        <DayBoard
+          key={`${week}-${dayIndex}`}
+          day={dayData}
+          programId={program.id}
+          programDayId={dayData.id}
+          initialCompleted={initialCompleted}
+        />
       )}
       <Footer />
     </div>

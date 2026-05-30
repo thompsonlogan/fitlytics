@@ -12,9 +12,8 @@
 --   * Client-generated UUIDs (gen_random_uuid()) for offline-friendly sync.
 --   * Prescriptions are SNAPSHOTTED onto sessions at start time. Editing a
 --     program never rewrites history.
---   * set_logs are APPEND-ONLY. A "correction" inserts a new row and points
---     the original at it via corrected_by_id. Active rows are the ones with
---     corrected_by_id IS NULL AND deleted_at IS NULL.
+--   * set_logs are edited in place. Soft-delete via deleted_at is the only
+--     audit trail; deeper history can be added later if/when needed.
 --   * Single `exercises` table holds both curated canonical lifts and
 --     user-contributed entries. Group by coalesce(canonical_id, id) to roll
 --     analytics up to "the same lift."
@@ -298,10 +297,7 @@ create index session_exercises_exercise_idx on session_exercises (exercise_id);
 create trigger session_exercises_updated_at before update on session_exercises
   for each row execute function set_updated_at();
 
--- set_logs are append-only.
--- To "edit" a set, insert a new row and update the original's corrected_by_id
--- to point at the new one. Active rows for analytics:
---     where corrected_by_id is null and deleted_at is null
+-- set_logs are edited in place. Soft-delete via deleted_at; no audit chain.
 create table set_logs (
   id                        uuid primary key default gen_random_uuid(),
   session_exercise_id       uuid not null references session_exercises(id) on delete cascade,
@@ -327,18 +323,15 @@ create table set_logs (
   started_at                timestamptz,
   completed_at              timestamptz,
   was_completed             boolean not null default false,
-  -- append-only edit chain
-  corrected_by_id           uuid references set_logs(id) on delete set null,
   notes                     text,
   extras                    jsonb not null default '{}'::jsonb,
   created_at                timestamptz not null default now(),
   updated_at                timestamptz not null default now(),
-  deleted_at                timestamptz,
-  constraint set_logs_no_self_correction check (corrected_by_id is null or corrected_by_id <> id)
+  deleted_at                timestamptz
 );
 create index set_logs_active_seq_idx
   on set_logs (session_exercise_id, sequence)
-  where corrected_by_id is null and deleted_at is null;
+  where deleted_at is null;
 create trigger set_logs_updated_at before update on set_logs
   for each row execute function set_updated_at();
 

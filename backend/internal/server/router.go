@@ -13,6 +13,7 @@ import (
 	"github.com/thompsonlogan/fitlytics/backend/internal/handlers"
 	"github.com/thompsonlogan/fitlytics/backend/internal/middleware"
 	"github.com/thompsonlogan/fitlytics/backend/internal/programs"
+	"github.com/thompsonlogan/fitlytics/backend/internal/sessions"
 	"github.com/thompsonlogan/fitlytics/backend/internal/users"
 )
 
@@ -60,12 +61,17 @@ func NewRouter(deps Dependencies, isProduction bool) *gin.Engine {
 	programsSvc := programs.NewService(programsRepo)
 	programsHandler := programs.NewHandler(programsSvc, deps.Log)
 
+	sessionsRepo := sessions.NewRepository(deps.DB)
+	sessionsSvc := sessions.NewService(sessionsRepo)
+	sessionsHandler := sessions.NewHandler(sessionsSvc, deps.Log)
+
 	// Authenticated routes — every handler below can call auth.MustPrincipal.
 	api := r.Group("/api")
 	api.Use(middleware.RequireAuth(deps.Verifier, deps.Users, deps.Log))
 	{
 		api.GET("/me", handlers.Me())
 		programsHandler.Register(api)
+		sessionsHandler.Register(api)
 	}
 
 	return r

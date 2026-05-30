@@ -5,6 +5,7 @@
       "name": "fitlytics-dev",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["dev"],
+      "cwd": "frontend",
       "port": 5173
     }
   ]

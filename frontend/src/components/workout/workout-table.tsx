@@ -27,18 +27,33 @@ type WorkoutTableProps = {
   completed: Record<string, boolean>
   loadEdits: Record<string, string>
   rpeEdits: Record<string, string>
+  // persistedLoad/persistedRpe carry the session-backed actuals. Empty / null
+  // when the user has never logged that cell. Keyed by `${exIdx}-${blIdx}`
+  // to match WorkoutRow.key.
+  persistedLoad: Record<string, number | "">
+  persistedRpe: Record<string, number | null>
+  // cellErrors keys are `${rowKey}:${field}` (e.g. "0-1:load"). Presence of a
+  // key means "show the error UI on this cell"; the value is the message.
+  cellErrors: Record<string, string>
   onToggleSet: (key: string) => void
   onEditLoad: (key: string, value: string) => void
   onEditRpe: (key: string, value: string) => void
+  onBlurLoad: (key: string, value: string) => void
+  onBlurRpe: (key: string, value: string) => void
 }
 
 type WorkoutTableMeta = {
   completed: Record<string, boolean>
   loadEdits: Record<string, string>
   rpeEdits: Record<string, string>
+  persistedLoad: Record<string, number | "">
+  persistedRpe: Record<string, number | null>
+  cellErrors: Record<string, string>
   onToggleSet: (key: string) => void
   onEditLoad: (key: string, value: string) => void
   onEditRpe: (key: string, value: string) => void
+  onBlurLoad: (key: string, value: string) => void
+  onBlurRpe: (key: string, value: string) => void
 }
 
 const columnHelper = createColumnHelper<WorkoutRow>()
@@ -104,7 +119,7 @@ const COLUMNS = [
   }),
   columnHelper.accessor((row) => row.block.cap, {
     id: "cap",
-    header: () => "Cap",
+    header: () => "Load Cap",
     cell: (info) => (
       <span className="text-muted-foreground tabular-nums">
         {info.getValue() === "" ? "—" : info.getValue()}
@@ -113,24 +128,34 @@ const COLUMNS = [
   }),
   columnHelper.display({
     id: "load",
-    header: () => "Load used",
+    header: () => "Load Used",
     cell: ({ row, table }) => {
       const meta = table.options.meta as WorkoutTableMeta
       const r = row.original
       const edited = meta.loadEdits[r.key]
-      const value = edited != null ? edited : r.block.used === "" ? "" : String(r.block.used)
+      // Session actual overrides the program's empty `used` field. Local edit
+      // wins while the user is typing.
+      const persisted = meta.persistedLoad[r.key]
+      const fallback = persisted == null || persisted === "" ? "" : String(persisted)
+      const value = edited != null ? edited : fallback
       const isEmpty = value === ""
+      const errorMsg = meta.cellErrors[`${r.key}:load`]
       return (
         <span className="inline-flex items-center gap-1 tabular-nums">
           <Input
             value={value}
             onChange={(e) => meta.onEditLoad(r.key, e.target.value)}
+            onBlur={(e) => meta.onBlurLoad(r.key, e.target.value)}
             placeholder="—"
             inputMode="numeric"
             maxLength={4}
+            title={errorMsg}
+            aria-invalid={!!errorMsg}
+            data-testid={`load-input-${r.key}`}
             className={cn(
               "h-6 w-14 border-transparent bg-transparent px-1.5 text-right text-[0.8125rem] tabular-nums shadow-none hover:border-input hover:bg-background",
-              isEmpty && "text-muted-foreground"
+              isEmpty && "text-muted-foreground",
+              errorMsg && "border-destructive bg-destructive/10 text-destructive"
             )}
           />
           <span className="text-xs text-muted-foreground">lb</span>
@@ -140,27 +165,35 @@ const COLUMNS = [
   }),
   columnHelper.display({
     id: "rpe",
-    header: () => "RPE",
+    header: () => "Last Set RPE",
     cell: ({ row, table }) => {
       const meta = table.options.meta as WorkoutTableMeta
       const r = row.original
       const edited = meta.rpeEdits[r.key]
-      const value = edited != null ? edited : r.block.rpe == null ? "" : String(r.block.rpe)
-      const numeric = parseInt(value, 10)
-      const isHigh = !Number.isNaN(numeric) && numeric >= 9
+      // Session actual is the source of truth. We don't pre-populate from
+      // prescribed_rpe — this cell is "what you actually felt", not "what was
+      // targeted".
+      const persisted = meta.persistedRpe[r.key]
+      const fallback = persisted == null ? "" : String(persisted)
+      const value = edited != null ? edited : fallback
       const isEmpty = value === ""
+      const errorMsg = meta.cellErrors[`${r.key}:rpe`]
       return (
         <Input
           value={value}
           onChange={(e) => meta.onEditRpe(r.key, e.target.value)}
+          onBlur={(e) => meta.onBlurRpe(r.key, e.target.value)}
           placeholder="—"
           inputMode="numeric"
           maxLength={2}
           aria-label={`RPE for ${r.exercise.name} set ${r.blIdx + 1}`}
+          aria-invalid={!!errorMsg}
+          title={errorMsg}
+          data-testid={`rpe-input-${r.key}`}
           className={cn(
             "mx-auto inline-flex h-[1.125rem] w-10 items-center justify-center rounded-full border-transparent bg-muted px-1.5 text-center text-[0.6875rem] font-medium tabular-nums shadow-none hover:border-input hover:bg-background focus-visible:bg-background",
-            isHigh && "bg-destructive/10 text-destructive",
-            isEmpty && "border border-dashed border-border bg-transparent text-muted-foreground"
+            isEmpty && "border border-dashed border-border bg-transparent text-muted-foreground",
+            errorMsg && "border border-destructive bg-destructive/10 text-destructive"
           )}
         />
       )
@@ -173,9 +206,14 @@ export function WorkoutTable({
   completed,
   loadEdits,
   rpeEdits,
+  persistedLoad,
+  persistedRpe,
+  cellErrors,
   onToggleSet,
   onEditLoad,
   onEditRpe,
+  onBlurLoad,
+  onBlurRpe,
 }: WorkoutTableProps) {
   const data = useMemo(() => flattenRows(day), [day])
 
@@ -188,9 +226,14 @@ export function WorkoutTable({
       completed,
       loadEdits,
       rpeEdits,
+      persistedLoad,
+      persistedRpe,
+      cellErrors,
       onToggleSet,
       onEditLoad,
       onEditRpe,
+      onBlurLoad,
+      onBlurRpe,
     } satisfies WorkoutTableMeta,
   })
 

@@ -51,11 +51,14 @@ describe("mapSetTarget", () => {
     expect(out.cap).toBe("")
   })
 
-  it("always leaves `used` blank — prescription, not actuals", () => {
-    // Even with a prescribed load present, `used` is the field the user
-    // types into during a session. The program tree carries no actuals.
-    const out = mapSetTarget({ setsCount: 1, capLoadKg: 100 })
+  it("leaves `used` blank — actuals come from session set_logs, not prescription", () => {
+    const out = mapSetTarget({ setsCount: 1, prescribedLoadKg: 129.27 })
     expect(out.used).toBe("")
+  })
+
+  it("threads through the set target id (still useful as a stable row key)", () => {
+    const out = mapSetTarget({ id: "pst-123", setsCount: 1 })
+    expect(out.id).toBe("pst-123")
   })
 
   it("defaults rpe to null when not prescribed", () => {
