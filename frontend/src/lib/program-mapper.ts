@@ -14,6 +14,10 @@ import type { Exercise, Program, ProgramDay, ProgramWeek, SetBlock } from "./pro
 // integer lb matches how the seed spreadsheet renders ("300lb" / "285lb").
 const KG_PER_LB = 2.20462
 const KG_TO_LB = (kg: number) => Math.round(kg * KG_PER_LB)
+// Used by callers (e.g. the cell-edit mutation) that need to convert user-
+// entered lb input back to kg before sending to the API. Not rounded — the
+// backend column is numeric(7,2).
+export const LB_TO_KG = (lb: number) => lb / KG_PER_LB
 
 // 60s per minute — `rest_seconds` on the backend, minutes in the UI.
 const REST_DEFAULT_MIN = 2
@@ -32,14 +36,13 @@ function formatReps(min: number | null | undefined, max: number | null | undefin
 // mapSetTarget converts one prescribed set-block (e.g. "2 sets of 2 reps at
 // 285lb RPE 5") into the SetBlock the workout table renders.
 //
-// `used` is intentionally always blank — set targets are the prescription;
-// what the user actually lifts comes from session set_logs, which this
-// program endpoint doesn't return. The existing table treats `""` as the
-// "log your load here" placeholder.
+// Prescription-only fields land here. Actuals ("Load Used", "Last Set RPE",
+// completion) come from session set_logs and are merged in at the table level.
 export function mapSetTarget(t: ProgramSetTargetResponse): SetBlock {
   const capLb = t.capLoadKg != null ? KG_TO_LB(t.capLoadKg) : ""
 
   return {
+    id: t.id ?? "",
     sets: t.setsCount ?? 0,
     reps: formatReps(t.repsMin, t.repsMax),
     intensity: t.intensityText ?? "",
@@ -71,12 +74,14 @@ export function mapExercise(e: ProgramExerciseResponse): Exercise {
 export function mapDay(d: ProgramDayResponse): ProgramDay {
   const dayName = d.name ?? "Day"
   const tag = d.tag ?? dayName
+  const id = d.id ?? ""
 
   if (d.isRestDay) {
-    return { name: "Rest", tag, off: true }
+    return { id, name: "Rest", tag, off: true }
   }
 
   return {
+    id,
     name: dayName,
     tag,
     exercises: (d.exercises ?? []).map(mapExercise),

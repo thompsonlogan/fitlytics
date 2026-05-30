@@ -4,6 +4,10 @@
 // side-panel, sub-bar) operates on this type only.
 
 export type SetBlock = {
+  // id is the backing program_set_targets UUID. Needed so per-cell edits in
+  // the workout table can PATCH the right row. Empty string only on rows that
+  // weren't loaded from the API (defensive — should never happen in prod).
+  id: string
   sets: number
   reps: string
   intensity: string
@@ -20,6 +24,10 @@ export type Exercise = {
 }
 
 export type ProgramDay = {
+  // id is the backing program_days UUID. Needed so the workout table can
+  // start / fetch the session for "this day". Empty string only on the
+  // placeholder day rendered while the program is loading.
+  id: string
   name: string
   tag: string
   off?: boolean

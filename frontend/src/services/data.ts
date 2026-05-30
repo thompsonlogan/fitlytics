@@ -1,4 +1,10 @@
-import { AuthApi, Configuration, ProgramsApi, type ConfigurationParameters } from "./generated"
+import {
+  AuthApi,
+  Configuration,
+  ProgramsApi,
+  SessionsApi,
+  type ConfigurationParameters,
+} from "./generated"
 
 // ServiceApis is the bundle of OpenAPI-generated clients exposed to the app
 // via React context. Add a new line per backend feature slice (one API class
@@ -6,6 +12,7 @@ import { AuthApi, Configuration, ProgramsApi, type ConfigurationParameters } fro
 export interface ServiceApis {
   authApi: AuthApi
   programsApi: ProgramsApi
+  sessionsApi: SessionsApi
 }
 
 // createServiceApis instantiates each generated API class against a single
@@ -17,5 +24,6 @@ export function createServiceApis(configParams?: ConfigurationParameters): Servi
   return {
     authApi: new AuthApi(config),
     programsApi: new ProgramsApi(config),
+    sessionsApi: new SessionsApi(config),
   }
 }

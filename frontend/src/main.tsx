@@ -5,6 +5,7 @@ import { RouterProvider } from "@tanstack/react-router"
 
 import "./index.css"
 import { ThemeProvider } from "@/components/theme-provider.tsx"
+import { Toaster } from "@/components/ui/sonner"
 import { router } from "@/router.tsx"
 import { ServiceContext } from "@/services/context"
 import { createServiceApis } from "@/services/data"
@@ -38,6 +39,7 @@ createRoot(document.getElementById("root")!).render(
       <ServiceContext.Provider value={services}>
         <ThemeProvider>
           <RouterProvider router={router} context={{ queryClient, services: services.apis }} />
+          <Toaster richColors position="top-right" />
         </ThemeProvider>
       </ServiceContext.Provider>
     </QueryClientProvider>

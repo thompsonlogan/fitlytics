@@ -4,7 +4,7 @@ import { estimateDuration, flattenRows, totalSets, type ProgramDay } from "./pro
 
 // Small helper so tests read like the seed data — sets/reps/intensity only.
 function block(sets: number, reps = "3", intensity = "100lb") {
-  return { sets, reps, intensity, cap: 100 as const, used: 100 as const, rpe: 8 }
+  return { id: "pst", sets, reps, intensity, cap: 100 as const, used: 100 as const, rpe: 8 }
 }
 
 const REST_DAY: ProgramDay = { name: "Rest", tag: "OFF", off: true }

@@ -1,5 +1,6 @@
 apis/AuthApi.ts
 apis/ProgramsApi.ts
+apis/SessionsApi.ts
 apis/index.ts
 index.ts
 models/ErrorResponse.ts
@@ -10,5 +11,10 @@ models/ProgramResponse.ts
 models/ProgramSetTargetResponse.ts
 models/ProgramSummaryResponse.ts
 models/ProgramWeekResponse.ts
+models/SessionExerciseResponse.ts
+models/SessionResponse.ts
+models/SessionsErrorResponse.ts
+models/SetLogResponse.ts
+models/UpdateSetLogRequest.ts
 models/index.ts
 runtime.ts
