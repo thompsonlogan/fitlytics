@@ -156,20 +156,28 @@ describe("mapDay", () => {
 // ─── mapWeek / mapProgram (integration) ────────────────────────────────────
 
 describe("mapWeek", () => {
-  it("preserves sequence and maps days in order", () => {
+  it("pads to 7 days and places each day at its sequence index", () => {
     const w: ProgramWeekResponse = {
       id: "week-1",
       sequence: 3,
       days: [
-        { name: "Day 1", isRestDay: false, exercises: [] },
-        { name: "Rest", isRestDay: true, exercises: [] },
+        { sequence: 1, name: "Day 1", isRestDay: false, exercises: [] },
+        { sequence: 2, name: "Rest", isRestDay: true, exercises: [] },
       ],
     }
     const out = mapWeek(w)
     expect(out.sequence).toBe(3)
-    expect(out.days).toHaveLength(2)
+    expect(out.days).toHaveLength(7)
     expect(out.days[0].name).toBe("Day 1")
     expect(out.days[1].off).toBe(true)
+    expect(out.days[2].off).toBe(true)
+    expect(out.days[6].off).toBe(true)
+  })
+
+  it("fills all 7 days as rest when backend sends no days", () => {
+    const out = mapWeek({ id: "w", sequence: 1, days: [] })
+    expect(out.days).toHaveLength(7)
+    expect(out.days.every((d) => d.off)).toBe(true)
   })
 })
 
@@ -178,12 +186,14 @@ describe("mapProgram", () => {
     const p: ProgramResponse = {
       id: "prog-1",
       name: "Logan PL",
+      startDate: "2026-05-04",
       weeks: [
         {
           id: "w1",
           sequence: 1,
           days: [
             {
+              sequence: 1,
               name: "Day 1",
               tag: "Day 1",
               isRestDay: false,
@@ -213,7 +223,9 @@ describe("mapProgram", () => {
     const out = mapProgram(p)
 
     expect(out.name).toBe("Logan PL")
+    expect(out.startDate).toBe("2026-05-04")
     expect(out.weeks).toHaveLength(1)
+    expect(out.weeks[0].days).toHaveLength(7)
     const day = out.weeks[0].days[0]
     expect(day.name).toBe("Day 1")
     expect(day.exercises).toHaveLength(1)
@@ -230,11 +242,14 @@ describe("mapProgram", () => {
   })
 
   it("survives a totally-empty response (defensive defaults)", () => {
-    // Boundary: every field on ProgramResponse is optional in the OpenAPI
-    // schema. Mapper must not throw on a {} input.
     const out = mapProgram({})
     expect(out.id).toBe("")
     expect(out.name).toBe("")
     expect(out.weeks).toEqual([])
+  })
+
+  it("maps startDate as undefined when not provided", () => {
+    const out = mapProgram({ id: "p", name: "Test" })
+    expect(out.startDate).toBeUndefined()
   })
 })

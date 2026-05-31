@@ -9,8 +9,8 @@ import { Footprints, HeartPulse, MoreHorizontal, Moon, Plus } from "lucide-react
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
+import { SetStateCell, type SetState } from "@/components/workout/set-state-cell"
 import {
   Table,
   TableBody,
@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils"
 
 type WorkoutTableProps = {
   day: ProgramDay
-  completed: Record<string, boolean>
+  cellState: Record<string, SetState>
   loadEdits: Record<string, string>
   rpeEdits: Record<string, string>
   // persistedLoad/persistedRpe carry the session-backed actuals. Empty / null
@@ -35,7 +35,7 @@ type WorkoutTableProps = {
   // cellErrors keys are `${rowKey}:${field}` (e.g. "0-1:load"). Presence of a
   // key means "show the error UI on this cell"; the value is the message.
   cellErrors: Record<string, string>
-  onToggleSet: (key: string) => void
+  onCycleSet: (key: string) => void
   onEditLoad: (key: string, value: string) => void
   onEditRpe: (key: string, value: string) => void
   onBlurLoad: (key: string, value: string) => void
@@ -43,13 +43,13 @@ type WorkoutTableProps = {
 }
 
 type WorkoutTableMeta = {
-  completed: Record<string, boolean>
+  cellState: Record<string, SetState>
   loadEdits: Record<string, string>
   rpeEdits: Record<string, string>
   persistedLoad: Record<string, number | "">
   persistedRpe: Record<string, number | null>
   cellErrors: Record<string, string>
-  onToggleSet: (key: string) => void
+  onCycleSet: (key: string) => void
   onEditLoad: (key: string, value: string) => void
   onEditRpe: (key: string, value: string) => void
   onBlurLoad: (key: string, value: string) => void
@@ -67,12 +67,12 @@ const COLUMNS = [
     cell: ({ row, table }) => {
       const meta = table.options.meta as WorkoutTableMeta
       const r = row.original
-      const isDone = !!meta.completed[r.key]
+      const state = meta.cellState[r.key] ?? "pending"
       return (
-        <Checkbox
-          checked={isDone}
-          onCheckedChange={() => meta.onToggleSet(r.key)}
-          aria-label={`Mark ${r.exercise.name} set ${r.blIdx + 1} done`}
+        <SetStateCell
+          state={state}
+          onCycle={() => meta.onCycleSet(r.key)}
+          ariaLabel={`${r.exercise.name} set ${r.blIdx + 1}: ${state}. Click to cycle.`}
         />
       )
     },
@@ -203,13 +203,13 @@ const COLUMNS = [
 
 export function WorkoutTable({
   day,
-  completed,
+  cellState,
   loadEdits,
   rpeEdits,
   persistedLoad,
   persistedRpe,
   cellErrors,
-  onToggleSet,
+  onCycleSet,
   onEditLoad,
   onEditRpe,
   onBlurLoad,
@@ -223,13 +223,13 @@ export function WorkoutTable({
     columns: COLUMNS,
     getCoreRowModel: getCoreRowModel(),
     meta: {
-      completed,
+      cellState,
       loadEdits,
       rpeEdits,
       persistedLoad,
       persistedRpe,
       cellErrors,
-      onToggleSet,
+      onCycleSet,
       onEditLoad,
       onEditRpe,
       onBlurLoad,
@@ -299,14 +299,15 @@ export function WorkoutTable({
         <TableBody>
           {table.getRowModel().rows.map((row, rowIdx) => {
             const r = row.original
-            const isDone = !!completed[r.key]
+            const rowState = cellState[r.key] ?? "pending"
+            const isTerminal = rowState === "completed" || rowState === "skipped"
             return (
               <TableRow
                 key={row.id}
                 className={cn(
                   "hover:bg-muted/40",
                   r.first && rowIdx > 0 && "border-t",
-                  isDone &&
+                  isTerminal &&
                     "[&_td:not([data-discipline])]:text-muted-foreground [&_td:not([data-discipline])]:line-through"
                 )}
               >

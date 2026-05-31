@@ -1,6 +1,8 @@
 package programs
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 
 	"github.com/thompsonlogan/fitlytics/backend/internal/models"
@@ -35,11 +37,20 @@ func collectExerciseIDs(p *models.Program) []uuid.UUID {
 // into the API response shape. The `names` map supplies the canonical exercise
 // name for each program_exercise row; entries missing from the map fall back
 // to the empty string (should not happen — the exercise_id FK is RESTRICT).
+func formatDatePtr(t *time.Time) *string {
+	if t == nil {
+		return nil
+	}
+	s := t.Format("2006-01-02")
+	return &s
+}
+
 func mapProgram(p *models.Program, names map[uuid.UUID]string) *ProgramResponse {
 	out := &ProgramResponse{
 		ID:          p.ID,
 		Name:        p.Name,
 		Description: p.Description,
+		StartDate:   formatDatePtr(p.StartDate),
 		CreatedAt:   p.CreatedAt,
 		UpdatedAt:   p.UpdatedAt,
 		Weeks:       make([]ProgramWeekResponse, 0, len(p.Weeks)),
@@ -107,6 +118,7 @@ func mapProgramSummaries(rows []models.Program) []ProgramSummaryResponse {
 			ID:          p.ID,
 			Name:        p.Name,
 			Description: p.Description,
+			StartDate:   formatDatePtr(p.StartDate),
 			CreatedAt:   p.CreatedAt,
 			UpdatedAt:   p.UpdatedAt,
 		})

@@ -43,10 +43,31 @@ export type ProgramWeek = {
 export type Program = {
   id: string
   name: string
+  startDate?: string
   weeks: ProgramWeek[]
 }
 
 export const DAY_LETTERS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const
+
+export function calendarDayOfMonth(startDate: string, week: number, dayIndex: number): number {
+  const d = new Date(startDate + "T00:00:00")
+  d.setDate(d.getDate() + (week - 1) * 7 + dayIndex)
+  return d.getDate()
+}
+
+export function computeTodayPosition(
+  startDate: string,
+  weekCount: number
+): { week: number; dayIndex: number } | null {
+  const start = new Date(startDate + "T00:00:00")
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const diffDays = Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+  if (diffDays < 0) return null
+  const week = Math.floor(diffDays / 7) + 1
+  if (week > weekCount) return null
+  return { week, dayIndex: diffDays % 7 }
+}
 
 export type WorkoutRow = {
   key: string

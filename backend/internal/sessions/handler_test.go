@@ -252,7 +252,7 @@ func TestHandlerUpdateSetLog_SuccessReturnsBody(t *testing.T) {
 		ActualLoadKg:       ptr(130.0),
 		ActualLoadModifier: "absolute",
 		ActualRpe:          ptr(8.5),
-		WasCompleted:       true,
+		State:              "completed",
 	}
 	var (
 		gotSessionID, gotSetLogID, gotOwnerID uuid.UUID
@@ -266,7 +266,7 @@ func TestHandlerUpdateSetLog_SuccessReturnsBody(t *testing.T) {
 		},
 	}
 	c, w := newPatchSetLogContext(t, userID, sessionID.String(), setLogID.String(),
-		UpdateSetLogRequest{ActualLoadKg: ptr(130.0), ActualRpe: ptr(8.5), WasCompleted: ptr(true)})
+		UpdateSetLogRequest{ActualLoadKg: ptr(130.0), ActualRpe: ptr(8.5), State: ptr("completed")})
 	NewHandler(svc, silentLogger()).UpdateSetLog(c)
 
 	if w.Code != http.StatusOK {
@@ -275,8 +275,61 @@ func TestHandlerUpdateSetLog_SuccessReturnsBody(t *testing.T) {
 	if gotSessionID != sessionID || gotSetLogID != setLogID || gotOwnerID != userID {
 		t.Errorf("ids: session=%v setLog=%v owner=%v", gotSessionID, gotSetLogID, gotOwnerID)
 	}
-	if gotInput.WasCompleted == nil || !*gotInput.WasCompleted {
-		t.Errorf("was_completed not threaded through: %+v", gotInput)
+	if gotInput.State == nil || *gotInput.State != "completed" {
+		t.Errorf("state not threaded through: %+v", gotInput)
+	}
+}
+
+// ─── ListDayCompletions ────────────────────────────────────────────────────
+
+func TestHandlerListDayCompletions_InvalidProgramIDReturns400(t *testing.T) {
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/api/programs/x/day-completions", nil)
+	c.Params = gin.Params{{Key: "id", Value: "not-a-uuid"}}
+	withPrincipal(c, uuid.New())
+
+	NewHandler(&fakeService{}, silentLogger()).ListDayCompletions(c)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("status: want 400, got %d", w.Code)
+	}
+}
+
+func TestHandlerListDayCompletions_SuccessReturnsRows(t *testing.T) {
+	userID := uuid.New()
+	programID := uuid.New()
+	want := []CompletedDayResponse{
+		{WeekSequence: 1, DaySequence: 1},
+		{WeekSequence: 2, DaySequence: 3},
+	}
+	var gotProgramID, gotOwnerID uuid.UUID
+	svc := &fakeService{
+		listCompletedDaysFn: func(_ context.Context, pid, oid uuid.UUID) ([]CompletedDayResponse, error) {
+			gotProgramID, gotOwnerID = pid, oid
+			return want, nil
+		},
+	}
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/", nil)
+	c.Params = gin.Params{{Key: "id", Value: programID.String()}}
+	withPrincipal(c, userID)
+
+	NewHandler(svc, silentLogger()).ListDayCompletions(c)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status: want 200, got %d (body=%s)", w.Code, w.Body.String())
+	}
+	if gotProgramID != programID || gotOwnerID != userID {
+		t.Errorf("ids: program=%v owner=%v", gotProgramID, gotOwnerID)
+	}
+	var resp []CompletedDayResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(resp) != 2 || resp[0].WeekSequence != 1 || resp[1].DaySequence != 3 {
+		t.Errorf("body mismatch: %+v", resp)
 	}
 }
 
@@ -295,6 +348,9 @@ func TestHandlerRegister_MountsAllRoutes(t *testing.T) {
 		},
 		updateSetLogFn: func(_ context.Context, _, slid, _ uuid.UUID, _ UpdateSetLogRequest) (*SetLogResponse, error) {
 			return &SetLogResponse{ID: slid}, nil
+		},
+		listCompletedDaysFn: func(_ context.Context, _, _ uuid.UUID) ([]CompletedDayResponse, error) {
+			return []CompletedDayResponse{}, nil
 		},
 	}
 
@@ -317,6 +373,8 @@ func TestHandlerRegister_MountsAllRoutes(t *testing.T) {
 		{"UpdateSetLog", http.MethodPatch,
 			"/api/sessions/" + uuid.NewString() + "/set-logs/" + uuid.NewString(),
 			bytes.NewBufferString(`{"actual_rpe": 7.5}`)},
+		{"ListDayCompletions", http.MethodGet,
+			"/api/programs/" + uuid.NewString() + "/day-completions", nil},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

@@ -48,8 +48,8 @@ values
 on conflict (id) do nothing;
 
 -- 3. Program
-insert into programs (id, owner_user_id, name, description) values
-  ('8d645f69-e0a2-4b07-a30b-0a20634e2abb', '265f6d7d-c361-4189-ac41-3f053b2b217d', 'Logan PL — May/June 2026 Block', '8-week powerlifting block parsed from Logan PL.xlsx. Weeks 1-4 from sheet 542026, weeks 5-8 from sheet 612026.')
+insert into programs (id, owner_user_id, name, description, start_date) values
+  ('8d645f69-e0a2-4b07-a30b-0a20634e2abb', '265f6d7d-c361-4189-ac41-3f053b2b217d', 'Logan PL — May/June 2026 Block', '8-week powerlifting block parsed from Logan PL.xlsx. Weeks 1-4 from sheet 542026, weeks 5-8 from sheet 612026.', '2026-05-04')
 on conflict (id) do nothing;
 
 -- 4. Weeks 1-8
@@ -72,48 +72,56 @@ insert into program_days (id, week_id, sequence, name, tag, is_rest_day) values
   ('9f113763-bf66-4840-94cf-5b54f150f6af', 'de77ee0a-ca34-4ce2-b1b0-ba5d6eae5ec4', 4, 'Day 3', 'Day 3', false),
   ('f2485f21-f719-4c9d-92d2-3007128f3619', 'de77ee0a-ca34-4ce2-b1b0-ba5d6eae5ec4', 5, 'Day 4', 'Day 4', false),
   ('bb8f02bd-33e1-42a2-ad9e-850cd78b9980', 'de77ee0a-ca34-4ce2-b1b0-ba5d6eae5ec4', 6, 'Rest', 'OFF 2', true),
+  ('a1b2c3d4-0001-4000-8000-000000000001', 'de77ee0a-ca34-4ce2-b1b0-ba5d6eae5ec4', 7, 'Rest', 'OFF 3', true),
   ('f20d22d8-dd9b-4d2e-8e14-5412f0d3680c', '5620b58f-e1ce-4eee-a469-792211b938fa', 1, 'Day 1', 'Day 1', false),
   ('3cc26e17-0872-4cdd-88b2-e5008ddfe112', '5620b58f-e1ce-4eee-a469-792211b938fa', 2, 'Rest', 'OFF', true),
   ('dcc9b111-08d8-476a-b10e-56621d916b8d', '5620b58f-e1ce-4eee-a469-792211b938fa', 3, 'Day 2', 'Day 2', false),
   ('d77819a7-be77-40ea-96ae-93d52552bdb9', '5620b58f-e1ce-4eee-a469-792211b938fa', 4, 'Day 3', 'Day 3', false),
   ('8f1ff703-83da-475a-9fde-416862d54067', '5620b58f-e1ce-4eee-a469-792211b938fa', 5, 'Day 4', 'Day 4', false),
   ('d713d504-c85a-4d99-83c1-f00067665db7', '5620b58f-e1ce-4eee-a469-792211b938fa', 6, 'Rest', 'OFF 2', true),
+  ('a1b2c3d4-0001-4000-8000-000000000002', '5620b58f-e1ce-4eee-a469-792211b938fa', 7, 'Rest', 'OFF 3', true),
   ('6e5773d6-9016-403b-94e8-fe681104d6ae', '54aef4c9-af61-474f-9748-846c7372fc30', 1, 'Day 1', 'Day 1', false),
   ('665c3711-30cc-427d-9174-dc30b47a187d', '54aef4c9-af61-474f-9748-846c7372fc30', 2, 'Rest', 'OFF', true),
   ('ddb302b9-be13-45b5-9082-eab8de2e5404', '54aef4c9-af61-474f-9748-846c7372fc30', 3, 'Day 2', 'Day 2', false),
   ('1b20ef89-64f3-4c0f-abc0-597032ea9003', '54aef4c9-af61-474f-9748-846c7372fc30', 4, 'Day 3', 'Day 3', false),
   ('0402d910-fcae-4565-96a5-7cbc44195b74', '54aef4c9-af61-474f-9748-846c7372fc30', 5, 'Day 4', 'Day 4', false),
   ('7b4405b4-780c-4c32-8b65-abed2ba97864', '54aef4c9-af61-474f-9748-846c7372fc30', 6, 'Rest', 'OFF 2', true),
+  ('a1b2c3d4-0001-4000-8000-000000000003', '54aef4c9-af61-474f-9748-846c7372fc30', 7, 'Rest', 'OFF 3', true),
   ('73fd4b69-f57c-4b9d-9dc9-731caf4b6693', '45ad5ec8-e241-4cbf-8688-673443b92a5d', 1, 'Day 1', 'Day 1', false),
   ('6e55b01b-a451-4b1e-9ebf-21dcb8748660', '45ad5ec8-e241-4cbf-8688-673443b92a5d', 2, 'Rest', 'OFF', true),
   ('f4d6dc51-072b-4c62-8bcc-d9162c046dca', '45ad5ec8-e241-4cbf-8688-673443b92a5d', 3, 'Day 2', 'Day 2', false),
   ('b052c771-7379-4f72-8865-9a642fd9d328', '45ad5ec8-e241-4cbf-8688-673443b92a5d', 4, 'Day 3', 'Day 3', false),
   ('838346bf-33dc-42dc-81a2-815dba461a1e', '45ad5ec8-e241-4cbf-8688-673443b92a5d', 5, 'Day 4', 'Day 4', false),
   ('ec7adc1a-8dbf-4750-8814-a54ff211fe57', '45ad5ec8-e241-4cbf-8688-673443b92a5d', 6, 'Rest', 'OFF 2', true),
+  ('a1b2c3d4-0001-4000-8000-000000000004', '45ad5ec8-e241-4cbf-8688-673443b92a5d', 7, 'Rest', 'OFF 3', true),
   ('8c3ee81f-8152-46cc-a57b-c9631aca515b', 'bd0a72b5-afd5-47bd-8ee1-2ea805b2a4cb', 1, 'Day 1', 'Day 1', false),
   ('9b3be7b1-7d43-45e9-bce3-28a9e4d54bd3', 'bd0a72b5-afd5-47bd-8ee1-2ea805b2a4cb', 2, 'Rest', 'OFF', true),
   ('50d3d92d-b8e1-48c2-bef6-00357a51df75', 'bd0a72b5-afd5-47bd-8ee1-2ea805b2a4cb', 3, 'Day 2', 'Day 2', false),
   ('ff40d98a-49e6-4bd0-bf44-6f25e6a098d0', 'bd0a72b5-afd5-47bd-8ee1-2ea805b2a4cb', 4, 'Day 3', 'Day 3', false),
   ('0e4057e7-b83b-49de-8e31-f56ee1cb7625', 'bd0a72b5-afd5-47bd-8ee1-2ea805b2a4cb', 5, 'Day 4', 'Day 4', false),
   ('3b1d29a8-d553-4614-a078-468d528b8ad5', 'bd0a72b5-afd5-47bd-8ee1-2ea805b2a4cb', 6, 'Rest', 'OFF 2', true),
+  ('a1b2c3d4-0001-4000-8000-000000000005', 'bd0a72b5-afd5-47bd-8ee1-2ea805b2a4cb', 7, 'Rest', 'OFF 3', true),
   ('5ab86479-2fb0-4d24-9da2-f9e161b65a99', '0cb12ac8-3fb7-4fbd-a6bf-92fa8c67875b', 1, 'Day 1', 'Day 1', false),
   ('4a1da29a-d5c6-44ba-adc9-a7099895546c', '0cb12ac8-3fb7-4fbd-a6bf-92fa8c67875b', 2, 'Rest', 'OFF', true),
   ('84e7c0b5-90af-4122-a078-2998f10b3f54', '0cb12ac8-3fb7-4fbd-a6bf-92fa8c67875b', 3, 'Day 2', 'Day 2', false),
   ('dd1c1ad9-435d-4132-ab95-897fb6882d29', '0cb12ac8-3fb7-4fbd-a6bf-92fa8c67875b', 4, 'Day 3', 'Day 3', false),
   ('e98d0b76-0ae1-423a-b960-78fbe6de173c', '0cb12ac8-3fb7-4fbd-a6bf-92fa8c67875b', 5, 'Day 4', 'Day 4', false),
   ('edbbab05-9d3b-4b20-af47-9d69e8fef7c9', '0cb12ac8-3fb7-4fbd-a6bf-92fa8c67875b', 6, 'Rest', 'OFF 2', true),
+  ('a1b2c3d4-0001-4000-8000-000000000006', '0cb12ac8-3fb7-4fbd-a6bf-92fa8c67875b', 7, 'Rest', 'OFF 3', true),
   ('9aab0673-b00d-4178-877f-03a51806624b', 'af1b324f-398c-40cb-be7f-323cc28f546c', 1, 'Day 1', 'Day 1', false),
   ('81e21ce4-177f-4455-85d6-64f0012ec654', 'af1b324f-398c-40cb-be7f-323cc28f546c', 2, 'Rest', 'OFF', true),
   ('0d06cf49-623d-4053-8f66-221c1be8e9a7', 'af1b324f-398c-40cb-be7f-323cc28f546c', 3, 'Day 2', 'Day 2', false),
   ('6d469ee2-9e65-4589-abb6-b69baf14e6e7', 'af1b324f-398c-40cb-be7f-323cc28f546c', 4, 'Day 3', 'Day 3', false),
   ('4a662790-4967-4019-a6c8-b5324bfa3ef0', 'af1b324f-398c-40cb-be7f-323cc28f546c', 5, 'Day 4', 'Day 4', false),
   ('880c4742-1b66-499c-a52b-3eefc3ac9a70', 'af1b324f-398c-40cb-be7f-323cc28f546c', 6, 'Rest', 'OFF 2', true),
+  ('a1b2c3d4-0001-4000-8000-000000000007', 'af1b324f-398c-40cb-be7f-323cc28f546c', 7, 'Rest', 'OFF 3', true),
   ('eeb3fab4-b243-4245-8b84-1d527c840633', '27504ec2-84de-4e24-846a-e48db7b293e9', 1, 'Day 1', 'Day 1', false),
   ('e581ba27-7e10-495b-ab45-e0a8396a46ff', '27504ec2-84de-4e24-846a-e48db7b293e9', 2, 'Rest', 'OFF', true),
   ('e8dc81f3-372c-4f99-9469-61bed22ff8d9', '27504ec2-84de-4e24-846a-e48db7b293e9', 3, 'Day 2', 'Day 2', false),
   ('96f7e023-571b-4987-89bc-f4cea0820262', '27504ec2-84de-4e24-846a-e48db7b293e9', 4, 'Day 3', 'Day 3', false),
   ('8d42eba0-1e1b-4325-a61c-421f9d5b42a6', '27504ec2-84de-4e24-846a-e48db7b293e9', 5, 'Day 4', 'Day 4', false),
-  ('d19f004b-d9f4-4903-bdea-5ed18e66526c', '27504ec2-84de-4e24-846a-e48db7b293e9', 6, 'Rest', 'OFF 2', true)
+  ('d19f004b-d9f4-4903-bdea-5ed18e66526c', '27504ec2-84de-4e24-846a-e48db7b293e9', 6, 'Rest', 'OFF 2', true),
+  ('a1b2c3d4-0001-4000-8000-000000000008', '27504ec2-84de-4e24-846a-e48db7b293e9', 7, 'Rest', 'OFF 3', true)
 on conflict (id) do nothing;
 
 -- 6. Program exercises (one row per (week, day, contiguous exercise block))
@@ -540,10 +548,12 @@ insert into program_set_targets (id, program_exercise_id, sequence, set_type, se
   ('f17121ba-0366-4408-beca-809a9f035110', '24655ab3-1809-4b81-8b48-99d7d44f70ee', 1, 'working', 2, 6, 8, '0-1RIR', null, null, null)
 on conflict (id) do nothing;
 
--- 8. Sample sessions for week 1 with logged actuals (load + RPE) but
---    was_completed=false on every set_log. Lets the UI render with realistic
---    data populated in the Load Used / Last Set RPE cells while leaving the
---    "done" checkboxes unchecked — completion is something the user opts into
+-- 8. Sample sessions for week 1 with logged actuals (load + RPE) and every
+--    set_log marked state='completed'. The auto-rollup rule requires the
+--    session's parent state to match (sessions.state='completed' iff every
+--    child set_log is completed-or-skipped); this seed satisfies that
+--    invariant so the day-selector dots demo correctly and the workout
+--    table shows fully-checked tri-state cells the user can still cycle.
 --    by clicking, not something pre-applied.
 --    Driven by the 'Load Used' and 'Last Set RPE' columns from sheet 1.
 insert into sessions
@@ -588,54 +598,54 @@ insert into set_logs
    reps_target_min, reps_target_max,
    prescribed_load_kg, prescribed_rpe, intensity_text,
    reps_actual, actual_load_kg, actual_rpe,
-   started_at, completed_at, was_completed)
+   started_at, completed_at, state)
 values
-  ('536af3a0-6bda-4cf3-af08-88c8385fd11f', 'b6d3a424-65ad-43ee-a5c8-977eb3e4b34c', 1, 'working', 3, 3, 136.08, 5, '5', 3, 136.08, null, '2026-05-04 17:35:00+00', '2026-05-04 17:36:00+00', false),
-  ('2229638b-5286-4c1c-87b8-267b456be387', 'b6d3a424-65ad-43ee-a5c8-977eb3e4b34c', 2, 'working', 2, 2, 129.27, 5, '5', 2, 129.27, null, '2026-05-04 17:38:00+00', '2026-05-04 17:39:00+00', false),
-  ('24b9a5fc-b631-4fad-aabb-d3af058694e4', 'b6d3a424-65ad-43ee-a5c8-977eb3e4b34c', 3, 'working', 2, 2, 129.27, 5, '5', 2, 129.27, null, '2026-05-04 17:41:00+00', '2026-05-04 17:42:00+00', false),
-  ('31dba1fc-966d-4377-a7db-1b2840294d8a', '55e30a78-252d-4704-b3d0-0204212ef90c', 1, 'working', 3, 3, 138.35, 5, '5', 3, 138.35, null, '2026-05-04 17:35:00+00', '2026-05-04 17:36:00+00', false),
-  ('b880387d-c87d-486d-9d24-3d82c46209aa', '55e30a78-252d-4704-b3d0-0204212ef90c', 2, 'working', 2, 2, 131.54, 7, '7', 2, 131.54, null, '2026-05-04 17:38:00+00', '2026-05-04 17:39:00+00', false),
-  ('55807947-e179-402e-85c0-59e9bbe573ad', '55e30a78-252d-4704-b3d0-0204212ef90c', 3, 'working', 2, 2, 131.54, 7, '7', 2, 131.54, null, '2026-05-04 17:41:00+00', '2026-05-04 17:42:00+00', false),
-  ('823d9243-b04e-4a75-83f2-4ef92947926b', 'b67f238c-e3e5-45fa-aac4-fe4644d67a74', 1, 'working', 6, 10, null, null, '0-1RIR', 10, 31.75, null, '2026-05-04 17:35:00+00', '2026-05-04 17:36:00+00', false),
-  ('8b784f96-531b-40aa-9dc7-94fdfe3a8681', 'b67f238c-e3e5-45fa-aac4-fe4644d67a74', 2, 'working', 6, 10, null, null, '0-1RIR', 10, 31.75, null, '2026-05-04 17:38:00+00', '2026-05-04 17:39:00+00', false),
-  ('97eb95ba-3ca7-4902-85aa-85f440c1495e', 'd61d09be-5449-4404-a842-91405299e9c6', 1, 'working', 6, 10, null, null, '0-1RIR', 10, 40.82, null, '2026-05-04 17:35:00+00', '2026-05-04 17:36:00+00', false),
-  ('13b8db19-4557-4188-8ec8-953795d481be', 'd61d09be-5449-4404-a842-91405299e9c6', 2, 'working', 6, 10, null, null, '0-1RIR', 10, 40.82, null, '2026-05-04 17:38:00+00', '2026-05-04 17:39:00+00', false),
-  ('ec7c9cc3-39d5-4da4-981d-7a2c7df4e6cd', '3ea2a010-e2f4-458b-a2e3-918d2a1d3f7c', 1, 'working', 3, 3, 131.54, 5, '5', 3, 131.54, null, '2026-05-06 17:35:00+00', '2026-05-06 17:36:00+00', false),
-  ('17410185-e53e-4ea4-ad14-1cb0cc9152d0', '3ea2a010-e2f4-458b-a2e3-918d2a1d3f7c', 2, 'working', 3, 3, null, null, '-10%', 3, 120.2, null, '2026-05-06 17:38:00+00', '2026-05-06 17:39:00+00', false),
-  ('d2dd0094-d6d4-4059-b200-bae78266b198', 'cd81c861-6eec-4add-83c0-ba4ac12912a3', 1, 'working', 1, 1, 97.52, 5, '5', 1, 97.52, null, '2026-05-06 17:35:00+00', '2026-05-06 17:36:00+00', false),
-  ('0ddb7f9a-de65-4928-add8-b9a288d56b63', 'cd81c861-6eec-4add-83c0-ba4ac12912a3', 2, 'working', 2, 2, 92.99, 5, '5', 2, 92.99, null, '2026-05-06 17:38:00+00', '2026-05-06 17:39:00+00', false),
-  ('459fd6d2-2ecb-47cb-86f2-6a538fbbe53d', 'cd81c861-6eec-4add-83c0-ba4ac12912a3', 3, 'working', 2, 2, null, null, '-7.5%', 2, 86.18, null, '2026-05-06 17:41:00+00', '2026-05-06 17:42:00+00', false),
-  ('36abe831-f863-4632-b588-1f46d3d81f64', 'cd81c861-6eec-4add-83c0-ba4ac12912a3', 4, 'working', 2, 2, null, null, '-7.5%', 2, 86.18, null, '2026-05-06 17:44:00+00', '2026-05-06 17:45:00+00', false),
-  ('d98a1ac7-1e58-4012-b71b-69f33946736f', 'fdc05f9a-2dc6-4f9b-9da9-57e4fd99812f', 1, 'working', 4, 4, 131.54, null, '290lb', 4, 131.54, null, '2026-05-06 17:35:00+00', '2026-05-06 17:36:00+00', false),
-  ('fe26422c-e4ab-4108-9f3f-5760104755c2', 'fdc05f9a-2dc6-4f9b-9da9-57e4fd99812f', 2, 'working', 4, 4, 131.54, null, '290lb', 4, 131.54, null, '2026-05-06 17:38:00+00', '2026-05-06 17:39:00+00', false),
-  ('f72047d6-418a-4038-b0d3-6135b56aa3a8', '57ef8a04-fa9f-4c4b-a68d-b185b4f82df4', 1, 'working', 4, 8, null, null, '1-2RIR', 8, 83.91, null, '2026-05-06 17:35:00+00', '2026-05-06 17:36:00+00', false),
-  ('b3d9298b-4721-46c8-adda-0b36a6f41d8d', '38d69012-6ca1-4e58-9a92-35b467c3b21e', 1, 'working', 6, 10, null, null, '0-1RIR', 10, 31.75, null, '2026-05-06 17:35:00+00', '2026-05-06 17:36:00+00', false),
-  ('7075c6f7-0cdb-4385-9705-2075c1ed54d7', '38d69012-6ca1-4e58-9a92-35b467c3b21e', 2, 'working', 6, 10, null, null, '0-1RIR', 10, 31.75, null, '2026-05-06 17:38:00+00', '2026-05-06 17:39:00+00', false),
-  ('744d6f16-7ef9-4875-93ff-5d03673397c8', '2d346b58-cda5-4821-a16b-f70ca5867680', 1, 'working', 6, 10, null, null, '0-1RIR', 10, 40.82, null, '2026-05-06 17:35:00+00', '2026-05-06 17:36:00+00', false),
-  ('3d1d5f52-887f-47ab-b783-8483ad98bb09', '2d346b58-cda5-4821-a16b-f70ca5867680', 2, 'working', 6, 10, null, null, '0-1RIR', 10, 40.82, null, '2026-05-06 17:38:00+00', '2026-05-06 17:39:00+00', false),
-  ('36e9cc53-e349-430c-b0b4-ea45b62d9033', '75829496-ac8e-4cd2-a6c9-f7805f5e3711', 1, 'working', 6, 6, null, null, 'RIR0-1', 6, 63.5, null, '2026-05-06 17:35:00+00', '2026-05-06 17:36:00+00', false),
-  ('4beba5b9-5403-4f93-8eff-9908d8c098fe', '75829496-ac8e-4cd2-a6c9-f7805f5e3711', 2, 'working', 6, 6, null, null, 'RIR0-1', 6, 63.5, null, '2026-05-06 17:38:00+00', '2026-05-06 17:39:00+00', false),
-  ('45ba7ee1-4bec-4b13-b62e-464362dbbd00', '64b96b80-5b51-4eea-b40b-12fe4c882dd8', 1, 'working', 8, 8, null, null, 'RIR0-1', 8, 58.97, null, '2026-05-06 17:35:00+00', '2026-05-06 17:36:00+00', false),
-  ('fb611394-d833-4dfb-ac69-1533a450b9d5', '4060e114-e43f-4fdc-aaf0-ece7696deaac', 1, 'working', 10, 10, null, null, 'RIR0-1', 10, 31.75, null, '2026-05-06 17:35:00+00', '2026-05-06 17:36:00+00', false),
-  ('3640866e-8aa0-4ff0-bdec-6dd7858d813e', '4060e114-e43f-4fdc-aaf0-ece7696deaac', 2, 'working', 10, 10, null, null, 'RIR0-1', 10, 31.75, null, '2026-05-06 17:38:00+00', '2026-05-06 17:39:00+00', false),
-  ('d2b8c560-ff0f-423c-b35f-30e6c80dea49', '6bf5d65c-ecfd-4cf3-a402-90383ac8c0da', 1, 'working', 1, 1, 95.25, 5, '5', 1, 95.25, null, '2026-05-07 17:35:00+00', '2026-05-07 17:36:00+00', false),
-  ('df4a9d43-f6e8-40be-839a-4947b11e8c6c', '6bf5d65c-ecfd-4cf3-a402-90383ac8c0da', 2, 'working', 2, 2, 90.72, 5, '5', 2, 90.72, null, '2026-05-07 17:38:00+00', '2026-05-07 17:39:00+00', false),
-  ('879f701e-8ac7-4bca-ba0b-eecc81647aa1', '6bf5d65c-ecfd-4cf3-a402-90383ac8c0da', 3, 'working', 2, 2, null, null, '-7.5%', 2, 83.91, null, '2026-05-07 17:41:00+00', '2026-05-07 17:42:00+00', false),
-  ('753d5002-d2fd-411d-aec5-d0a67a61d0a6', '6bf5d65c-ecfd-4cf3-a402-90383ac8c0da', 4, 'working', 2, 2, null, null, '-7.5%', 2, 83.91, null, '2026-05-07 17:44:00+00', '2026-05-07 17:45:00+00', false),
-  ('72a621ba-b16e-4344-b794-20b12296d9c5', '6bf5d65c-ecfd-4cf3-a402-90383ac8c0da', 5, 'working', 2, 2, null, null, '-7.5%', 2, 83.91, null, '2026-05-07 17:47:00+00', '2026-05-07 17:48:00+00', false),
-  ('a8ce7a4a-57bc-4382-bc9c-c51183bb3818', '5f2a8a9c-0a31-4f21-839f-800645b7c150', 1, 'working', 6, 8, null, null, '0-1RIR', 8, 72.57, null, '2026-05-07 17:35:00+00', '2026-05-07 17:36:00+00', false),
-  ('f4951305-57a6-44b0-ab3f-b2de3f220365', '5f2a8a9c-0a31-4f21-839f-800645b7c150', 2, 'working', 6, 8, null, null, '0-1RIR', 8, 72.57, null, '2026-05-07 17:38:00+00', '2026-05-07 17:39:00+00', false),
-  ('ef31ecc0-a03e-40b6-a811-e0efb8ce1502', 'b987e27b-b151-4a93-b419-70f95e8ec05b', 1, 'working', 6, 8, null, null, '1RIR', 8, 15.88, null, '2026-05-07 17:35:00+00', '2026-05-07 17:36:00+00', false),
-  ('2645fd5f-00df-4e6a-969f-0bf590907949', 'b987e27b-b151-4a93-b419-70f95e8ec05b', 2, 'working', 6, 8, null, null, '1RIR', 8, 15.88, null, '2026-05-07 17:38:00+00', '2026-05-07 17:39:00+00', false),
-  ('bb46e818-2fd5-4d72-8d5c-90c421c712fb', '659ff9eb-8c6a-4856-bb82-6c5fb534f69d', 1, 'working', 3, 3, 83.91, 5, '5', 3, 83.91, 5, '2026-05-08 17:35:00+00', '2026-05-08 17:36:00+00', false),
-  ('74769ef4-e01c-482f-aa7e-c5907458c570', '659ff9eb-8c6a-4856-bb82-6c5fb534f69d', 2, 'working', 3, 3, null, null, '-5%', 3, 79.38, 5, '2026-05-08 17:38:00+00', '2026-05-08 17:39:00+00', false),
-  ('27fbf658-bf72-40de-aa6b-805dd278e4bc', '659ff9eb-8c6a-4856-bb82-6c5fb534f69d', 3, 'working', 3, 3, null, null, '-5%', 3, 79.38, 5, '2026-05-08 17:41:00+00', '2026-05-08 17:42:00+00', false),
-  ('887a2951-51aa-45f4-bf63-f4c697eb9b4c', '280fcb1f-581e-4fb2-b595-60b31cbe1f6d', 1, 'working', 6, 6, 108.86, null, '240lb (0.8)', 6, 108.86, 5, '2026-05-08 17:35:00+00', '2026-05-08 17:36:00+00', false),
-  ('dee8c037-b573-47e8-a702-b1d6052aafc9', '280fcb1f-581e-4fb2-b595-60b31cbe1f6d', 2, 'working', 6, 6, 108.86, null, '240lb (0.8)', 6, 108.86, 5, '2026-05-08 17:38:00+00', '2026-05-08 17:39:00+00', false),
-  ('efba24e9-6d8a-435b-8b91-9806e62fd409', 'e5c80b2a-e73a-4f72-8a23-d67c711498df', 1, 'working', 4, 8, null, null, '1-2RIR', 8, 27.22, 8, '2026-05-08 17:35:00+00', '2026-05-08 17:36:00+00', false),
-  ('d6c8b57f-717a-47be-b663-287e9d795a9d', 'cdb94ae5-1da9-4543-aade-8a81a5d4c44b', 1, 'working', 6, 8, null, null, '0-1RIR', 8, 72.57, 8, '2026-05-08 17:35:00+00', '2026-05-08 17:36:00+00', false),
-  ('1bc7bfb9-cd5a-47d3-96ec-fd6cb570da5a', '9c840259-3b30-4b5c-b0cf-81afce5df34e', 1, 'working', 6, 8, null, null, '0-1RIR', 8, 29.48, 8, '2026-05-08 17:35:00+00', '2026-05-08 17:36:00+00', false),
-  ('a9078e35-a90f-467a-a3ba-4df8a6a21f3b', '9c840259-3b30-4b5c-b0cf-81afce5df34e', 2, 'working', 6, 8, null, null, '0-1RIR', 8, 29.48, 8, '2026-05-08 17:38:00+00', '2026-05-08 17:39:00+00', false),
-  ('19524d14-b048-4a31-87af-b8045c9c4d71', '74267eb7-1f67-4135-867e-0b96f4845f07', 1, 'working', 6, 8, null, null, '0-1RIR', 8, 12.47, 9, '2026-05-08 17:35:00+00', '2026-05-08 17:36:00+00', false),
-  ('d36c3e81-10b1-4e42-9f5d-5852b7be6cde', '74267eb7-1f67-4135-867e-0b96f4845f07', 2, 'working', 6, 8, null, null, '0-1RIR', 8, 12.47, 9, '2026-05-08 17:38:00+00', '2026-05-08 17:39:00+00', false)
+  ('536af3a0-6bda-4cf3-af08-88c8385fd11f', 'b6d3a424-65ad-43ee-a5c8-977eb3e4b34c', 1, 'working', 3, 3, 136.08, 5, '5', 3, 136.08, null, '2026-05-04 17:35:00+00', '2026-05-04 17:36:00+00', 'completed'),
+  ('2229638b-5286-4c1c-87b8-267b456be387', 'b6d3a424-65ad-43ee-a5c8-977eb3e4b34c', 2, 'working', 2, 2, 129.27, 5, '5', 2, 129.27, null, '2026-05-04 17:38:00+00', '2026-05-04 17:39:00+00', 'completed'),
+  ('24b9a5fc-b631-4fad-aabb-d3af058694e4', 'b6d3a424-65ad-43ee-a5c8-977eb3e4b34c', 3, 'working', 2, 2, 129.27, 5, '5', 2, 129.27, null, '2026-05-04 17:41:00+00', '2026-05-04 17:42:00+00', 'completed'),
+  ('31dba1fc-966d-4377-a7db-1b2840294d8a', '55e30a78-252d-4704-b3d0-0204212ef90c', 1, 'working', 3, 3, 138.35, 5, '5', 3, 138.35, null, '2026-05-04 17:35:00+00', '2026-05-04 17:36:00+00', 'completed'),
+  ('b880387d-c87d-486d-9d24-3d82c46209aa', '55e30a78-252d-4704-b3d0-0204212ef90c', 2, 'working', 2, 2, 131.54, 7, '7', 2, 131.54, null, '2026-05-04 17:38:00+00', '2026-05-04 17:39:00+00', 'completed'),
+  ('55807947-e179-402e-85c0-59e9bbe573ad', '55e30a78-252d-4704-b3d0-0204212ef90c', 3, 'working', 2, 2, 131.54, 7, '7', 2, 131.54, null, '2026-05-04 17:41:00+00', '2026-05-04 17:42:00+00', 'completed'),
+  ('823d9243-b04e-4a75-83f2-4ef92947926b', 'b67f238c-e3e5-45fa-aac4-fe4644d67a74', 1, 'working', 6, 10, null, null, '0-1RIR', 10, 31.75, null, '2026-05-04 17:35:00+00', '2026-05-04 17:36:00+00', 'completed'),
+  ('8b784f96-531b-40aa-9dc7-94fdfe3a8681', 'b67f238c-e3e5-45fa-aac4-fe4644d67a74', 2, 'working', 6, 10, null, null, '0-1RIR', 10, 31.75, null, '2026-05-04 17:38:00+00', '2026-05-04 17:39:00+00', 'completed'),
+  ('97eb95ba-3ca7-4902-85aa-85f440c1495e', 'd61d09be-5449-4404-a842-91405299e9c6', 1, 'working', 6, 10, null, null, '0-1RIR', 10, 40.82, null, '2026-05-04 17:35:00+00', '2026-05-04 17:36:00+00', 'completed'),
+  ('13b8db19-4557-4188-8ec8-953795d481be', 'd61d09be-5449-4404-a842-91405299e9c6', 2, 'working', 6, 10, null, null, '0-1RIR', 10, 40.82, null, '2026-05-04 17:38:00+00', '2026-05-04 17:39:00+00', 'completed'),
+  ('ec7c9cc3-39d5-4da4-981d-7a2c7df4e6cd', '3ea2a010-e2f4-458b-a2e3-918d2a1d3f7c', 1, 'working', 3, 3, 131.54, 5, '5', 3, 131.54, null, '2026-05-06 17:35:00+00', '2026-05-06 17:36:00+00', 'completed'),
+  ('17410185-e53e-4ea4-ad14-1cb0cc9152d0', '3ea2a010-e2f4-458b-a2e3-918d2a1d3f7c', 2, 'working', 3, 3, null, null, '-10%', 3, 120.2, null, '2026-05-06 17:38:00+00', '2026-05-06 17:39:00+00', 'completed'),
+  ('d2dd0094-d6d4-4059-b200-bae78266b198', 'cd81c861-6eec-4add-83c0-ba4ac12912a3', 1, 'working', 1, 1, 97.52, 5, '5', 1, 97.52, null, '2026-05-06 17:35:00+00', '2026-05-06 17:36:00+00', 'completed'),
+  ('0ddb7f9a-de65-4928-add8-b9a288d56b63', 'cd81c861-6eec-4add-83c0-ba4ac12912a3', 2, 'working', 2, 2, 92.99, 5, '5', 2, 92.99, null, '2026-05-06 17:38:00+00', '2026-05-06 17:39:00+00', 'completed'),
+  ('459fd6d2-2ecb-47cb-86f2-6a538fbbe53d', 'cd81c861-6eec-4add-83c0-ba4ac12912a3', 3, 'working', 2, 2, null, null, '-7.5%', 2, 86.18, null, '2026-05-06 17:41:00+00', '2026-05-06 17:42:00+00', 'completed'),
+  ('36abe831-f863-4632-b588-1f46d3d81f64', 'cd81c861-6eec-4add-83c0-ba4ac12912a3', 4, 'working', 2, 2, null, null, '-7.5%', 2, 86.18, null, '2026-05-06 17:44:00+00', '2026-05-06 17:45:00+00', 'completed'),
+  ('d98a1ac7-1e58-4012-b71b-69f33946736f', 'fdc05f9a-2dc6-4f9b-9da9-57e4fd99812f', 1, 'working', 4, 4, 131.54, null, '290lb', 4, 131.54, null, '2026-05-06 17:35:00+00', '2026-05-06 17:36:00+00', 'completed'),
+  ('fe26422c-e4ab-4108-9f3f-5760104755c2', 'fdc05f9a-2dc6-4f9b-9da9-57e4fd99812f', 2, 'working', 4, 4, 131.54, null, '290lb', 4, 131.54, null, '2026-05-06 17:38:00+00', '2026-05-06 17:39:00+00', 'completed'),
+  ('f72047d6-418a-4038-b0d3-6135b56aa3a8', '57ef8a04-fa9f-4c4b-a68d-b185b4f82df4', 1, 'working', 4, 8, null, null, '1-2RIR', 8, 83.91, null, '2026-05-06 17:35:00+00', '2026-05-06 17:36:00+00', 'completed'),
+  ('b3d9298b-4721-46c8-adda-0b36a6f41d8d', '38d69012-6ca1-4e58-9a92-35b467c3b21e', 1, 'working', 6, 10, null, null, '0-1RIR', 10, 31.75, null, '2026-05-06 17:35:00+00', '2026-05-06 17:36:00+00', 'completed'),
+  ('7075c6f7-0cdb-4385-9705-2075c1ed54d7', '38d69012-6ca1-4e58-9a92-35b467c3b21e', 2, 'working', 6, 10, null, null, '0-1RIR', 10, 31.75, null, '2026-05-06 17:38:00+00', '2026-05-06 17:39:00+00', 'completed'),
+  ('744d6f16-7ef9-4875-93ff-5d03673397c8', '2d346b58-cda5-4821-a16b-f70ca5867680', 1, 'working', 6, 10, null, null, '0-1RIR', 10, 40.82, null, '2026-05-06 17:35:00+00', '2026-05-06 17:36:00+00', 'completed'),
+  ('3d1d5f52-887f-47ab-b783-8483ad98bb09', '2d346b58-cda5-4821-a16b-f70ca5867680', 2, 'working', 6, 10, null, null, '0-1RIR', 10, 40.82, null, '2026-05-06 17:38:00+00', '2026-05-06 17:39:00+00', 'completed'),
+  ('36e9cc53-e349-430c-b0b4-ea45b62d9033', '75829496-ac8e-4cd2-a6c9-f7805f5e3711', 1, 'working', 6, 6, null, null, 'RIR0-1', 6, 63.5, null, '2026-05-06 17:35:00+00', '2026-05-06 17:36:00+00', 'completed'),
+  ('4beba5b9-5403-4f93-8eff-9908d8c098fe', '75829496-ac8e-4cd2-a6c9-f7805f5e3711', 2, 'working', 6, 6, null, null, 'RIR0-1', 6, 63.5, null, '2026-05-06 17:38:00+00', '2026-05-06 17:39:00+00', 'completed'),
+  ('45ba7ee1-4bec-4b13-b62e-464362dbbd00', '64b96b80-5b51-4eea-b40b-12fe4c882dd8', 1, 'working', 8, 8, null, null, 'RIR0-1', 8, 58.97, null, '2026-05-06 17:35:00+00', '2026-05-06 17:36:00+00', 'completed'),
+  ('fb611394-d833-4dfb-ac69-1533a450b9d5', '4060e114-e43f-4fdc-aaf0-ece7696deaac', 1, 'working', 10, 10, null, null, 'RIR0-1', 10, 31.75, null, '2026-05-06 17:35:00+00', '2026-05-06 17:36:00+00', 'completed'),
+  ('3640866e-8aa0-4ff0-bdec-6dd7858d813e', '4060e114-e43f-4fdc-aaf0-ece7696deaac', 2, 'working', 10, 10, null, null, 'RIR0-1', 10, 31.75, null, '2026-05-06 17:38:00+00', '2026-05-06 17:39:00+00', 'completed'),
+  ('d2b8c560-ff0f-423c-b35f-30e6c80dea49', '6bf5d65c-ecfd-4cf3-a402-90383ac8c0da', 1, 'working', 1, 1, 95.25, 5, '5', 1, 95.25, null, '2026-05-07 17:35:00+00', '2026-05-07 17:36:00+00', 'completed'),
+  ('df4a9d43-f6e8-40be-839a-4947b11e8c6c', '6bf5d65c-ecfd-4cf3-a402-90383ac8c0da', 2, 'working', 2, 2, 90.72, 5, '5', 2, 90.72, null, '2026-05-07 17:38:00+00', '2026-05-07 17:39:00+00', 'completed'),
+  ('879f701e-8ac7-4bca-ba0b-eecc81647aa1', '6bf5d65c-ecfd-4cf3-a402-90383ac8c0da', 3, 'working', 2, 2, null, null, '-7.5%', 2, 83.91, null, '2026-05-07 17:41:00+00', '2026-05-07 17:42:00+00', 'completed'),
+  ('753d5002-d2fd-411d-aec5-d0a67a61d0a6', '6bf5d65c-ecfd-4cf3-a402-90383ac8c0da', 4, 'working', 2, 2, null, null, '-7.5%', 2, 83.91, null, '2026-05-07 17:44:00+00', '2026-05-07 17:45:00+00', 'completed'),
+  ('72a621ba-b16e-4344-b794-20b12296d9c5', '6bf5d65c-ecfd-4cf3-a402-90383ac8c0da', 5, 'working', 2, 2, null, null, '-7.5%', 2, 83.91, null, '2026-05-07 17:47:00+00', '2026-05-07 17:48:00+00', 'completed'),
+  ('a8ce7a4a-57bc-4382-bc9c-c51183bb3818', '5f2a8a9c-0a31-4f21-839f-800645b7c150', 1, 'working', 6, 8, null, null, '0-1RIR', 8, 72.57, null, '2026-05-07 17:35:00+00', '2026-05-07 17:36:00+00', 'completed'),
+  ('f4951305-57a6-44b0-ab3f-b2de3f220365', '5f2a8a9c-0a31-4f21-839f-800645b7c150', 2, 'working', 6, 8, null, null, '0-1RIR', 8, 72.57, null, '2026-05-07 17:38:00+00', '2026-05-07 17:39:00+00', 'completed'),
+  ('ef31ecc0-a03e-40b6-a811-e0efb8ce1502', 'b987e27b-b151-4a93-b419-70f95e8ec05b', 1, 'working', 6, 8, null, null, '1RIR', 8, 15.88, null, '2026-05-07 17:35:00+00', '2026-05-07 17:36:00+00', 'completed'),
+  ('2645fd5f-00df-4e6a-969f-0bf590907949', 'b987e27b-b151-4a93-b419-70f95e8ec05b', 2, 'working', 6, 8, null, null, '1RIR', 8, 15.88, null, '2026-05-07 17:38:00+00', '2026-05-07 17:39:00+00', 'completed'),
+  ('bb46e818-2fd5-4d72-8d5c-90c421c712fb', '659ff9eb-8c6a-4856-bb82-6c5fb534f69d', 1, 'working', 3, 3, 83.91, 5, '5', 3, 83.91, 5, '2026-05-08 17:35:00+00', '2026-05-08 17:36:00+00', 'completed'),
+  ('74769ef4-e01c-482f-aa7e-c5907458c570', '659ff9eb-8c6a-4856-bb82-6c5fb534f69d', 2, 'working', 3, 3, null, null, '-5%', 3, 79.38, 5, '2026-05-08 17:38:00+00', '2026-05-08 17:39:00+00', 'completed'),
+  ('27fbf658-bf72-40de-aa6b-805dd278e4bc', '659ff9eb-8c6a-4856-bb82-6c5fb534f69d', 3, 'working', 3, 3, null, null, '-5%', 3, 79.38, 5, '2026-05-08 17:41:00+00', '2026-05-08 17:42:00+00', 'completed'),
+  ('887a2951-51aa-45f4-bf63-f4c697eb9b4c', '280fcb1f-581e-4fb2-b595-60b31cbe1f6d', 1, 'working', 6, 6, 108.86, null, '240lb (0.8)', 6, 108.86, 5, '2026-05-08 17:35:00+00', '2026-05-08 17:36:00+00', 'completed'),
+  ('dee8c037-b573-47e8-a702-b1d6052aafc9', '280fcb1f-581e-4fb2-b595-60b31cbe1f6d', 2, 'working', 6, 6, 108.86, null, '240lb (0.8)', 6, 108.86, 5, '2026-05-08 17:38:00+00', '2026-05-08 17:39:00+00', 'completed'),
+  ('efba24e9-6d8a-435b-8b91-9806e62fd409', 'e5c80b2a-e73a-4f72-8a23-d67c711498df', 1, 'working', 4, 8, null, null, '1-2RIR', 8, 27.22, 8, '2026-05-08 17:35:00+00', '2026-05-08 17:36:00+00', 'completed'),
+  ('d6c8b57f-717a-47be-b663-287e9d795a9d', 'cdb94ae5-1da9-4543-aade-8a81a5d4c44b', 1, 'working', 6, 8, null, null, '0-1RIR', 8, 72.57, 8, '2026-05-08 17:35:00+00', '2026-05-08 17:36:00+00', 'completed'),
+  ('1bc7bfb9-cd5a-47d3-96ec-fd6cb570da5a', '9c840259-3b30-4b5c-b0cf-81afce5df34e', 1, 'working', 6, 8, null, null, '0-1RIR', 8, 29.48, 8, '2026-05-08 17:35:00+00', '2026-05-08 17:36:00+00', 'completed'),
+  ('a9078e35-a90f-467a-a3ba-4df8a6a21f3b', '9c840259-3b30-4b5c-b0cf-81afce5df34e', 2, 'working', 6, 8, null, null, '0-1RIR', 8, 29.48, 8, '2026-05-08 17:38:00+00', '2026-05-08 17:39:00+00', 'completed'),
+  ('19524d14-b048-4a31-87af-b8045c9c4d71', '74267eb7-1f67-4135-867e-0b96f4845f07', 1, 'working', 6, 8, null, null, '0-1RIR', 8, 12.47, 9, '2026-05-08 17:35:00+00', '2026-05-08 17:36:00+00', 'completed'),
+  ('d36c3e81-10b1-4e42-9f5d-5852b7be6cde', '74267eb7-1f67-4135-867e-0b96f4845f07', 2, 'working', 6, 8, null, null, '0-1RIR', 8, 12.47, 9, '2026-05-08 17:38:00+00', '2026-05-08 17:39:00+00', 'completed')
 on conflict (id) do nothing;

@@ -16,6 +16,7 @@ type ProgramSummaryResponse struct {
 	ID          uuid.UUID `json:"id" example:"8d645f69-e0a2-4b07-a30b-0a20634e2abb"`
 	Name        string    `json:"name" example:"Logan PL — May/June 2026 Block"`
 	Description *string   `json:"description,omitempty"`
+	StartDate   *string   `json:"start_date,omitempty" example:"2026-05-04"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 } // @name ProgramSummaryResponse
@@ -28,6 +29,7 @@ type ProgramResponse struct {
 	ID          uuid.UUID             `json:"id" example:"8d645f69-e0a2-4b07-a30b-0a20634e2abb"`
 	Name        string                `json:"name" example:"Logan PL — May/June 2026 Block"`
 	Description *string               `json:"description,omitempty"`
+	StartDate   *string               `json:"start_date,omitempty" example:"2026-05-04"`
 	CreatedAt   time.Time             `json:"created_at"`
 	UpdatedAt   time.Time             `json:"updated_at"`
 	Weeks       []ProgramWeekResponse `json:"weeks"`

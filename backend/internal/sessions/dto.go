@@ -56,18 +56,29 @@ type SetLogResponse struct {
 	ActualLoadKg       *float64 `json:"actual_load_kg,omitempty"`
 	ActualLoadModifier string   `json:"actual_load_modifier" example:"absolute"`
 	ActualRpe          *float64 `json:"actual_rpe,omitempty"`
-	WasCompleted       bool     `json:"was_completed"`
+	State              string   `json:"state" example:"pending"`
 } // @name SetLogResponse
 
 // UpdateSetLogRequest is the body of PATCH /api/sessions/:id/set-logs/:logId.
 // Pointer presence (non-nil) means "update this column"; a nil pointer
 // leaves the existing value untouched. v1 does not support clearing a column
 // back to NULL via the API.
+//
+// State accepts one of "pending", "completed", or "skipped" — the service
+// rejects anything else as ErrInvalidInput.
 type UpdateSetLogRequest struct {
 	ActualLoadKg *float64 `json:"actual_load_kg,omitempty" example:"129.27"`
 	ActualRpe    *float64 `json:"actual_rpe,omitempty" example:"8.5"`
-	WasCompleted *bool    `json:"was_completed,omitempty"`
+	State        *string  `json:"state,omitempty" example:"completed"`
 } // @name UpdateSetLogRequest
+
+// CompletedDayResponse is one (week, day) sequence pair where the user's
+// session has rolled to state='completed'. The day selector renders a "done"
+// dot for each pair returned by GET /api/programs/:id/day-completions.
+type CompletedDayResponse struct {
+	WeekSequence int32 `json:"week_sequence" example:"4"`
+	DaySequence  int32 `json:"day_sequence" example:"1"`
+} // @name CompletedDayResponse
 
 // ErrorResponse is the standard error envelope returned by the API. Mirrored
 // from the programs package so the OpenAPI spec doesn't generate two

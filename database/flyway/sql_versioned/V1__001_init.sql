@@ -72,6 +72,11 @@ create type session_state as enum (
   'planned', 'in_progress', 'completed', 'skipped', 'partial'
 );
 
+-- Per-set lifecycle. The backend's auto-rollup writes sessions.state based on
+-- the distribution of child set_logs: all-pending → planned, any non-pending
+-- → in_progress, all completed-or-skipped → completed.
+create type set_log_state as enum ('pending', 'completed', 'skipped');
+
 create type unit_system as enum ('metric', 'imperial');
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -167,6 +172,10 @@ create table programs (
   owner_user_id  uuid not null references users(id) on delete cascade,
   name           text not null,
   description    text,
+  -- The anchor calendar date the program is meant to start on. The day
+  -- selector uses it to align week 1 day 1 with a real date; the user can
+  -- still reorder workouts within a week without re-anchoring.
+  start_date     date,
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now(),
   deleted_at     timestamptz
@@ -322,7 +331,7 @@ create table set_logs (
   -- timing & status
   started_at                timestamptz,
   completed_at              timestamptz,
-  was_completed             boolean not null default false,
+  state                     set_log_state not null default 'pending',
   notes                     text,
   extras                    jsonb not null default '{}'::jsonb,
   created_at                timestamptz not null default now(),

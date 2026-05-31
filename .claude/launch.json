@@ -7,6 +7,13 @@
       "runtimeArgs": ["dev"],
       "cwd": "frontend",
       "port": 5173
+    },
+    {
+      "name": "fitlytics-api",
+      "runtimeExecutable": "go",
+      "runtimeArgs": ["run", "./cmd/api"],
+      "cwd": "backend",
+      "port": 8080
     }
   ]
 }

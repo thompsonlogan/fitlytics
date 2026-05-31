@@ -1,14 +1,13 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 
 import { AppHeader, type Section } from "@/components/workout/app-header"
 import { DayBoard, DayBoardSkeleton } from "@/components/workout/day-board"
 import { Footer } from "@/components/workout/footer"
 import { SubBar } from "@/components/workout/sub-bar"
 import { useAuth } from "@/hooks/use-auth"
+import { useDayCompletions } from "@/hooks/use-day-completions"
 import { useWorkoutProgram } from "@/hooks/use-workout-program"
-import type { ProgramDay } from "@/lib/program-data"
-
-const TODAY_INDEX = 0
+import { computeTodayPosition, type ProgramDay } from "@/lib/program-data"
 
 // PLACEHOLDER_DAY keeps the SubBar's "current day" panel populated while the
 // program is loading so the header chrome doesn't pop in alongside the table
@@ -18,15 +17,27 @@ const PLACEHOLDER_DAY: ProgramDay = { id: "", name: "Loading…", tag: "—" }
 
 export function TodayPage() {
   const [section, setSection] = useState<Section>("today")
-  const [week, setWeek] = useState(1)
-  const [dayIndex, setDayIndex] = useState(TODAY_INDEX)
-
   const { data: program, isLoading, isError } = useWorkoutProgram()
+  const { data: dayCompletions } = useDayCompletions(program?.id)
   const { user, signOut } = useAuth()
+
+  const weekCount = program?.weeks.length ?? 0
+
+  const todayPos = useMemo(
+    () =>
+      program?.startDate ? computeTodayPosition(program.startDate, weekCount) : null,
+    [program?.startDate, weekCount]
+  )
+
+  // User selection is stored as an override. null = "follow today", which
+  // means the displayed week/day tracks `todayPos` once the program loads.
+  // Clicking "Today" clears the override; navigating clicks set it.
+  const [selected, setSelected] = useState<{ week: number; dayIndex: number } | null>(null)
+  const week = selected?.week ?? todayPos?.week ?? 1
+  const dayIndex = selected?.dayIndex ?? todayPos?.dayIndex ?? 0
 
   // Resolve the active week. Clamp so a `week` value left over from a
   // previously-loaded program with more weeks doesn't index out of bounds.
-  const weekCount = program?.weeks.length ?? 0
   const activeWeek =
     program && weekCount > 0
       ? (program.weeks[Math.min(week, weekCount) - 1] ?? program.weeks[0])
@@ -34,10 +45,15 @@ export function TodayPage() {
   const days = activeWeek?.days ?? []
   const dayData = days[dayIndex] ?? PLACEHOLDER_DAY
 
-  // Until session completion analytics ship, no day or set is pre-marked done —
-  // the source of truth is set_logs.was_completed, which only exists once the
-  // user starts a session and toggles a checkbox.
-  const completedDays: Record<string, boolean> = {}
+  // completedDays drives the "done" dot on the day-selector tabs. Populated
+  // from the dedicated day-completions endpoint, which reports sessions whose
+  // state has rolled to 'completed' (every set is either completed or
+  // skipped). Keyed `${week}-${dayIndex}` (0-based dayIndex) to match the
+  // SubBar's lookup.
+  const completedDays: Record<string, boolean> = dayCompletions ?? {}
+  // initialCompleted seeds the per-set state inside DayBoard for already-done
+  // sets when the day mounts. The session detail itself overrides this on
+  // load; this just avoids a flicker for a freshly-mounted DayBoard.
   const initialCompleted: Record<string, boolean> = {}
 
   if (isError) {
@@ -60,15 +76,14 @@ export function TodayPage() {
         days={days}
         week={week}
         dayIndex={dayIndex}
-        todayIndex={TODAY_INDEX}
+        todayWeek={todayPos?.week ?? null}
+        todayDayIndex={todayPos?.dayIndex ?? null}
         dayData={dayData}
+        startDate={program?.startDate}
         completedDays={completedDays}
-        onWeekChange={setWeek}
-        onDayChange={setDayIndex}
-        onResetToToday={() => {
-          setWeek(1)
-          setDayIndex(TODAY_INDEX)
-        }}
+        onWeekChange={(next) => setSelected({ week: next, dayIndex })}
+        onDayChange={(next) => setSelected({ week, dayIndex: next })}
+        onResetToToday={() => setSelected(null)}
       />
       {isLoading || !program ? (
         <DayBoardSkeleton />

@@ -29,9 +29,14 @@ type Service interface {
 	// not reachable through a program the caller owns.
 	EnsureForDay(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error)
 
-	// UpdateSetLog writes actuals (load, RPE, completion) to one set_log
-	// inside a session owned by the caller.
+	// UpdateSetLog writes actuals (load, RPE, state) to one set_log
+	// inside a session owned by the caller. The repository recomputes the
+	// parent session's state as a side effect.
 	UpdateSetLog(ctx context.Context, sessionID, setLogID, ownerUserID uuid.UUID, input UpdateSetLogRequest) (*SetLogResponse, error)
+
+	// ListCompletedDays returns the (week, day) sequence pairs for completed
+	// sessions in this program. Powers the day-selector completion dot.
+	ListCompletedDays(ctx context.Context, programID, ownerUserID uuid.UUID) ([]CompletedDayResponse, error)
 }
 
 type service struct {
@@ -99,8 +104,13 @@ func (s *service) UpdateSetLog(
 		}
 		updates["actual_rpe"] = v
 	}
-	if input.WasCompleted != nil {
-		updates["was_completed"] = *input.WasCompleted
+	if input.State != nil {
+		switch *input.State {
+		case "pending", "completed", "skipped":
+			updates["state"] = *input.State
+		default:
+			return nil, fmt.Errorf("%w: state must be one of pending, completed, skipped", ErrInvalidInput)
+		}
 	}
 
 	row, err := s.repo.UpdateSetLog(ctx, sessionID, setLogID, ownerUserID, updates)
@@ -113,4 +123,22 @@ func (s *service) UpdateSetLog(
 
 	resp := mapSetLog(*row)
 	return &resp, nil
+}
+
+func (s *service) ListCompletedDays(
+	ctx context.Context,
+	programID, ownerUserID uuid.UUID,
+) ([]CompletedDayResponse, error) {
+	rows, err := s.repo.FindCompletedDays(ctx, programID, ownerUserID)
+	if err != nil {
+		return nil, fmt.Errorf("list completed days: %w", err)
+	}
+	out := make([]CompletedDayResponse, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, CompletedDayResponse{
+			WeekSequence: r.WeekSequence,
+			DaySequence:  r.DaySequence,
+		})
+	}
+	return out, nil
 }

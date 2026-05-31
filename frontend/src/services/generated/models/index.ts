@@ -1,5 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
+export * from './CompletedDayResponse';
 export * from './ErrorResponse';
 export * from './MeResponse';
 export * from './ProgramDayResponse';

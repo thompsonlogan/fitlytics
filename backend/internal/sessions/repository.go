@@ -31,9 +31,25 @@ type Repository interface {
 	EnsureForDay(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*models.Session, error)
 
 	// UpdateSetLog applies the supplied column updates to one set_logs row,
-	// scoped to a session owned by ownerUserID. gorm.ErrRecordNotFound if
-	// the log doesn't roll up to the caller's session.
+	// scoped to a session owned by ownerUserID. After applying, it recomputes
+	// the parent session's state (pending → in_progress → completed) so the
+	// day-completions endpoint can read sessions.state directly without
+	// re-walking the set_logs every call. gorm.ErrRecordNotFound if the log
+	// doesn't roll up to the caller's session.
 	UpdateSetLog(ctx context.Context, sessionID, setLogID, ownerUserID uuid.UUID, updates map[string]any) (*models.SetLog, error)
+
+	// FindCompletedDays returns the (week_sequence, day_sequence) pairs for
+	// every session in this program (owned by ownerUserID) that has rolled to
+	// state='completed'. Used by the day selector to render the "done" dot.
+	FindCompletedDays(ctx context.Context, programID, ownerUserID uuid.UUID) ([]CompletedDayRow, error)
+}
+
+// CompletedDayRow is the flat shape returned by FindCompletedDays — bare
+// (week, day) sequence numbers so the API layer can hand them back without
+// loading the full program tree.
+type CompletedDayRow struct {
+	WeekSequence int32 `gorm:"column:week_sequence"`
+	DaySequence  int32 `gorm:"column:day_sequence"`
 }
 
 type repository struct {
@@ -195,7 +211,7 @@ func (r *repository) EnsureForDay(
 					PrescribedRpe:          pst.PrescribedRpe,
 					IntensityText:          pst.IntensityText,
 					ActualLoadModifier:     "absolute",
-					WasCompleted:           false,
+					State:                  "pending",
 				}
 				if err := tx.Create(&log).Error; err != nil {
 					return fmt.Errorf("create set log: %w", err)
@@ -245,10 +261,77 @@ func (r *repository) UpdateSetLog(
 			}
 		}
 
+		// Recompute session state from the current set_log distribution. This
+		// keeps sessions.state in lockstep with the per-set states so the day
+		// selector can read it directly. Counts only live (non-deleted) logs.
+		var counts struct {
+			Total     int64
+			Pending   int64
+			Completed int64
+			Skipped   int64
+		}
+		if err := tx.Table(models.TableNameSetLog).
+			Select(`COUNT(*) AS total,
+				COUNT(*) FILTER (WHERE state = 'pending') AS pending,
+				COUNT(*) FILTER (WHERE state = 'completed') AS completed,
+				COUNT(*) FILTER (WHERE state = 'skipped') AS skipped`).
+			Joins("JOIN session_exercises ON session_exercises.id = set_logs.session_exercise_id").
+			Where("session_exercises.session_id = ? AND set_logs.deleted_at IS NULL", sessionID).
+			Scan(&counts).Error; err != nil {
+			return fmt.Errorf("count session set_logs: %w", err)
+		}
+
+		sessionUpdates := map[string]any{}
+		switch {
+		case counts.Total == 0:
+			// Defensive: a session with no set_logs shouldn't auto-complete.
+		case counts.Pending == 0:
+			now := time.Now()
+			sessionUpdates["state"] = "completed"
+			sessionUpdates["completed_at"] = &now
+		case counts.Completed > 0 || counts.Skipped > 0:
+			sessionUpdates["state"] = "in_progress"
+			sessionUpdates["completed_at"] = nil
+		default:
+			sessionUpdates["state"] = "planned"
+			sessionUpdates["completed_at"] = nil
+		}
+		if len(sessionUpdates) > 0 {
+			if err := tx.Model(&models.Session{}).
+				Where("id = ?", sessionID).
+				Updates(sessionUpdates).Error; err != nil {
+				return fmt.Errorf("update session state: %w", err)
+			}
+		}
+
 		return tx.Where("id = ?", setLogID).First(&out).Error
 	})
 	if err != nil {
 		return nil, err
 	}
 	return &out, nil
+}
+
+func (r *repository) FindCompletedDays(
+	ctx context.Context,
+	programID, ownerUserID uuid.UUID,
+) ([]CompletedDayRow, error) {
+	var rows []CompletedDayRow
+	err := r.db.WithContext(ctx).
+		Table(models.TableNameSession).
+		Select("program_weeks.sequence AS week_sequence, program_days.sequence AS day_sequence").
+		Joins("JOIN program_days ON program_days.id = sessions.program_day_id").
+		Joins("JOIN program_weeks ON program_weeks.id = program_days.week_id").
+		Joins("JOIN programs ON programs.id = program_weeks.program_id").
+		Where(`sessions.user_id = ?
+			AND programs.id = ?
+			AND programs.owner_user_id = ?
+			AND sessions.state = 'completed'
+			AND sessions.deleted_at IS NULL
+			AND programs.deleted_at IS NULL`, ownerUserID, programID, ownerUserID).
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
 }

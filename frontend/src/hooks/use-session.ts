@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
+import { dayCompletionsQueryKey } from "@/hooks/use-day-completions"
 import { useServices } from "@/services/context"
 import {
   ResponseError,
@@ -81,6 +82,23 @@ export type UseLogSetVars = {
   body: UpdateSetLogRequest
 }
 
+// countPending sums the set_logs across the session that are still in the
+// "pending" state. Used by useLogSet to detect when an update causes the
+// session-level rollup (sessions.state) to flip — i.e. when the pending
+// count crosses the 0 boundary in either direction. Counts only the
+// active (non-deleted) logs the cache holds; missing fields default to
+// "pending" to match the backend's not-null default.
+function countPending(session: SessionResponse | null | undefined): number {
+  if (!session?.exercises) return 0
+  let n = 0
+  for (const ex of session.exercises) {
+    for (const log of ex.setLogs ?? []) {
+      if ((log.state ?? "pending") === "pending") n++
+    }
+  }
+  return n
+}
+
 // useLogSet is the per-cell actuals mutation. It reads the session id from
 // the cache at mutation time rather than via closure, so a logSet call made
 // right after a startSession call doesn't see a stale undefined id. We
@@ -107,21 +125,41 @@ export function useLogSet(programId: string | undefined, programDayId: string | 
         body: vars.body,
       })
     },
-    onSuccess: (updated) => {
+    onSuccess: (updated, vars) => {
       if (!programId || !programDayId) return
-      queryClient.setQueryData<SessionResponse | null>(
-        sessionQueryKey(programId, programDayId),
-        (prev) => {
-          if (!prev) return prev
-          return {
-            ...prev,
-            exercises: prev.exercises?.map((e) => ({
-              ...e,
-              setLogs: e.setLogs?.map((l) => (l.id === updated.id ? updated : l)),
-            })),
-          }
+
+      // Snapshot the cached session BEFORE applying the update so we can
+      // compare pending counts and detect a session-state flip. The day-
+      // completions query only needs to be refetched when the session
+      // crosses the "all sets done-or-skipped" boundary in either
+      // direction — toggling between completed and skipped (both terminal)
+      // can never change the session's state.
+      const cacheKey = sessionQueryKey(programId, programDayId)
+      const prevSession = queryClient.getQueryData<SessionResponse | null>(cacheKey)
+      const prevPending = countPending(prevSession)
+
+      queryClient.setQueryData<SessionResponse | null>(cacheKey, (prev) => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          exercises: prev.exercises?.map((e) => ({
+            ...e,
+            setLogs: e.setLogs?.map((l) => (l.id === updated.id ? updated : l)),
+          })),
         }
-      )
+      })
+
+      // Only re-fetch day-completions on the 0-boundary crossing. The
+      // backend rollup writes sessions.state='completed' iff pending == 0,
+      // so the dot's visibility only toggles when prevPending and
+      // nextPending sit on opposite sides of zero. State-less edits (load,
+      // RPE) can't move the count so we don't even need to compute.
+      if (vars.body.state === undefined) return
+      const nextSession = queryClient.getQueryData<SessionResponse | null>(cacheKey)
+      const nextPending = countPending(nextSession)
+      if ((prevPending === 0) !== (nextPending === 0)) {
+        queryClient.invalidateQueries({ queryKey: dayCompletionsQueryKey(programId) })
+      }
     },
   })
 }
