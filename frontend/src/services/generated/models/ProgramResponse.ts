@@ -28,37 +28,43 @@ import {
  */
 export interface ProgramResponse {
     /**
-     * 
+     *
      * @type {string}
      * @memberof ProgramResponse
      */
     createdAt?: string;
     /**
-     * 
+     *
      * @type {string}
      * @memberof ProgramResponse
      */
     description?: string;
     /**
-     * 
+     *
      * @type {string}
      * @memberof ProgramResponse
      */
     id?: string;
     /**
-     * 
+     *
      * @type {string}
      * @memberof ProgramResponse
      */
     name?: string;
     /**
-     * 
+     *
+     * @type {string}
+     * @memberof ProgramResponse
+     */
+    startDate?: string;
+    /**
+     *
      * @type {string}
      * @memberof ProgramResponse
      */
     updatedAt?: string;
     /**
-     * 
+     *
      * @type {Array<ProgramWeekResponse>}
      * @memberof ProgramResponse
      */
@@ -86,6 +92,7 @@ export function ProgramResponseFromJSONTyped(json: any, ignoreDiscriminator: boo
         'description': json['description'] == null ? undefined : json['description'],
         'id': json['id'] == null ? undefined : json['id'],
         'name': json['name'] == null ? undefined : json['name'],
+        'startDate': json['start_date'] == null ? undefined : json['start_date'],
         'updatedAt': json['updated_at'] == null ? undefined : json['updated_at'],
         'weeks': json['weeks'] == null ? undefined : ((json['weeks'] as Array<any>).map(ProgramWeekResponseFromJSON)),
     };
@@ -106,6 +113,7 @@ export function ProgramResponseToJSONTyped(value?: ProgramResponse | null, ignor
         'description': value['description'],
         'id': value['id'],
         'name': value['name'],
+        'start_date': value['startDate'],
         'updated_at': value['updatedAt'],
         'weeks': value['weeks'] == null ? undefined : ((value['weeks'] as Array<any>).map(ProgramWeekResponseToJSON)),
     };

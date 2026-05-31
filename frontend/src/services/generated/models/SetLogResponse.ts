@@ -98,11 +98,11 @@ export interface SetLogResponse {
      */
     setType?: string;
     /**
-     * 
-     * @type {boolean}
+     *
+     * @type {string}
      * @memberof SetLogResponse
      */
-    wasCompleted?: boolean;
+    state?: string;
 }
 
 /**
@@ -135,7 +135,7 @@ export function SetLogResponseFromJSONTyped(json: any, ignoreDiscriminator: bool
         'repsTargetMin': json['reps_target_min'] == null ? undefined : json['reps_target_min'],
         'sequence': json['sequence'] == null ? undefined : json['sequence'],
         'setType': json['set_type'] == null ? undefined : json['set_type'],
-        'wasCompleted': json['was_completed'] == null ? undefined : json['was_completed'],
+        'state': json['state'] == null ? undefined : json['state'],
     };
 }
 
@@ -163,7 +163,7 @@ export function SetLogResponseToJSONTyped(value?: SetLogResponse | null, ignoreD
         'reps_target_min': value['repsTargetMin'],
         'sequence': value['sequence'],
         'set_type': value['setType'],
-        'was_completed': value['wasCompleted'],
+        'state': value['state'],
     };
 }
 

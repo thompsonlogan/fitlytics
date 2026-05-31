@@ -88,13 +88,26 @@ export function mapDay(d: ProgramDayResponse): ProgramDay {
   }
 }
 
-// mapWeek lifts a backend week into the frontend's per-week shape. Sequence
-// is 1-based on both sides so it copies straight across.
+const DAYS_PER_WEEK = 7
+
+// mapWeek lifts a backend week into the frontend's per-week shape. Always
+// produces exactly 7 days (Mon–Sun) by placing API days at their sequence
+// index and filling gaps with rest-day placeholders.
 export function mapWeek(w: ProgramWeekResponse): ProgramWeek {
+  const bySeq = new Map<number, ProgramDay>()
+  for (const d of w.days ?? []) {
+    bySeq.set(d.sequence ?? 0, mapDay(d))
+  }
+
+  const days: ProgramDay[] = Array.from({ length: DAYS_PER_WEEK }, (_, i) => {
+    const seq = i + 1
+    return bySeq.get(seq) ?? { id: "", name: "Rest", tag: `Day ${seq}`, off: true }
+  })
+
   return {
     id: w.id ?? "",
     sequence: w.sequence ?? 0,
-    days: (w.days ?? []).map(mapDay),
+    days,
   }
 }
 
@@ -105,6 +118,7 @@ export function mapProgram(p: ProgramResponse): Program {
   return {
     id: p.id ?? "",
     name: p.name ?? "",
+    startDate: p.startDate ?? undefined,
     weeks: (p.weeks ?? []).map(mapWeek),
   }
 }

@@ -19,6 +19,7 @@ type Program struct {
 	OwnerUserID uuid.UUID      `gorm:"column:owner_user_id;type:uuid;not null" json:"owner_user_id"`
 	Name        string         `gorm:"column:name;type:text;not null" json:"name"`
 	Description *string        `gorm:"column:description;type:text" json:"description"`
+	StartDate   *time.Time     `gorm:"column:start_date;type:date" json:"start_date"`
 	CreatedAt   time.Time      `gorm:"column:created_at;type:timestamp with time zone;not null;default:now()" json:"created_at"`
 	UpdatedAt   time.Time      `gorm:"column:updated_at;type:timestamp with time zone;not null;default:now()" json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `gorm:"column:deleted_at;type:timestamp with time zone" json:"deleted_at"`

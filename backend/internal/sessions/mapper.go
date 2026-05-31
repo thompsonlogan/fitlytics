@@ -56,6 +56,6 @@ func mapSetLog(l models.SetLog) SetLogResponse {
 		ActualLoadKg:           l.ActualLoadKg,
 		ActualLoadModifier:     l.ActualLoadModifier,
 		ActualRpe:              l.ActualRpe,
-		WasCompleted:           l.WasCompleted,
+		State:                  l.State,
 	}
 }

@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { Card, CardHeader } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SidePanel } from "@/components/workout/side-panel"
+import { CYCLE_NEXT, type SetState } from "@/components/workout/set-state-cell"
 import { WorkoutTableSkeleton } from "@/components/workout/workout-table-skeleton"
 import { RestDayCard, WorkoutTable } from "@/components/workout/workout-table"
 import { useCurrentSession, useLogSet, useStartSession } from "@/hooks/use-session"
@@ -11,11 +12,25 @@ import { type ProgramDay } from "@/lib/program-data"
 import { LB_TO_KG } from "@/lib/program-mapper"
 import { ResponseError, type SessionResponse, type SetLogResponse } from "@/services/generated"
 
+// SET_STATE_DEBOUNCE_MS — how long to wait after the last click before firing
+// the PATCH. Lets the user cycle pending → completed → skipped → pending in
+// rapid succession without thrashing the API.
+const SET_STATE_DEBOUNCE_MS = 500
+
 type DayBoardProps = {
   day: ProgramDay
   programId: string
   programDayId: string
   initialCompleted?: Record<string, boolean>
+}
+
+// readState pulls the canonical set state off a SetLog. The backend column is
+// not-null with a default of 'pending', so the only way this is undefined is
+// if the API client decodes a missing field — treat that as 'pending'.
+function readState(log: SetLogResponse | undefined): SetState {
+  const raw = log?.state
+  if (raw === "completed" || raw === "skipped") return raw
+  return "pending"
 }
 
 // CellErrors keys are `${rowKey}:${field}` (e.g. "0-1:load"). Presence of a
@@ -91,22 +106,47 @@ export function DayBoard({ day, programId, programDayId, initialCompleted = {} }
   const [loadEdits, setLoadEdits] = useState<Record<string, string>>({})
   const [rpeEdits, setRpeEdits] = useState<Record<string, string>>({})
   const [cellErrors, setCellErrors] = useState<CellErrors>({})
-  // Optimistic local completed state — the checkbox flips instantly so the
-  // user gets responsive feedback; on success we re-read from the session.
-  const [completedLocal, setCompletedLocal] = useState<Record<string, boolean>>(initialCompleted)
-
-  // Merge: session.was_completed is the source of truth; local override wins
-  // only while a mutation is in flight or until the page re-mounts.
-  const completed = useMemo(() => {
-    const out: Record<string, boolean> = { ...initialCompleted }
-    for (const [key, log] of setLogByKey) {
-      out[key] = log.wasCompleted
+  // Optimistic per-set tri-state. The cell flips instantly on click; the
+  // debounced effect below pushes the final state to the API and the cache
+  // becomes the source of truth on success.
+  const [stateLocal, setStateLocal] = useState<Record<string, SetState>>(() => {
+    const seed: Record<string, SetState> = {}
+    for (const [key, val] of Object.entries(initialCompleted)) {
+      if (val) seed[key] = "completed"
     }
-    for (const [key, val] of Object.entries(completedLocal)) {
+    return seed
+  })
+
+  // Per-key debounce timers so multiple rapid clicks on the same cell coalesce
+  // into a single PATCH with the final state. Refs (not state) — we don't
+  // want a re-render every time a timer reschedules.
+  const timersRef = useRef<Map<string, number>>(new Map())
+  const desiredStateRef = useRef<Record<string, SetState>>({})
+
+  // Merge: session.state is the source of truth; local override wins only
+  // while a click sequence is in flight (until the debounced PATCH lands and
+  // we drop the override).
+  const cellState = useMemo(() => {
+    const out: Record<string, SetState> = {}
+    for (const [key, log] of setLogByKey) {
+      out[key] = readState(log)
+    }
+    for (const [key, val] of Object.entries(stateLocal)) {
       out[key] = val
     }
     return out
-  }, [initialCompleted, setLogByKey, completedLocal])
+  }, [setLogByKey, stateLocal])
+
+  // SidePanel still uses a boolean "completed" map. Derive it from cellState
+  // so the side-panel API doesn't need to change for tri-state — a skipped
+  // set doesn't count as completed.
+  const completed = useMemo(() => {
+    const out: Record<string, boolean> = {}
+    for (const [key, s] of Object.entries(cellState)) {
+      out[key] = s === "completed"
+    }
+    return out
+  }, [cellState])
 
   // ensureSession lazily creates the session if it doesn't exist yet. Returns
   // the matching set_log for this row, or undefined if the day has no
@@ -232,37 +272,61 @@ export function DayBoard({ day, programId, programDayId, initialCompleted = {} }
     }
   }
 
-  const toggleSet = async (key: string) => {
-    const existing = setLogByKey.get(key)
-    const previousDone = !!existing?.wasCompleted
-    const nextDone = !previousDone
+  // cycleSet advances the per-set tri-state on every click and debounces the
+  // PATCH so a 1-2-3-click cycle only fires one network call. We track the
+  // user's intended final state in a ref so two clicks fired in the same
+  // microtask both register — reading the latest from cellState would miss
+  // the second click because React hasn't re-rendered yet.
+  const cycleSet = (key: string) => {
+    const serverState = readState(setLogByKey.get(key))
+    const current = desiredStateRef.current[key] ?? serverState
+    const next = CYCLE_NEXT[current]
 
-    // Optimistic flip so the UI feels instant.
-    setCompletedLocal((prev) => ({ ...prev, [key]: nextDone }))
+    desiredStateRef.current[key] = next
+    setStateLocal((prev) => ({ ...prev, [key]: next }))
 
-    try {
-      const s = await ensureSession()
-      const log = findSetLog(key, s)
-      if (!log) return
-      await logSet.mutateAsync({
-        setLogId: log.id,
-        body: { wasCompleted: nextDone },
-      })
-      // The mutation onSuccess updated the cache; drop the local override so
-      // the merged state pulls from the session.
-      setCompletedLocal((prev) => {
-        const { [key]: _, ...rest } = prev
-        return rest
-      })
-    } catch {
-      // Revert the optimistic flip and toast — completion has no per-cell
-      // error UI surface today.
-      setCompletedLocal((prev) => {
-        const { [key]: _, ...rest } = prev
-        return rest
-      })
-      toast.error("Couldn't save completion. Check your connection and try again.")
-    }
+    const existingTimer = timersRef.current.get(key)
+    if (existingTimer !== undefined) window.clearTimeout(existingTimer)
+
+    const timerId = window.setTimeout(async () => {
+      timersRef.current.delete(key)
+      const desired = desiredStateRef.current[key]
+      delete desiredStateRef.current[key]
+      const serverState = readState(setLogByKey.get(key))
+
+      // No-op: user cycled all the way back to the server's state.
+      if (desired === serverState) {
+        setStateLocal((prev) => {
+          const { [key]: _, ...rest } = prev
+          return rest
+        })
+        return
+      }
+
+      try {
+        const s = await ensureSession()
+        const log = findSetLog(key, s)
+        if (!log) return
+        await logSet.mutateAsync({
+          setLogId: log.id,
+          body: { state: desired },
+        })
+        // onSuccess merged the updated log into the cache — drop the local
+        // override so the merged map pulls from the session again.
+        setStateLocal((prev) => {
+          const { [key]: _, ...rest } = prev
+          return rest
+        })
+      } catch {
+        setStateLocal((prev) => {
+          const { [key]: _, ...rest } = prev
+          return rest
+        })
+        toast.error("Couldn't save set state. Check your connection and try again.")
+      }
+    }, SET_STATE_DEBOUNCE_MS)
+
+    timersRef.current.set(key, timerId)
   }
 
   // Persisted actuals get merged with local edits at render time: a local
@@ -290,13 +354,13 @@ export function DayBoard({ day, programId, programDayId, initialCompleted = {} }
       ) : (
         <WorkoutTable
           day={day}
-          completed={completed}
+          cellState={cellState}
           loadEdits={loadEdits}
           rpeEdits={rpeEdits}
           persistedLoad={persistedLoad}
           persistedRpe={persistedRpe}
           cellErrors={cellErrors}
-          onToggleSet={toggleSet}
+          onCycleSet={cycleSet}
           onEditLoad={editLoad}
           onEditRpe={editRpe}
           onBlurLoad={blurLoad}

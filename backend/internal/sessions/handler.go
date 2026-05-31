@@ -28,6 +28,7 @@ func (h *Handler) Register(rg *gin.RouterGroup) {
 	rg.GET("/programs/:id/days/:dayId/sessions/current", h.GetCurrentSession)
 	rg.POST("/programs/:id/days/:dayId/sessions", h.StartSession)
 	rg.PATCH("/sessions/:sessionId/set-logs/:setLogId", h.UpdateSetLog)
+	rg.GET("/programs/:id/day-completions", h.ListDayCompletions)
 }
 
 // GetCurrentSession returns the active session for the day, or 404 if the
@@ -185,4 +186,41 @@ func (h *Handler) UpdateSetLog(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, updated)
+}
+
+// ListDayCompletions returns the (week, day) sequence pairs for sessions in
+// this program that have rolled to state='completed'.
+//
+// @Summary      List completed days for a program
+// @Description  Returns one entry per program day where the user's session has reached state='completed' (every set is either completed or skipped). The day selector renders a "done" dot for each pair. Cheap to compute — single index-friendly query against sessions joined to program_weeks/program_days.
+// @Tags         Sessions
+// @Produce      json
+// @Param        id  path      string  true  "Program UUID"  Format(uuid)
+// @Success      200  {array}   CompletedDayResponse
+// @Failure      400  {object}  SessionsErrorResponse  "invalid id"
+// @Failure      401  {object}  SessionsErrorResponse  "missing or invalid auth token"
+// @Failure      500  {object}  SessionsErrorResponse  "internal server error"
+// @Security     BearerAuth
+// @Router       /api/programs/{id}/day-completions [get]
+func (h *Handler) ListDayCompletions(c *gin.Context) {
+	programID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "invalid program id"})
+		return
+	}
+
+	principal := auth.MustPrincipal(c)
+
+	rows, err := h.service.ListCompletedDays(c.Request.Context(), programID, principal.User.ID)
+	if err != nil {
+		h.log.Error("list day completions failed",
+			slog.String("program_id", programID.String()),
+			slog.String("user_id", principal.User.ID.String()),
+			slog.Any("error", err),
+		)
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, rows)
 }

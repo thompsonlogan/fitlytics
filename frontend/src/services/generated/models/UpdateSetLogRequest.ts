@@ -32,11 +32,11 @@ export interface UpdateSetLogRequest {
      */
     actualRpe?: number;
     /**
-     * 
-     * @type {boolean}
+     *
+     * @type {string}
      * @memberof UpdateSetLogRequest
      */
-    wasCompleted?: boolean;
+    state?: string;
 }
 
 /**
@@ -58,7 +58,7 @@ export function UpdateSetLogRequestFromJSONTyped(json: any, ignoreDiscriminator:
         
         'actualLoadKg': json['actual_load_kg'] == null ? undefined : json['actual_load_kg'],
         'actualRpe': json['actual_rpe'] == null ? undefined : json['actual_rpe'],
-        'wasCompleted': json['was_completed'] == null ? undefined : json['was_completed'],
+        'state': json['state'] == null ? undefined : json['state'],
     };
 }
 
@@ -75,7 +75,7 @@ export function UpdateSetLogRequestToJSONTyped(value?: UpdateSetLogRequest | nul
         
         'actual_load_kg': value['actualLoadKg'],
         'actual_rpe': value['actualRpe'],
-        'was_completed': value['wasCompleted'],
+        'state': value['state'],
     };
 }
 
