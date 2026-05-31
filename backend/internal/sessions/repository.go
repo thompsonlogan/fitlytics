@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/thompsonlogan/fitlytics/backend/internal/models"
+	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
 
 // Repository is the data-access boundary for the session aggregate. Like the
@@ -20,7 +20,7 @@ type Repository interface {
 	// for (user, program_day). Returns gorm.ErrRecordNotFound when none
 	// exists. Active here means deleted_at IS NULL; state can be any of
 	// planned/in_progress/completed — the FE displays them all the same.
-	FindCurrentByDay(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*models.Session, error)
+	FindCurrentByDay(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*generated.Session, error)
 
 	// EnsureForDay finds or creates a session for the given program day.
 	// When creating, it snapshots the day's program tree into
@@ -28,7 +28,7 @@ type Repository interface {
 	// Returns the loaded aggregate either way. Verifies the program day
 	// belongs to a program owned by ownerUserID; otherwise
 	// gorm.ErrRecordNotFound.
-	EnsureForDay(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*models.Session, error)
+	EnsureForDay(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*generated.Session, error)
 
 	// UpdateSetLog applies the supplied column updates to one set_logs row,
 	// scoped to a session owned by ownerUserID. After applying, it recomputes
@@ -36,7 +36,7 @@ type Repository interface {
 	// day-completions endpoint can read sessions.state directly without
 	// re-walking the set_logs every call. gorm.ErrRecordNotFound if the log
 	// doesn't roll up to the caller's session.
-	UpdateSetLog(ctx context.Context, sessionID, setLogID, ownerUserID uuid.UUID, updates map[string]any) (*models.SetLog, error)
+	UpdateSetLog(ctx context.Context, sessionID, setLogID, ownerUserID uuid.UUID, updates map[string]any) (*generated.SetLog, error)
 
 	// FindCompletedDays returns the (week_sequence, day_sequence) pairs for
 	// every session in this program (owned by ownerUserID) that has rolled to
@@ -72,8 +72,8 @@ func preloadSessionTree(db *gorm.DB) *gorm.DB {
 		})
 }
 
-func (r *repository) FindCurrentByDay(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*models.Session, error) {
-	var s models.Session
+func (r *repository) FindCurrentByDay(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*generated.Session, error) {
+	var s generated.Session
 	err := preloadSessionTree(r.db.WithContext(ctx)).
 		Where("user_id = ? AND program_day_id = ?", ownerUserID, programDayID).
 		Order("created_at DESC").
@@ -87,14 +87,14 @@ func (r *repository) FindCurrentByDay(ctx context.Context, programDayID, ownerUs
 func (r *repository) EnsureForDay(
 	ctx context.Context,
 	programID, programDayID, ownerUserID uuid.UUID,
-) (*models.Session, error) {
-	var out models.Session
+) (*generated.Session, error) {
+	var out generated.Session
 
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// 1) Existing session? Reuse it. This is the "idempotent" arm — if
 		// the user already started this day, hand the same session back
 		// rather than littering the DB with duplicates.
-		var existing models.Session
+		var existing generated.Session
 		err := preloadSessionTree(tx).
 			Where("user_id = ? AND program_day_id = ?", ownerUserID, programDayID).
 			Order("created_at DESC").
@@ -118,7 +118,7 @@ func (r *repository) EnsureForDay(
 			Sequence        int32
 			ProgramSequence int32
 		}
-		err = tx.Table(models.TableNameProgramDay).
+		err = tx.Table(generated.TableNameProgramDay).
 			Select("program_days.id AS id, program_days.name AS name, programs.name AS program_name, programs.id AS program_id, program_days.sequence AS sequence, program_weeks.sequence AS program_sequence").
 			Joins("JOIN program_weeks ON program_weeks.id = program_days.week_id").
 			Joins("JOIN programs ON programs.id = program_weeks.program_id").
@@ -130,7 +130,7 @@ func (r *repository) EnsureForDay(
 		}
 
 		// 3) Pull the program exercises + set targets for the snapshot.
-		var pExercises []models.ProgramExercise
+		var pExercises []generated.ProgramExercise
 		if err := tx.
 			Preload("SetTargets", func(db *gorm.DB) *gorm.DB { return db.Order("sequence ASC") }).
 			Where("day_id = ?", programDayID).
@@ -157,7 +157,7 @@ func (r *repository) EnsureForDay(
 				Name string
 			}
 			var rows []row
-			if err := tx.Table(models.TableNameExercise).
+			if err := tx.Table(generated.TableNameExercise).
 				Select("id, name").
 				Where("id IN ?", ids).
 				Find(&rows).Error; err != nil {
@@ -172,7 +172,7 @@ func (r *repository) EnsureForDay(
 		now := time.Now()
 		programName := dayProbe.ProgramName
 		dayName := dayProbe.Name
-		session := models.Session{
+		session := generated.Session{
 			UserID:          ownerUserID,
 			ProgramDayID:    &programDayID,
 			ProgramNameSnap: &programName,
@@ -187,7 +187,7 @@ func (r *repository) EnsureForDay(
 		// 5) For each program_exercise, create a session_exercise + one
 		// set_log per program_set_target. "One log per block" per design.
 		for _, pe := range pExercises {
-			se := models.SessionExercise{
+			se := generated.SessionExercise{
 				SessionID:        session.ID,
 				Sequence:         pe.Sequence,
 				ExerciseID:       pe.ExerciseID,
@@ -200,7 +200,7 @@ func (r *repository) EnsureForDay(
 			}
 
 			for _, pst := range pe.SetTargets {
-				log := models.SetLog{
+				log := generated.SetLog{
 					SessionExerciseID:      se.ID,
 					Sequence:               pst.Sequence,
 					SetType:                pst.SetType,
@@ -234,15 +234,15 @@ func (r *repository) UpdateSetLog(
 	ctx context.Context,
 	sessionID, setLogID, ownerUserID uuid.UUID,
 	updates map[string]any,
-) (*models.SetLog, error) {
-	var out models.SetLog
+) (*generated.SetLog, error) {
+	var out generated.SetLog
 
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Ownership probe: the set_log must belong to a session_exercise of a
 		// session owned by the caller, AND the path session id must match.
 		// The same join pattern guards against id-swapping.
 		var probe struct{ ID uuid.UUID }
-		err := tx.Table(models.TableNameSetLog).
+		err := tx.Table(generated.TableNameSetLog).
 			Select("set_logs.id").
 			Joins("JOIN session_exercises ON session_exercises.id = set_logs.session_exercise_id").
 			Joins("JOIN sessions ON sessions.id = session_exercises.session_id").
@@ -254,7 +254,7 @@ func (r *repository) UpdateSetLog(
 		}
 
 		if len(updates) > 0 {
-			if err := tx.Model(&models.SetLog{}).
+			if err := tx.Model(&generated.SetLog{}).
 				Where("id = ?", setLogID).
 				Updates(updates).Error; err != nil {
 				return fmt.Errorf("update set log: %w", err)
@@ -270,7 +270,7 @@ func (r *repository) UpdateSetLog(
 			Completed int64
 			Skipped   int64
 		}
-		if err := tx.Table(models.TableNameSetLog).
+		if err := tx.Table(generated.TableNameSetLog).
 			Select(`COUNT(*) AS total,
 				COUNT(*) FILTER (WHERE state = 'pending') AS pending,
 				COUNT(*) FILTER (WHERE state = 'completed') AS completed,
@@ -297,7 +297,7 @@ func (r *repository) UpdateSetLog(
 			sessionUpdates["completed_at"] = nil
 		}
 		if len(sessionUpdates) > 0 {
-			if err := tx.Model(&models.Session{}).
+			if err := tx.Model(&generated.Session{}).
 				Where("id = ?", sessionID).
 				Updates(sessionUpdates).Error; err != nil {
 				return fmt.Errorf("update session state: %w", err)
@@ -318,7 +318,7 @@ func (r *repository) FindCompletedDays(
 ) ([]CompletedDayRow, error) {
 	var rows []CompletedDayRow
 	err := r.db.WithContext(ctx).
-		Table(models.TableNameSession).
+		Table(generated.TableNameSession).
 		Select("program_weeks.sequence AS week_sequence, program_days.sequence AS day_sequence").
 		Joins("JOIN program_days ON program_days.id = sessions.program_day_id").
 		Joins("JOIN program_weeks ON program_weeks.id = program_days.week_id").

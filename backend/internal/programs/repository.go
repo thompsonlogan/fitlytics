@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/thompsonlogan/fitlytics/backend/internal/models"
+	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
 
 // Repository is the data-access boundary for the program aggregate. The
@@ -18,12 +18,12 @@ type Repository interface {
 	// exercises → set targets), scoped to ownerUserID. Returns
 	// gorm.ErrRecordNotFound when the program does not exist or does not
 	// belong to the caller — the service maps that to a 404.
-	GetFullTree(ctx context.Context, programID, ownerUserID uuid.UUID) (*models.Program, error)
+	GetFullTree(ctx context.Context, programID, ownerUserID uuid.UUID) (*generated.Program, error)
 
 	// ListByOwner returns the bare program rows owned by the caller, ordered
 	// by created_at ASC. No children are preloaded — this powers the program
 	// picker, which only needs id + name.
-	ListByOwner(ctx context.Context, ownerUserID uuid.UUID) ([]models.Program, error)
+	ListByOwner(ctx context.Context, ownerUserID uuid.UUID) ([]generated.Program, error)
 
 	// LookupExerciseNames returns a {exercise_id: name} map for the given ids.
 	// Used by the service to enrich program_exercises with the canonical name
@@ -40,8 +40,8 @@ func NewRepository(db *gorm.DB) Repository {
 	return &repository{db: db}
 }
 
-func (r *repository) GetFullTree(ctx context.Context, programID, ownerUserID uuid.UUID) (*models.Program, error) {
-	var program models.Program
+func (r *repository) GetFullTree(ctx context.Context, programID, ownerUserID uuid.UUID) (*generated.Program, error) {
+	var program generated.Program
 
 	// Order children by their sequence column at every level so the client
 	// can render the tree without re-sorting.
@@ -59,8 +59,8 @@ func (r *repository) GetFullTree(ctx context.Context, programID, ownerUserID uui
 	return &program, nil
 }
 
-func (r *repository) ListByOwner(ctx context.Context, ownerUserID uuid.UUID) ([]models.Program, error) {
-	var rows []models.Program
+func (r *repository) ListByOwner(ctx context.Context, ownerUserID uuid.UUID) ([]generated.Program, error) {
+	var rows []generated.Program
 	if err := r.db.WithContext(ctx).
 		Where("owner_user_id = ?", ownerUserID).
 		Order("created_at ASC").
@@ -84,7 +84,7 @@ func (r *repository) LookupExerciseNames(ctx context.Context, ids []uuid.UUID) (
 	var rows []row
 
 	if err := r.db.WithContext(ctx).
-		Table(models.TableNameExercise).
+		Table(generated.TableNameExercise).
 		Select("id, name").
 		Where("id IN ?", ids).
 		Find(&rows).Error; err != nil {

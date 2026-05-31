@@ -15,7 +15,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/thompsonlogan/fitlytics/backend/internal/auth"
-	"github.com/thompsonlogan/fitlytics/backend/internal/models"
+	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
 
 func init() {
@@ -29,7 +29,7 @@ func silentLogger() *slog.Logger {
 // withPrincipal returns a gin Context where the auth middleware has already
 // run — same pattern as programs/handler_test.go.
 func withPrincipal(c *gin.Context, userID uuid.UUID) {
-	auth.SetPrincipal(c, &auth.Principal{User: &models.User{ID: userID}})
+	auth.SetPrincipal(c, &auth.Principal{User: &generated.User{ID: userID}})
 }
 
 // ─── GetCurrentSession ──────────────────────────────────────────────────────
@@ -355,7 +355,7 @@ func TestHandlerRegister_MountsAllRoutes(t *testing.T) {
 	}
 
 	g.Use(func(c *gin.Context) {
-		auth.SetPrincipal(c, &auth.Principal{User: &models.User{ID: uuid.New()}})
+		auth.SetPrincipal(c, &auth.Principal{User: &generated.User{ID: uuid.New()}})
 		c.Next()
 	})
 	NewHandler(svc, silentLogger()).Register(g)

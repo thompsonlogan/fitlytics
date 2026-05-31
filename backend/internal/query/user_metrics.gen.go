@@ -16,14 +16,14 @@ import (
 
 	"gorm.io/plugin/dbresolver"
 
-	"github.com/thompsonlogan/fitlytics/backend/internal/models"
+	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
 
 func newUserMetric(db *gorm.DB, opts ...gen.DOOption) userMetric {
 	_userMetric := userMetric{}
 
 	_userMetric.userMetricDo.UseDB(db, opts...)
-	_userMetric.userMetricDo.UseModel(&models.UserMetric{})
+	_userMetric.userMetricDo.UseModel(&generated.UserMetric{})
 
 	tableName := _userMetric.userMetricDo.TableName()
 	_userMetric.ALL = field.NewAsterisk(tableName)
@@ -234,57 +234,57 @@ func (u userMetricDo) Unscoped() *userMetricDo {
 	return u.withDO(u.DO.Unscoped())
 }
 
-func (u userMetricDo) Create(values ...*models.UserMetric) error {
+func (u userMetricDo) Create(values ...*generated.UserMetric) error {
 	if len(values) == 0 {
 		return nil
 	}
 	return u.DO.Create(values)
 }
 
-func (u userMetricDo) CreateInBatches(values []*models.UserMetric, batchSize int) error {
+func (u userMetricDo) CreateInBatches(values []*generated.UserMetric, batchSize int) error {
 	return u.DO.CreateInBatches(values, batchSize)
 }
 
 // Save : !!! underlying implementation is different with GORM
 // The method is equivalent to executing the statement: db.Clauses(clause.OnConflict{UpdateAll: true}).Create(values)
-func (u userMetricDo) Save(values ...*models.UserMetric) error {
+func (u userMetricDo) Save(values ...*generated.UserMetric) error {
 	if len(values) == 0 {
 		return nil
 	}
 	return u.DO.Save(values)
 }
 
-func (u userMetricDo) First() (*models.UserMetric, error) {
+func (u userMetricDo) First() (*generated.UserMetric, error) {
 	if result, err := u.DO.First(); err != nil {
 		return nil, err
 	} else {
-		return result.(*models.UserMetric), nil
+		return result.(*generated.UserMetric), nil
 	}
 }
 
-func (u userMetricDo) Take() (*models.UserMetric, error) {
+func (u userMetricDo) Take() (*generated.UserMetric, error) {
 	if result, err := u.DO.Take(); err != nil {
 		return nil, err
 	} else {
-		return result.(*models.UserMetric), nil
+		return result.(*generated.UserMetric), nil
 	}
 }
 
-func (u userMetricDo) Last() (*models.UserMetric, error) {
+func (u userMetricDo) Last() (*generated.UserMetric, error) {
 	if result, err := u.DO.Last(); err != nil {
 		return nil, err
 	} else {
-		return result.(*models.UserMetric), nil
+		return result.(*generated.UserMetric), nil
 	}
 }
 
-func (u userMetricDo) Find() ([]*models.UserMetric, error) {
+func (u userMetricDo) Find() ([]*generated.UserMetric, error) {
 	result, err := u.DO.Find()
-	return result.([]*models.UserMetric), err
+	return result.([]*generated.UserMetric), err
 }
 
-func (u userMetricDo) FindInBatch(batchSize int, fc func(tx gen.Dao, batch int) error) (results []*models.UserMetric, err error) {
-	buf := make([]*models.UserMetric, 0, batchSize)
+func (u userMetricDo) FindInBatch(batchSize int, fc func(tx gen.Dao, batch int) error) (results []*generated.UserMetric, err error) {
+	buf := make([]*generated.UserMetric, 0, batchSize)
 	err = u.DO.FindInBatches(&buf, batchSize, func(tx gen.Dao, batch int) error {
 		defer func() { results = append(results, buf...) }()
 		return fc(tx, batch)
@@ -292,7 +292,7 @@ func (u userMetricDo) FindInBatch(batchSize int, fc func(tx gen.Dao, batch int) 
 	return results, err
 }
 
-func (u userMetricDo) FindInBatches(result *[]*models.UserMetric, batchSize int, fc func(tx gen.Dao, batch int) error) error {
+func (u userMetricDo) FindInBatches(result *[]*generated.UserMetric, batchSize int, fc func(tx gen.Dao, batch int) error) error {
 	return u.DO.FindInBatches(result, batchSize, fc)
 }
 
@@ -318,23 +318,23 @@ func (u userMetricDo) Preload(fields ...field.RelationField) *userMetricDo {
 	return &u
 }
 
-func (u userMetricDo) FirstOrInit() (*models.UserMetric, error) {
+func (u userMetricDo) FirstOrInit() (*generated.UserMetric, error) {
 	if result, err := u.DO.FirstOrInit(); err != nil {
 		return nil, err
 	} else {
-		return result.(*models.UserMetric), nil
+		return result.(*generated.UserMetric), nil
 	}
 }
 
-func (u userMetricDo) FirstOrCreate() (*models.UserMetric, error) {
+func (u userMetricDo) FirstOrCreate() (*generated.UserMetric, error) {
 	if result, err := u.DO.FirstOrCreate(); err != nil {
 		return nil, err
 	} else {
-		return result.(*models.UserMetric), nil
+		return result.(*generated.UserMetric), nil
 	}
 }
 
-func (u userMetricDo) FindByPage(offset int, limit int) (result []*models.UserMetric, count int64, err error) {
+func (u userMetricDo) FindByPage(offset int, limit int) (result []*generated.UserMetric, count int64, err error) {
 	result, err = u.Offset(offset).Limit(limit).Find()
 	if err != nil {
 		return
@@ -363,7 +363,7 @@ func (u userMetricDo) Scan(result interface{}) (err error) {
 	return u.DO.Scan(result)
 }
 
-func (u userMetricDo) Delete(models ...*models.UserMetric) (result gen.ResultInfo, err error) {
+func (u userMetricDo) Delete(models ...*generated.UserMetric) (result gen.ResultInfo, err error) {
 	return u.DO.Delete(models)
 }
 

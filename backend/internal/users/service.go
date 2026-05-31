@@ -12,7 +12,7 @@ import (
 	"gorm.io/gorm/clause"
 
 	"github.com/thompsonlogan/fitlytics/backend/internal/auth"
-	"github.com/thompsonlogan/fitlytics/backend/internal/models"
+	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
 
 // Service resolves WorkOS identities to local user rows.
@@ -29,7 +29,7 @@ func NewService(db *gorm.DB, workos *auth.WorkOSClient) *Service {
 // row exists yet (first time this user hits the API), it fetches the profile
 // from WorkOS and inserts one. The insert is conflict-safe so concurrent first
 // requests from the same user cannot create duplicates.
-func (s *Service) ResolveOrProvision(ctx context.Context, claims *auth.Claims) (*models.User, error) {
+func (s *Service) ResolveOrProvision(ctx context.Context, claims *auth.Claims) (*generated.User, error) {
 	workosUserID := claims.Subject
 
 	user, err := s.findByWorkOSID(ctx, workosUserID)
@@ -45,7 +45,7 @@ func (s *Service) ResolveOrProvision(ctx context.Context, claims *auth.Claims) (
 		return nil, fmt.Errorf("provision user: %w", err)
 	}
 
-	row := &models.User{WorkosUserID: workosUserID, DisplayName: profile.DisplayName}
+	row := &generated.User{WorkosUserID: workosUserID, DisplayName: profile.DisplayName}
 	if profile.Email != "" {
 		row.Email = &profile.Email
 	}
@@ -60,16 +60,16 @@ func (s *Service) ResolveOrProvision(ctx context.Context, claims *auth.Claims) (
 	return s.findByWorkOSID(ctx, workosUserID)
 }
 
-func (s *Service) FindByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
-	var user models.User
+func (s *Service) FindByID(ctx context.Context, id uuid.UUID) (*generated.User, error) {
+	var user generated.User
 	if err := s.db.WithContext(ctx).First(&user, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
 	return &user, nil
 }
 
-func (s *Service) findByWorkOSID(ctx context.Context, workosUserID string) (*models.User, error) {
-	var user models.User
+func (s *Service) findByWorkOSID(ctx context.Context, workosUserID string) (*generated.User, error) {
+	var user generated.User
 	if err := s.db.WithContext(ctx).
 		Where("workos_user_id = ?", workosUserID).
 		First(&user).Error; err != nil {

@@ -16,14 +16,14 @@ import (
 
 	"gorm.io/plugin/dbresolver"
 
-	"github.com/thompsonlogan/fitlytics/backend/internal/models"
+	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
 
 func newProgramExercise(db *gorm.DB, opts ...gen.DOOption) programExercise {
 	_programExercise := programExercise{}
 
 	_programExercise.programExerciseDo.UseDB(db, opts...)
-	_programExercise.programExerciseDo.UseModel(&models.ProgramExercise{})
+	_programExercise.programExerciseDo.UseModel(&generated.ProgramExercise{})
 
 	tableName := _programExercise.programExerciseDo.TableName()
 	_programExercise.ALL = field.NewAsterisk(tableName)
@@ -40,7 +40,7 @@ func newProgramExercise(db *gorm.DB, opts ...gen.DOOption) programExercise {
 	_programExercise.SetTargets = programExerciseHasManySetTargets{
 		db: db.Session(&gorm.Session{}),
 
-		RelationField: field.NewRelation("SetTargets", "models.ProgramSetTarget"),
+		RelationField: field.NewRelation("SetTargets", "generated.ProgramSetTarget"),
 	}
 
 	_programExercise.fillFieldMap()
@@ -173,7 +173,7 @@ func (a programExerciseHasManySetTargets) Session(session *gorm.Session) *progra
 	return &a
 }
 
-func (a programExerciseHasManySetTargets) Model(m *models.ProgramExercise) *programExerciseHasManySetTargetsTx {
+func (a programExerciseHasManySetTargets) Model(m *generated.ProgramExercise) *programExerciseHasManySetTargetsTx {
 	return &programExerciseHasManySetTargetsTx{a.db.Model(m).Association(a.Name())}
 }
 
@@ -184,11 +184,11 @@ func (a programExerciseHasManySetTargets) Unscoped() *programExerciseHasManySetT
 
 type programExerciseHasManySetTargetsTx struct{ tx *gorm.Association }
 
-func (a programExerciseHasManySetTargetsTx) Find() (result []*models.ProgramSetTarget, err error) {
+func (a programExerciseHasManySetTargetsTx) Find() (result []*generated.ProgramSetTarget, err error) {
 	return result, a.tx.Find(&result)
 }
 
-func (a programExerciseHasManySetTargetsTx) Append(values ...*models.ProgramSetTarget) (err error) {
+func (a programExerciseHasManySetTargetsTx) Append(values ...*generated.ProgramSetTarget) (err error) {
 	targetValues := make([]interface{}, len(values))
 	for i, v := range values {
 		targetValues[i] = v
@@ -196,7 +196,7 @@ func (a programExerciseHasManySetTargetsTx) Append(values ...*models.ProgramSetT
 	return a.tx.Append(targetValues...)
 }
 
-func (a programExerciseHasManySetTargetsTx) Replace(values ...*models.ProgramSetTarget) (err error) {
+func (a programExerciseHasManySetTargetsTx) Replace(values ...*generated.ProgramSetTarget) (err error) {
 	targetValues := make([]interface{}, len(values))
 	for i, v := range values {
 		targetValues[i] = v
@@ -204,7 +204,7 @@ func (a programExerciseHasManySetTargetsTx) Replace(values ...*models.ProgramSet
 	return a.tx.Replace(targetValues...)
 }
 
-func (a programExerciseHasManySetTargetsTx) Delete(values ...*models.ProgramSetTarget) (err error) {
+func (a programExerciseHasManySetTargetsTx) Delete(values ...*generated.ProgramSetTarget) (err error) {
 	targetValues := make([]interface{}, len(values))
 	for i, v := range values {
 		targetValues[i] = v
@@ -319,57 +319,57 @@ func (p programExerciseDo) Unscoped() *programExerciseDo {
 	return p.withDO(p.DO.Unscoped())
 }
 
-func (p programExerciseDo) Create(values ...*models.ProgramExercise) error {
+func (p programExerciseDo) Create(values ...*generated.ProgramExercise) error {
 	if len(values) == 0 {
 		return nil
 	}
 	return p.DO.Create(values)
 }
 
-func (p programExerciseDo) CreateInBatches(values []*models.ProgramExercise, batchSize int) error {
+func (p programExerciseDo) CreateInBatches(values []*generated.ProgramExercise, batchSize int) error {
 	return p.DO.CreateInBatches(values, batchSize)
 }
 
 // Save : !!! underlying implementation is different with GORM
 // The method is equivalent to executing the statement: db.Clauses(clause.OnConflict{UpdateAll: true}).Create(values)
-func (p programExerciseDo) Save(values ...*models.ProgramExercise) error {
+func (p programExerciseDo) Save(values ...*generated.ProgramExercise) error {
 	if len(values) == 0 {
 		return nil
 	}
 	return p.DO.Save(values)
 }
 
-func (p programExerciseDo) First() (*models.ProgramExercise, error) {
+func (p programExerciseDo) First() (*generated.ProgramExercise, error) {
 	if result, err := p.DO.First(); err != nil {
 		return nil, err
 	} else {
-		return result.(*models.ProgramExercise), nil
+		return result.(*generated.ProgramExercise), nil
 	}
 }
 
-func (p programExerciseDo) Take() (*models.ProgramExercise, error) {
+func (p programExerciseDo) Take() (*generated.ProgramExercise, error) {
 	if result, err := p.DO.Take(); err != nil {
 		return nil, err
 	} else {
-		return result.(*models.ProgramExercise), nil
+		return result.(*generated.ProgramExercise), nil
 	}
 }
 
-func (p programExerciseDo) Last() (*models.ProgramExercise, error) {
+func (p programExerciseDo) Last() (*generated.ProgramExercise, error) {
 	if result, err := p.DO.Last(); err != nil {
 		return nil, err
 	} else {
-		return result.(*models.ProgramExercise), nil
+		return result.(*generated.ProgramExercise), nil
 	}
 }
 
-func (p programExerciseDo) Find() ([]*models.ProgramExercise, error) {
+func (p programExerciseDo) Find() ([]*generated.ProgramExercise, error) {
 	result, err := p.DO.Find()
-	return result.([]*models.ProgramExercise), err
+	return result.([]*generated.ProgramExercise), err
 }
 
-func (p programExerciseDo) FindInBatch(batchSize int, fc func(tx gen.Dao, batch int) error) (results []*models.ProgramExercise, err error) {
-	buf := make([]*models.ProgramExercise, 0, batchSize)
+func (p programExerciseDo) FindInBatch(batchSize int, fc func(tx gen.Dao, batch int) error) (results []*generated.ProgramExercise, err error) {
+	buf := make([]*generated.ProgramExercise, 0, batchSize)
 	err = p.DO.FindInBatches(&buf, batchSize, func(tx gen.Dao, batch int) error {
 		defer func() { results = append(results, buf...) }()
 		return fc(tx, batch)
@@ -377,7 +377,7 @@ func (p programExerciseDo) FindInBatch(batchSize int, fc func(tx gen.Dao, batch 
 	return results, err
 }
 
-func (p programExerciseDo) FindInBatches(result *[]*models.ProgramExercise, batchSize int, fc func(tx gen.Dao, batch int) error) error {
+func (p programExerciseDo) FindInBatches(result *[]*generated.ProgramExercise, batchSize int, fc func(tx gen.Dao, batch int) error) error {
 	return p.DO.FindInBatches(result, batchSize, fc)
 }
 
@@ -403,23 +403,23 @@ func (p programExerciseDo) Preload(fields ...field.RelationField) *programExerci
 	return &p
 }
 
-func (p programExerciseDo) FirstOrInit() (*models.ProgramExercise, error) {
+func (p programExerciseDo) FirstOrInit() (*generated.ProgramExercise, error) {
 	if result, err := p.DO.FirstOrInit(); err != nil {
 		return nil, err
 	} else {
-		return result.(*models.ProgramExercise), nil
+		return result.(*generated.ProgramExercise), nil
 	}
 }
 
-func (p programExerciseDo) FirstOrCreate() (*models.ProgramExercise, error) {
+func (p programExerciseDo) FirstOrCreate() (*generated.ProgramExercise, error) {
 	if result, err := p.DO.FirstOrCreate(); err != nil {
 		return nil, err
 	} else {
-		return result.(*models.ProgramExercise), nil
+		return result.(*generated.ProgramExercise), nil
 	}
 }
 
-func (p programExerciseDo) FindByPage(offset int, limit int) (result []*models.ProgramExercise, count int64, err error) {
+func (p programExerciseDo) FindByPage(offset int, limit int) (result []*generated.ProgramExercise, count int64, err error) {
 	result, err = p.Offset(offset).Limit(limit).Find()
 	if err != nil {
 		return
@@ -448,7 +448,7 @@ func (p programExerciseDo) Scan(result interface{}) (err error) {
 	return p.DO.Scan(result)
 }
 
-func (p programExerciseDo) Delete(models ...*models.ProgramExercise) (result gen.ResultInfo, err error) {
+func (p programExerciseDo) Delete(models ...*generated.ProgramExercise) (result gen.ResultInfo, err error) {
 	return p.DO.Delete(models)
 }
 

@@ -16,14 +16,14 @@ import (
 
 	"gorm.io/plugin/dbresolver"
 
-	"github.com/thompsonlogan/fitlytics/backend/internal/models"
+	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
 
 func newProgram(db *gorm.DB, opts ...gen.DOOption) program {
 	_program := program{}
 
 	_program.programDo.UseDB(db, opts...)
-	_program.programDo.UseModel(&models.Program{})
+	_program.programDo.UseModel(&generated.Program{})
 
 	tableName := _program.programDo.TableName()
 	_program.ALL = field.NewAsterisk(tableName)
@@ -31,13 +31,14 @@ func newProgram(db *gorm.DB, opts ...gen.DOOption) program {
 	_program.OwnerUserID = field.NewField(tableName, "owner_user_id")
 	_program.Name = field.NewString(tableName, "name")
 	_program.Description = field.NewString(tableName, "description")
+	_program.StartDate = field.NewTime(tableName, "start_date")
 	_program.CreatedAt = field.NewTime(tableName, "created_at")
 	_program.UpdatedAt = field.NewTime(tableName, "updated_at")
 	_program.DeletedAt = field.NewField(tableName, "deleted_at")
 	_program.Weeks = programHasManyWeeks{
 		db: db.Session(&gorm.Session{}),
 
-		RelationField: field.NewRelation("Weeks", "models.ProgramWeek"),
+		RelationField: field.NewRelation("Weeks", "generated.ProgramWeek"),
 		Days: struct {
 			field.RelationField
 			Exercises struct {
@@ -47,18 +48,18 @@ func newProgram(db *gorm.DB, opts ...gen.DOOption) program {
 				}
 			}
 		}{
-			RelationField: field.NewRelation("Weeks.Days", "models.ProgramDay"),
+			RelationField: field.NewRelation("Weeks.Days", "generated.ProgramDay"),
 			Exercises: struct {
 				field.RelationField
 				SetTargets struct {
 					field.RelationField
 				}
 			}{
-				RelationField: field.NewRelation("Weeks.Days.Exercises", "models.ProgramExercise"),
+				RelationField: field.NewRelation("Weeks.Days.Exercises", "generated.ProgramExercise"),
 				SetTargets: struct {
 					field.RelationField
 				}{
-					RelationField: field.NewRelation("Weeks.Days.Exercises.SetTargets", "models.ProgramSetTarget"),
+					RelationField: field.NewRelation("Weeks.Days.Exercises.SetTargets", "generated.ProgramSetTarget"),
 				},
 			},
 		},
@@ -77,6 +78,7 @@ type program struct {
 	OwnerUserID field.Field
 	Name        field.String
 	Description field.String
+	StartDate   field.Time
 	CreatedAt   field.Time
 	UpdatedAt   field.Time
 	DeletedAt   field.Field
@@ -101,6 +103,7 @@ func (p *program) updateTableName(table string) *program {
 	p.OwnerUserID = field.NewField(table, "owner_user_id")
 	p.Name = field.NewString(table, "name")
 	p.Description = field.NewString(table, "description")
+	p.StartDate = field.NewTime(table, "start_date")
 	p.CreatedAt = field.NewTime(table, "created_at")
 	p.UpdatedAt = field.NewTime(table, "updated_at")
 	p.DeletedAt = field.NewField(table, "deleted_at")
@@ -128,11 +131,12 @@ func (p *program) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (p *program) fillFieldMap() {
-	p.fieldMap = make(map[string]field.Expr, 8)
+	p.fieldMap = make(map[string]field.Expr, 9)
 	p.fieldMap["id"] = p.ID
 	p.fieldMap["owner_user_id"] = p.OwnerUserID
 	p.fieldMap["name"] = p.Name
 	p.fieldMap["description"] = p.Description
+	p.fieldMap["start_date"] = p.StartDate
 	p.fieldMap["created_at"] = p.CreatedAt
 	p.fieldMap["updated_at"] = p.UpdatedAt
 	p.fieldMap["deleted_at"] = p.DeletedAt
@@ -191,7 +195,7 @@ func (a programHasManyWeeks) Session(session *gorm.Session) *programHasManyWeeks
 	return &a
 }
 
-func (a programHasManyWeeks) Model(m *models.Program) *programHasManyWeeksTx {
+func (a programHasManyWeeks) Model(m *generated.Program) *programHasManyWeeksTx {
 	return &programHasManyWeeksTx{a.db.Model(m).Association(a.Name())}
 }
 
@@ -202,11 +206,11 @@ func (a programHasManyWeeks) Unscoped() *programHasManyWeeks {
 
 type programHasManyWeeksTx struct{ tx *gorm.Association }
 
-func (a programHasManyWeeksTx) Find() (result []*models.ProgramWeek, err error) {
+func (a programHasManyWeeksTx) Find() (result []*generated.ProgramWeek, err error) {
 	return result, a.tx.Find(&result)
 }
 
-func (a programHasManyWeeksTx) Append(values ...*models.ProgramWeek) (err error) {
+func (a programHasManyWeeksTx) Append(values ...*generated.ProgramWeek) (err error) {
 	targetValues := make([]interface{}, len(values))
 	for i, v := range values {
 		targetValues[i] = v
@@ -214,7 +218,7 @@ func (a programHasManyWeeksTx) Append(values ...*models.ProgramWeek) (err error)
 	return a.tx.Append(targetValues...)
 }
 
-func (a programHasManyWeeksTx) Replace(values ...*models.ProgramWeek) (err error) {
+func (a programHasManyWeeksTx) Replace(values ...*generated.ProgramWeek) (err error) {
 	targetValues := make([]interface{}, len(values))
 	for i, v := range values {
 		targetValues[i] = v
@@ -222,7 +226,7 @@ func (a programHasManyWeeksTx) Replace(values ...*models.ProgramWeek) (err error
 	return a.tx.Replace(targetValues...)
 }
 
-func (a programHasManyWeeksTx) Delete(values ...*models.ProgramWeek) (err error) {
+func (a programHasManyWeeksTx) Delete(values ...*generated.ProgramWeek) (err error) {
 	targetValues := make([]interface{}, len(values))
 	for i, v := range values {
 		targetValues[i] = v
@@ -337,57 +341,57 @@ func (p programDo) Unscoped() *programDo {
 	return p.withDO(p.DO.Unscoped())
 }
 
-func (p programDo) Create(values ...*models.Program) error {
+func (p programDo) Create(values ...*generated.Program) error {
 	if len(values) == 0 {
 		return nil
 	}
 	return p.DO.Create(values)
 }
 
-func (p programDo) CreateInBatches(values []*models.Program, batchSize int) error {
+func (p programDo) CreateInBatches(values []*generated.Program, batchSize int) error {
 	return p.DO.CreateInBatches(values, batchSize)
 }
 
 // Save : !!! underlying implementation is different with GORM
 // The method is equivalent to executing the statement: db.Clauses(clause.OnConflict{UpdateAll: true}).Create(values)
-func (p programDo) Save(values ...*models.Program) error {
+func (p programDo) Save(values ...*generated.Program) error {
 	if len(values) == 0 {
 		return nil
 	}
 	return p.DO.Save(values)
 }
 
-func (p programDo) First() (*models.Program, error) {
+func (p programDo) First() (*generated.Program, error) {
 	if result, err := p.DO.First(); err != nil {
 		return nil, err
 	} else {
-		return result.(*models.Program), nil
+		return result.(*generated.Program), nil
 	}
 }
 
-func (p programDo) Take() (*models.Program, error) {
+func (p programDo) Take() (*generated.Program, error) {
 	if result, err := p.DO.Take(); err != nil {
 		return nil, err
 	} else {
-		return result.(*models.Program), nil
+		return result.(*generated.Program), nil
 	}
 }
 
-func (p programDo) Last() (*models.Program, error) {
+func (p programDo) Last() (*generated.Program, error) {
 	if result, err := p.DO.Last(); err != nil {
 		return nil, err
 	} else {
-		return result.(*models.Program), nil
+		return result.(*generated.Program), nil
 	}
 }
 
-func (p programDo) Find() ([]*models.Program, error) {
+func (p programDo) Find() ([]*generated.Program, error) {
 	result, err := p.DO.Find()
-	return result.([]*models.Program), err
+	return result.([]*generated.Program), err
 }
 
-func (p programDo) FindInBatch(batchSize int, fc func(tx gen.Dao, batch int) error) (results []*models.Program, err error) {
-	buf := make([]*models.Program, 0, batchSize)
+func (p programDo) FindInBatch(batchSize int, fc func(tx gen.Dao, batch int) error) (results []*generated.Program, err error) {
+	buf := make([]*generated.Program, 0, batchSize)
 	err = p.DO.FindInBatches(&buf, batchSize, func(tx gen.Dao, batch int) error {
 		defer func() { results = append(results, buf...) }()
 		return fc(tx, batch)
@@ -395,7 +399,7 @@ func (p programDo) FindInBatch(batchSize int, fc func(tx gen.Dao, batch int) err
 	return results, err
 }
 
-func (p programDo) FindInBatches(result *[]*models.Program, batchSize int, fc func(tx gen.Dao, batch int) error) error {
+func (p programDo) FindInBatches(result *[]*generated.Program, batchSize int, fc func(tx gen.Dao, batch int) error) error {
 	return p.DO.FindInBatches(result, batchSize, fc)
 }
 
@@ -421,23 +425,23 @@ func (p programDo) Preload(fields ...field.RelationField) *programDo {
 	return &p
 }
 
-func (p programDo) FirstOrInit() (*models.Program, error) {
+func (p programDo) FirstOrInit() (*generated.Program, error) {
 	if result, err := p.DO.FirstOrInit(); err != nil {
 		return nil, err
 	} else {
-		return result.(*models.Program), nil
+		return result.(*generated.Program), nil
 	}
 }
 
-func (p programDo) FirstOrCreate() (*models.Program, error) {
+func (p programDo) FirstOrCreate() (*generated.Program, error) {
 	if result, err := p.DO.FirstOrCreate(); err != nil {
 		return nil, err
 	} else {
-		return result.(*models.Program), nil
+		return result.(*generated.Program), nil
 	}
 }
 
-func (p programDo) FindByPage(offset int, limit int) (result []*models.Program, count int64, err error) {
+func (p programDo) FindByPage(offset int, limit int) (result []*generated.Program, count int64, err error) {
 	result, err = p.Offset(offset).Limit(limit).Find()
 	if err != nil {
 		return
@@ -466,7 +470,7 @@ func (p programDo) Scan(result interface{}) (err error) {
 	return p.DO.Scan(result)
 }
 
-func (p programDo) Delete(models ...*models.Program) (result gen.ResultInfo, err error) {
+func (p programDo) Delete(models ...*generated.Program) (result gen.ResultInfo, err error) {
 	return p.DO.Delete(models)
 }
 

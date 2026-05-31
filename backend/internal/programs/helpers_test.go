@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/thompsonlogan/fitlytics/backend/internal/models"
+	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
 
 // This file holds test-only helpers shared across mapper_test.go,
@@ -40,25 +40,25 @@ func fixedID(label string) uuid.UUID {
 // fullProgram returns a non-trivial program tree exercising every nullable
 // field and both compound and isolation set-target shapes. Used by mapper
 // and service tests.
-func fullProgram() *models.Program {
+func fullProgram() *generated.Program {
 	squatID := fixedID("ex:squat")
 	benchID := fixedID("ex:bench")
 
-	return &models.Program{
+	return &generated.Program{
 		ID:          fixedID("program:1"),
 		OwnerUserID: fixedID("user:1"),
 		Name:        "Test Program",
 		Description: ptr("desc"),
 		CreatedAt:   builtAt,
 		UpdatedAt:   builtAt,
-		Weeks: []models.ProgramWeek{
+		Weeks: []generated.ProgramWeek{
 			{
 				ID:        fixedID("week:1"),
 				ProgramID: fixedID("program:1"),
 				Sequence:  1,
 				Name:      strPtr("Week 1"),
 				Notes:     strPtr("first week"),
-				Days: []models.ProgramDay{
+				Days: []generated.ProgramDay{
 					{
 						ID:        fixedID("day:1"),
 						WeekID:    fixedID("week:1"),
@@ -67,7 +67,7 @@ func fullProgram() *models.Program {
 						Tag:       strPtr("Day 1"),
 						IsRestDay: false,
 						Notes:     nil,
-						Exercises: []models.ProgramExercise{
+						Exercises: []generated.ProgramExercise{
 							{
 								ID:          fixedID("pe:1"),
 								DayID:       fixedID("day:1"),
@@ -76,7 +76,7 @@ func fullProgram() *models.Program {
 								SubText:     strPtr("Belt"),
 								RestSeconds: ptr[int32](180),
 								Notes:       nil,
-								SetTargets: []models.ProgramSetTarget{
+								SetTargets: []generated.ProgramSetTarget{
 									{
 										ID:                     fixedID("pst:1"),
 										ProgramExerciseID:      fixedID("pe:1"),
@@ -100,7 +100,7 @@ func fullProgram() *models.Program {
 								DayID:      fixedID("day:1"),
 								Sequence:   2,
 								ExerciseID: squatID,
-								SetTargets: []models.ProgramSetTarget{
+								SetTargets: []generated.ProgramSetTarget{
 									{
 										ID:                     fixedID("pst:2"),
 										ProgramExerciseID:      fixedID("pe:2"),
@@ -159,8 +159,8 @@ func exerciseNames() map[uuid.UUID]string {
 // closures cause the method to return its zero value, which is fine for the
 // tests that only exercise one method.
 type fakeRepository struct {
-	getFullTreeFn        func(ctx context.Context, programID, ownerUserID uuid.UUID) (*models.Program, error)
-	listByOwnerFn        func(ctx context.Context, ownerUserID uuid.UUID) ([]models.Program, error)
+	getFullTreeFn        func(ctx context.Context, programID, ownerUserID uuid.UUID) (*generated.Program, error)
+	listByOwnerFn        func(ctx context.Context, ownerUserID uuid.UUID) ([]generated.Program, error)
 	lookupExerciseFn     func(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]string, error)
 	lastLookupIDs        []uuid.UUID
 	lookupCalledCount    int
@@ -169,7 +169,7 @@ type fakeRepository struct {
 	lastListOwnerID      uuid.UUID
 }
 
-func (f *fakeRepository) GetFullTree(ctx context.Context, programID, ownerUserID uuid.UUID) (*models.Program, error) {
+func (f *fakeRepository) GetFullTree(ctx context.Context, programID, ownerUserID uuid.UUID) (*generated.Program, error) {
 	f.getFullTreeCallCount++
 	if f.getFullTreeFn == nil {
 		return nil, nil
@@ -177,7 +177,7 @@ func (f *fakeRepository) GetFullTree(ctx context.Context, programID, ownerUserID
 	return f.getFullTreeFn(ctx, programID, ownerUserID)
 }
 
-func (f *fakeRepository) ListByOwner(ctx context.Context, ownerUserID uuid.UUID) ([]models.Program, error) {
+func (f *fakeRepository) ListByOwner(ctx context.Context, ownerUserID uuid.UUID) ([]generated.Program, error) {
 	f.listByOwnerCallCount++
 	f.lastListOwnerID = ownerUserID
 	if f.listByOwnerFn == nil {

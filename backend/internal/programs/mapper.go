@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/thompsonlogan/fitlytics/backend/internal/models"
+	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
 
 // This file holds the pure model→DTO translation functions for the program
@@ -16,7 +16,7 @@ import (
 // collectExerciseIDs returns the distinct set of exercise ids referenced by
 // the loaded program tree. Used by the service to bulk-fetch exercise names
 // in one query rather than N round-trips.
-func collectExerciseIDs(p *models.Program) []uuid.UUID {
+func collectExerciseIDs(p *generated.Program) []uuid.UUID {
 	seen := make(map[uuid.UUID]struct{})
 	ids := make([]uuid.UUID, 0)
 	for _, w := range p.Weeks {
@@ -45,7 +45,7 @@ func formatDatePtr(t *time.Time) *string {
 	return &s
 }
 
-func mapProgram(p *models.Program, names map[uuid.UUID]string) *ProgramResponse {
+func mapProgram(p *generated.Program, names map[uuid.UUID]string) *ProgramResponse {
 	out := &ProgramResponse{
 		ID:          p.ID,
 		Name:        p.Name,
@@ -61,7 +61,7 @@ func mapProgram(p *models.Program, names map[uuid.UUID]string) *ProgramResponse 
 	return out
 }
 
-func mapWeek(w models.ProgramWeek, names map[uuid.UUID]string) ProgramWeekResponse {
+func mapWeek(w generated.ProgramWeek, names map[uuid.UUID]string) ProgramWeekResponse {
 	out := ProgramWeekResponse{
 		ID:       w.ID,
 		Sequence: w.Sequence,
@@ -75,7 +75,7 @@ func mapWeek(w models.ProgramWeek, names map[uuid.UUID]string) ProgramWeekRespon
 	return out
 }
 
-func mapDay(d models.ProgramDay, names map[uuid.UUID]string) ProgramDayResponse {
+func mapDay(d generated.ProgramDay, names map[uuid.UUID]string) ProgramDayResponse {
 	out := ProgramDayResponse{
 		ID:        d.ID,
 		Sequence:  d.Sequence,
@@ -91,7 +91,7 @@ func mapDay(d models.ProgramDay, names map[uuid.UUID]string) ProgramDayResponse 
 	return out
 }
 
-func mapExercise(e models.ProgramExercise, names map[uuid.UUID]string) ProgramExerciseResponse {
+func mapExercise(e generated.ProgramExercise, names map[uuid.UUID]string) ProgramExerciseResponse {
 	out := ProgramExerciseResponse{
 		ID:           e.ID,
 		Sequence:     e.Sequence,
@@ -111,7 +111,7 @@ func mapExercise(e models.ProgramExercise, names map[uuid.UUID]string) ProgramEx
 // mapProgramSummaries converts a flat list of program rows into the lighter
 // summary shape returned by the list endpoint. Returns an empty (non-nil)
 // slice when there are no rows so JSON serializes as `[]` instead of `null`.
-func mapProgramSummaries(rows []models.Program) []ProgramSummaryResponse {
+func mapProgramSummaries(rows []generated.Program) []ProgramSummaryResponse {
 	out := make([]ProgramSummaryResponse, 0, len(rows))
 	for _, p := range rows {
 		out = append(out, ProgramSummaryResponse{
@@ -126,7 +126,7 @@ func mapProgramSummaries(rows []models.Program) []ProgramSummaryResponse {
 	return out
 }
 
-func mapSetTarget(t models.ProgramSetTarget) ProgramSetTargetResponse {
+func mapSetTarget(t generated.ProgramSetTarget) ProgramSetTargetResponse {
 	return ProgramSetTargetResponse{
 		ID:                     t.ID,
 		Sequence:               t.Sequence,

@@ -16,14 +16,14 @@ import (
 
 	"gorm.io/plugin/dbresolver"
 
-	"github.com/thompsonlogan/fitlytics/backend/internal/models"
+	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
 
 func newProgramSetTarget(db *gorm.DB, opts ...gen.DOOption) programSetTarget {
 	_programSetTarget := programSetTarget{}
 
 	_programSetTarget.programSetTargetDo.UseDB(db, opts...)
-	_programSetTarget.programSetTargetDo.UseModel(&models.ProgramSetTarget{})
+	_programSetTarget.programSetTargetDo.UseModel(&generated.ProgramSetTarget{})
 
 	tableName := _programSetTarget.programSetTargetDo.TableName()
 	_programSetTarget.ALL = field.NewAsterisk(tableName)
@@ -260,57 +260,57 @@ func (p programSetTargetDo) Unscoped() *programSetTargetDo {
 	return p.withDO(p.DO.Unscoped())
 }
 
-func (p programSetTargetDo) Create(values ...*models.ProgramSetTarget) error {
+func (p programSetTargetDo) Create(values ...*generated.ProgramSetTarget) error {
 	if len(values) == 0 {
 		return nil
 	}
 	return p.DO.Create(values)
 }
 
-func (p programSetTargetDo) CreateInBatches(values []*models.ProgramSetTarget, batchSize int) error {
+func (p programSetTargetDo) CreateInBatches(values []*generated.ProgramSetTarget, batchSize int) error {
 	return p.DO.CreateInBatches(values, batchSize)
 }
 
 // Save : !!! underlying implementation is different with GORM
 // The method is equivalent to executing the statement: db.Clauses(clause.OnConflict{UpdateAll: true}).Create(values)
-func (p programSetTargetDo) Save(values ...*models.ProgramSetTarget) error {
+func (p programSetTargetDo) Save(values ...*generated.ProgramSetTarget) error {
 	if len(values) == 0 {
 		return nil
 	}
 	return p.DO.Save(values)
 }
 
-func (p programSetTargetDo) First() (*models.ProgramSetTarget, error) {
+func (p programSetTargetDo) First() (*generated.ProgramSetTarget, error) {
 	if result, err := p.DO.First(); err != nil {
 		return nil, err
 	} else {
-		return result.(*models.ProgramSetTarget), nil
+		return result.(*generated.ProgramSetTarget), nil
 	}
 }
 
-func (p programSetTargetDo) Take() (*models.ProgramSetTarget, error) {
+func (p programSetTargetDo) Take() (*generated.ProgramSetTarget, error) {
 	if result, err := p.DO.Take(); err != nil {
 		return nil, err
 	} else {
-		return result.(*models.ProgramSetTarget), nil
+		return result.(*generated.ProgramSetTarget), nil
 	}
 }
 
-func (p programSetTargetDo) Last() (*models.ProgramSetTarget, error) {
+func (p programSetTargetDo) Last() (*generated.ProgramSetTarget, error) {
 	if result, err := p.DO.Last(); err != nil {
 		return nil, err
 	} else {
-		return result.(*models.ProgramSetTarget), nil
+		return result.(*generated.ProgramSetTarget), nil
 	}
 }
 
-func (p programSetTargetDo) Find() ([]*models.ProgramSetTarget, error) {
+func (p programSetTargetDo) Find() ([]*generated.ProgramSetTarget, error) {
 	result, err := p.DO.Find()
-	return result.([]*models.ProgramSetTarget), err
+	return result.([]*generated.ProgramSetTarget), err
 }
 
-func (p programSetTargetDo) FindInBatch(batchSize int, fc func(tx gen.Dao, batch int) error) (results []*models.ProgramSetTarget, err error) {
-	buf := make([]*models.ProgramSetTarget, 0, batchSize)
+func (p programSetTargetDo) FindInBatch(batchSize int, fc func(tx gen.Dao, batch int) error) (results []*generated.ProgramSetTarget, err error) {
+	buf := make([]*generated.ProgramSetTarget, 0, batchSize)
 	err = p.DO.FindInBatches(&buf, batchSize, func(tx gen.Dao, batch int) error {
 		defer func() { results = append(results, buf...) }()
 		return fc(tx, batch)
@@ -318,7 +318,7 @@ func (p programSetTargetDo) FindInBatch(batchSize int, fc func(tx gen.Dao, batch
 	return results, err
 }
 
-func (p programSetTargetDo) FindInBatches(result *[]*models.ProgramSetTarget, batchSize int, fc func(tx gen.Dao, batch int) error) error {
+func (p programSetTargetDo) FindInBatches(result *[]*generated.ProgramSetTarget, batchSize int, fc func(tx gen.Dao, batch int) error) error {
 	return p.DO.FindInBatches(result, batchSize, fc)
 }
 
@@ -344,23 +344,23 @@ func (p programSetTargetDo) Preload(fields ...field.RelationField) *programSetTa
 	return &p
 }
 
-func (p programSetTargetDo) FirstOrInit() (*models.ProgramSetTarget, error) {
+func (p programSetTargetDo) FirstOrInit() (*generated.ProgramSetTarget, error) {
 	if result, err := p.DO.FirstOrInit(); err != nil {
 		return nil, err
 	} else {
-		return result.(*models.ProgramSetTarget), nil
+		return result.(*generated.ProgramSetTarget), nil
 	}
 }
 
-func (p programSetTargetDo) FirstOrCreate() (*models.ProgramSetTarget, error) {
+func (p programSetTargetDo) FirstOrCreate() (*generated.ProgramSetTarget, error) {
 	if result, err := p.DO.FirstOrCreate(); err != nil {
 		return nil, err
 	} else {
-		return result.(*models.ProgramSetTarget), nil
+		return result.(*generated.ProgramSetTarget), nil
 	}
 }
 
-func (p programSetTargetDo) FindByPage(offset int, limit int) (result []*models.ProgramSetTarget, count int64, err error) {
+func (p programSetTargetDo) FindByPage(offset int, limit int) (result []*generated.ProgramSetTarget, count int64, err error) {
 	result, err = p.Offset(offset).Limit(limit).Find()
 	if err != nil {
 		return
@@ -389,7 +389,7 @@ func (p programSetTargetDo) Scan(result interface{}) (err error) {
 	return p.DO.Scan(result)
 }
 
-func (p programSetTargetDo) Delete(models ...*models.ProgramSetTarget) (result gen.ResultInfo, err error) {
+func (p programSetTargetDo) Delete(models ...*generated.ProgramSetTarget) (result gen.ResultInfo, err error) {
 	return p.DO.Delete(models)
 }
 

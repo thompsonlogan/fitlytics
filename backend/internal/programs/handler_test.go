@@ -14,7 +14,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/thompsonlogan/fitlytics/backend/internal/auth"
-	"github.com/thompsonlogan/fitlytics/backend/internal/models"
+	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
 
 func init() {
@@ -35,7 +35,7 @@ func newTestContext(t *testing.T, principalUserID uuid.UUID, idParam string) (*g
 	c.Params = gin.Params{gin.Param{Key: "id", Value: idParam}}
 
 	auth.SetPrincipal(c, &auth.Principal{
-		User: &models.User{ID: principalUserID},
+		User: &generated.User{ID: principalUserID},
 	})
 	return c, w
 }
@@ -161,7 +161,7 @@ func newListTestContext(t *testing.T, principalUserID uuid.UUID) (*gin.Context, 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest(http.MethodGet, "/api/programs", nil)
-	auth.SetPrincipal(c, &auth.Principal{User: &models.User{ID: principalUserID}})
+	auth.SetPrincipal(c, &auth.Principal{User: &generated.User{ID: principalUserID}})
 	return c, w
 }
 
@@ -265,7 +265,7 @@ func TestHandlerRegisterMountsRoute(t *testing.T) {
 	// also wiring the auth middleware, so add a stub middleware that sets
 	// the principal — this mirrors the real production wiring.
 	g.Use(func(c *gin.Context) {
-		auth.SetPrincipal(c, &auth.Principal{User: &models.User{ID: uuid.New()}})
+		auth.SetPrincipal(c, &auth.Principal{User: &generated.User{ID: uuid.New()}})
 		c.Next()
 	})
 	h.Register(g)

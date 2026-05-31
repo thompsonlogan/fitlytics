@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/thompsonlogan/fitlytics/backend/internal/models"
+	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
 
 func TestServiceGetFullTree_HappyPath(t *testing.T) {
 	repo := &fakeRepository{
-		getFullTreeFn: func(_ context.Context, _, _ uuid.UUID) (*models.Program, error) {
+		getFullTreeFn: func(_ context.Context, _, _ uuid.UUID) (*generated.Program, error) {
 			return fullProgram(), nil
 		},
 		lookupExerciseFn: func(_ context.Context, ids []uuid.UUID) (map[uuid.UUID]string, error) {
@@ -53,7 +53,7 @@ func TestServiceGetFullTree_HappyPath(t *testing.T) {
 
 func TestServiceGetFullTree_NotFoundMapsToErrNotFound(t *testing.T) {
 	repo := &fakeRepository{
-		getFullTreeFn: func(_ context.Context, _, _ uuid.UUID) (*models.Program, error) {
+		getFullTreeFn: func(_ context.Context, _, _ uuid.UUID) (*generated.Program, error) {
 			return nil, gorm.ErrRecordNotFound
 		},
 	}
@@ -76,7 +76,7 @@ func TestServiceGetFullTree_NotFoundMapsToErrNotFound(t *testing.T) {
 func TestServiceGetFullTree_RepoErrorIsWrapped(t *testing.T) {
 	boom := errors.New("connection refused")
 	repo := &fakeRepository{
-		getFullTreeFn: func(_ context.Context, _, _ uuid.UUID) (*models.Program, error) {
+		getFullTreeFn: func(_ context.Context, _, _ uuid.UUID) (*generated.Program, error) {
 			return nil, boom
 		},
 	}
@@ -100,13 +100,13 @@ func TestServiceGetFullTree_RepoErrorIsWrapped(t *testing.T) {
 
 func TestServiceListByOwner_PassesOwnerAndMapsRows(t *testing.T) {
 	ownerID := fixedID("user:1")
-	rows := []models.Program{
+	rows := []generated.Program{
 		{ID: fixedID("program:1"), Name: "A", CreatedAt: builtAt, UpdatedAt: builtAt},
 		{ID: fixedID("program:2"), Name: "B", CreatedAt: builtAt, UpdatedAt: builtAt},
 	}
 
 	repo := &fakeRepository{
-		listByOwnerFn: func(_ context.Context, _ uuid.UUID) ([]models.Program, error) {
+		listByOwnerFn: func(_ context.Context, _ uuid.UUID) ([]generated.Program, error) {
 			return rows, nil
 		},
 	}
@@ -128,7 +128,7 @@ func TestServiceListByOwner_PassesOwnerAndMapsRows(t *testing.T) {
 
 func TestServiceListByOwner_EmptyRowsReturnsEmptySlice(t *testing.T) {
 	repo := &fakeRepository{
-		listByOwnerFn: func(_ context.Context, _ uuid.UUID) ([]models.Program, error) {
+		listByOwnerFn: func(_ context.Context, _ uuid.UUID) ([]generated.Program, error) {
 			return nil, nil
 		},
 	}
@@ -150,7 +150,7 @@ func TestServiceListByOwner_EmptyRowsReturnsEmptySlice(t *testing.T) {
 func TestServiceListByOwner_RepoErrorIsWrapped(t *testing.T) {
 	boom := errors.New("connection refused")
 	repo := &fakeRepository{
-		listByOwnerFn: func(_ context.Context, _ uuid.UUID) ([]models.Program, error) {
+		listByOwnerFn: func(_ context.Context, _ uuid.UUID) ([]generated.Program, error) {
 			return nil, boom
 		},
 	}
@@ -167,7 +167,7 @@ func TestServiceListByOwner_RepoErrorIsWrapped(t *testing.T) {
 func TestServiceGetFullTree_NameLookupErrorIsWrapped(t *testing.T) {
 	boom := errors.New("exercise table unavailable")
 	repo := &fakeRepository{
-		getFullTreeFn: func(_ context.Context, _, _ uuid.UUID) (*models.Program, error) {
+		getFullTreeFn: func(_ context.Context, _, _ uuid.UUID) (*generated.Program, error) {
 			return fullProgram(), nil
 		},
 		lookupExerciseFn: func(_ context.Context, _ []uuid.UUID) (map[uuid.UUID]string, error) {
