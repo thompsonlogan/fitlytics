@@ -22,6 +22,7 @@ import (
 	// init() side effect.
 	_ "github.com/thompsonlogan/fitlytics/backend/docs"
 
+	"github.com/google/uuid"
 	"github.com/thompsonlogan/fitlytics/backend/internal/auth"
 	"github.com/thompsonlogan/fitlytics/backend/internal/config"
 	"github.com/thompsonlogan/fitlytics/backend/internal/database"
@@ -61,11 +62,26 @@ func main() {
 	workosClient := auth.NewWorkOSClient(cfg.WorkOSAPIKey)
 	userSvc := users.NewService(db, workosClient)
 
+	var bypassUserID uuid.UUID
+	if cfg.AuthBypassUserID != "" {
+		parsed, err := uuid.Parse(cfg.AuthBypassUserID)
+		if err != nil {
+			log.Error("invalid AUTH_BYPASS_USER_ID — must be a valid UUID", "value", cfg.AuthBypassUserID)
+			os.Exit(1)
+		}
+		if cfg.IsProduction() {
+			log.Error("AUTH_BYPASS_USER_ID cannot be set in production")
+			os.Exit(1)
+		}
+		bypassUserID = parsed
+	}
+
 	router := server.NewRouter(server.Dependencies{
-		DB:       db,
-		Verifier: verifier,
-		Users:    userSvc,
-		Log:      log,
+		DB:               db,
+		Verifier:         verifier,
+		Users:            userSvc,
+		Log:              log,
+		AuthBypassUserID: bypassUserID,
 		Auth: handlers.AuthDeps{
 			ClientID:    cfg.WorkOSClientID,
 			RedirectURI: cfg.WorkOSRedirectURI,
