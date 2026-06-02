@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/workos/workos-go/v4/pkg/usermanagement"
 
+	"github.com/thompsonlogan/fitlytics/backend/internal/apierr"
 	"github.com/thompsonlogan/fitlytics/backend/internal/auth"
 )
 
@@ -41,8 +42,7 @@ func AuthLogin(d AuthDeps) gin.HandlerFunc {
 		if err != nil {
 			d.Log.ErrorContext(c.Request.Context(), "generate oauth state failed",
 				slog.String("error", err.Error()))
-			c.AbortWithStatusJSON(http.StatusInternalServerError,
-				gin.H{"error": "could not start sign-in"})
+			apierr.Abort(c, http.StatusInternalServerError, "could not start sign-in")
 			return
 		}
 		auth.SetOAuthStateCookie(c.Writer, state, d.Cookies)
@@ -56,8 +56,7 @@ func AuthLogin(d AuthDeps) gin.HandlerFunc {
 		if err != nil {
 			d.Log.ErrorContext(c.Request.Context(), "build authorization URL failed",
 				slog.String("error", err.Error()))
-			c.AbortWithStatusJSON(http.StatusInternalServerError,
-				gin.H{"error": "could not start sign-in"})
+			apierr.Abort(c, http.StatusInternalServerError, "could not start sign-in")
 			return
 		}
 		c.Redirect(http.StatusFound, authURL.String())

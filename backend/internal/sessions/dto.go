@@ -80,9 +80,3 @@ type CompletedDayResponse struct {
 	DaySequence  int32 `json:"day_sequence" example:"1"`
 } // @name CompletedDayResponse
 
-// ErrorResponse is the standard error envelope returned by the API. Mirrored
-// from the programs package so the OpenAPI spec doesn't generate two
-// different error shapes.
-type ErrorResponse struct {
-	Error string `json:"error" example:"session not found"`
-} // @name SessionsErrorResponse

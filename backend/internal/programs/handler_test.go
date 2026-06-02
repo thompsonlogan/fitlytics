@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/thompsonlogan/fitlytics/backend/internal/apierr"
 	"github.com/thompsonlogan/fitlytics/backend/internal/auth"
 	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
@@ -55,12 +56,15 @@ func TestHandlerGetByID_InvalidUUIDReturns400(t *testing.T) {
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("status: want 400, got %d", w.Code)
 	}
-	var body ErrorResponse
+	var body apierr.ProblemDetails
 	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode body: %v", err)
 	}
-	if body.Error == "" {
-		t.Error("expected non-empty error message")
+	if body.Detail == "" {
+		t.Error("expected non-empty detail message")
+	}
+	if body.Status != http.StatusBadRequest {
+		t.Errorf("status in body: want %d, got %d", http.StatusBadRequest, body.Status)
 	}
 }
 
@@ -77,12 +81,15 @@ func TestHandlerGetByID_ServiceNotFoundReturns404(t *testing.T) {
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("status: want 404, got %d", w.Code)
 	}
-	var body ErrorResponse
+	var body apierr.ProblemDetails
 	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode body: %v", err)
 	}
-	if body.Error != "program not found" {
-		t.Errorf("error message: want %q, got %q", "program not found", body.Error)
+	if body.Detail != "program not found" {
+		t.Errorf("detail: want %q, got %q", "program not found", body.Detail)
+	}
+	if body.Status != http.StatusNotFound {
+		t.Errorf("status in body: want %d, got %d", http.StatusNotFound, body.Status)
 	}
 }
 
@@ -99,13 +106,16 @@ func TestHandlerGetByID_GenericServiceErrorReturns500(t *testing.T) {
 	if w.Code != http.StatusInternalServerError {
 		t.Fatalf("status: want 500, got %d", w.Code)
 	}
-	var body ErrorResponse
+	var body apierr.ProblemDetails
 	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode body: %v", err)
 	}
 	// Don't leak the underlying error message to the client.
-	if body.Error != "internal server error" {
-		t.Errorf("error message: want %q, got %q", "internal server error", body.Error)
+	if body.Detail != "internal server error" {
+		t.Errorf("detail: want %q, got %q", "internal server error", body.Detail)
+	}
+	if body.Status != http.StatusInternalServerError {
+		t.Errorf("status in body: want %d, got %d", http.StatusInternalServerError, body.Status)
 	}
 }
 
@@ -234,12 +244,12 @@ func TestHandlerList_ServiceErrorReturns500(t *testing.T) {
 	if w.Code != http.StatusInternalServerError {
 		t.Fatalf("status: want 500, got %d", w.Code)
 	}
-	var body ErrorResponse
+	var body apierr.ProblemDetails
 	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode body: %v", err)
 	}
-	if body.Error != "internal server error" {
-		t.Errorf("error message: want %q, got %q", "internal server error", body.Error)
+	if body.Detail != "internal server error" {
+		t.Errorf("detail: want %q, got %q", "internal server error", body.Detail)
 	}
 }
 

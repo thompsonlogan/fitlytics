@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/thompsonlogan/fitlytics/backend/internal/apierr"
 	"github.com/thompsonlogan/fitlytics/backend/internal/auth"
 )
 
@@ -37,8 +38,8 @@ func (h *Handler) Register(rg *gin.RouterGroup) {
 // @Tags         Programs
 // @Produce      json
 // @Success      200  {array}   ProgramSummaryResponse
-// @Failure      401  {object}  ErrorResponse  "missing or invalid auth token"
-// @Failure      500  {object}  ErrorResponse  "internal server error"
+// @Failure      401  {object}  apierr.ProblemDetails  "missing or invalid auth token"
+// @Failure      500  {object}  apierr.ProblemDetails  "internal server error"
 // @Security     BearerAuth
 // @Router       /api/programs [get]
 func (h *Handler) List(c *gin.Context) {
@@ -50,7 +51,7 @@ func (h *Handler) List(c *gin.Context) {
 			slog.String("user_id", principal.User.ID.String()),
 			slog.Any("error", err),
 		)
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "internal server error"})
+		apierr.InternalServerError(c, "internal server error")
 		return
 	}
 
@@ -65,17 +66,17 @@ func (h *Handler) List(c *gin.Context) {
 // @Produce      json
 // @Param        id   path      string  true  "Program UUID"  Format(uuid)
 // @Success      200  {object}  ProgramResponse
-// @Failure      400  {object}  ErrorResponse  "invalid program id"
-// @Failure      401  {object}  ErrorResponse  "missing or invalid auth token"
-// @Failure      404  {object}  ErrorResponse  "program not found"
-// @Failure      500  {object}  ErrorResponse  "internal server error"
+// @Failure      400  {object}  apierr.ProblemDetails  "invalid program id"
+// @Failure      401  {object}  apierr.ProblemDetails  "missing or invalid auth token"
+// @Failure      404  {object}  apierr.ProblemDetails  "program not found"
+// @Failure      500  {object}  apierr.ProblemDetails  "internal server error"
 // @Security     BearerAuth
 // @Router       /api/programs/{id} [get]
 func (h *Handler) GetByID(c *gin.Context) {
 	idParam := c.Param("id")
 	programID, err := uuid.Parse(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "invalid program id"})
+		apierr.BadRequest(c, "invalid program id")
 		return
 	}
 
@@ -84,7 +85,7 @@ func (h *Handler) GetByID(c *gin.Context) {
 	program, err := h.service.GetFullTree(c.Request.Context(), programID, principal.User.ID)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
-			c.JSON(http.StatusNotFound, ErrorResponse{Error: "program not found"})
+			apierr.NotFound(c, "program not found")
 			return
 		}
 		h.log.Error("get program failed",
@@ -92,7 +93,7 @@ func (h *Handler) GetByID(c *gin.Context) {
 			slog.String("user_id", principal.User.ID.String()),
 			slog.Any("error", err),
 		)
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "internal server error"})
+		apierr.InternalServerError(c, "internal server error")
 		return
 	}
 

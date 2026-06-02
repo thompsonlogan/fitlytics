@@ -87,7 +87,3 @@ type ProgramSetTargetResponse struct {
 	PrescribedRpe          *float64  `json:"prescribed_rpe,omitempty" example:"5"`
 } // @name ProgramSetTargetResponse
 
-// ErrorResponse is the standard error envelope returned by the API.
-type ErrorResponse struct {
-	Error string `json:"error" example:"program not found"`
-} // @name ErrorResponse
