@@ -60,12 +60,12 @@ func NewRouter(deps Dependencies, isProduction bool) *gin.Engine {
 	// Feature wiring. The repository/service/handler triad is built here so
 	// each feature can be tested in isolation without booting the router.
 	programsRepo := programs.NewRepository(deps.DB)
-	programsSvc := programs.NewService(programsRepo)
-	programsHandler := programs.NewHandler(programsSvc, deps.Log)
+	programsService := programs.NewService(programsRepo)
+	programsHandler := programs.NewHandler(programsService, deps.Log)
 
 	sessionsRepo := sessions.NewRepository(deps.DB)
-	sessionsSvc := sessions.NewService(sessionsRepo)
-	sessionsHandler := sessions.NewHandler(sessionsSvc, deps.Log)
+	sessionsService := sessions.NewService(sessionsRepo)
+	sessionsHandler := sessions.NewHandler(sessionsService, deps.Log)
 
 	// Authenticated routes — every handler below can call auth.MustPrincipal.
 	api := r.Group("/api")
