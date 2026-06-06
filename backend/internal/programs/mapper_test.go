@@ -20,8 +20,6 @@ func TestCollectExerciseIDs(t *testing.T) {
 	})
 
 	t.Run("dedupes ids that appear in multiple exercises", func(t *testing.T) {
-		// fullProgram() intentionally re-uses the squat id across two
-		// program_exercises so this branch exercises the seen-map.
 		got := collectExerciseIDs(fullProgram())
 
 		expected := map[uuid.UUID]bool{

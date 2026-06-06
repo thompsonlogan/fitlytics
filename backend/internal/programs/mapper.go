@@ -1,48 +1,25 @@
 package programs
 
 import (
-	"time"
-
 	"github.com/google/uuid"
 
 	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
+	"github.com/thompsonlogan/fitlytics/backend/internal/timeutil"
 )
 
-// This file holds the pure model→DTO translation functions for the program
-// aggregate. They are kept separate from service.go so the service stays
-// focused on orchestration and error handling; the mappers themselves take no
-// dependencies beyond the models package and are trivial to unit test.
-
-// collectExerciseIDs returns the distinct set of exercise ids referenced by
-// the loaded program tree. Used by the service to bulk-fetch exercise names
-// in one query rather than N round-trips.
-func collectExerciseIDs(p *generated.Program) []uuid.UUID {
-	seen := make(map[uuid.UUID]struct{})
-	ids := make([]uuid.UUID, 0)
-	for _, w := range p.Weeks {
-		for _, d := range w.Days {
-			for _, e := range d.Exercises {
-				if _, ok := seen[e.ExerciseID]; ok {
-					continue
-				}
-				seen[e.ExerciseID] = struct{}{}
-				ids = append(ids, e.ExerciseID)
-			}
-		}
+func mapProgramSummaries(rows []generated.Program) []ProgramSummaryResponse {
+	out := make([]ProgramSummaryResponse, 0, len(rows))
+	for _, p := range rows {
+		out = append(out, ProgramSummaryResponse{
+			ID:          p.ID,
+			Name:        p.Name,
+			Description: p.Description,
+			StartDate:   timeutil.FormatDatePtr(p.StartDate),
+			CreatedAt:   p.CreatedAt,
+			UpdatedAt:   p.UpdatedAt,
+		})
 	}
-	return ids
-}
-
-// mapProgram converts a loaded program aggregate (with all children preloaded)
-// into the API response shape. The `names` map supplies the canonical exercise
-// name for each program_exercise row; entries missing from the map fall back
-// to the empty string (should not happen — the exercise_id FK is RESTRICT).
-func formatDatePtr(t *time.Time) *string {
-	if t == nil {
-		return nil
-	}
-	s := t.Format("2006-01-02")
-	return &s
+	return out
 }
 
 func mapProgram(p *generated.Program, names map[uuid.UUID]string) *ProgramResponse {
@@ -50,7 +27,7 @@ func mapProgram(p *generated.Program, names map[uuid.UUID]string) *ProgramRespon
 		ID:          p.ID,
 		Name:        p.Name,
 		Description: p.Description,
-		StartDate:   formatDatePtr(p.StartDate),
+		StartDate:   timeutil.FormatDatePtr(p.StartDate),
 		CreatedAt:   p.CreatedAt,
 		UpdatedAt:   p.UpdatedAt,
 		Weeks:       make([]ProgramWeekResponse, 0, len(p.Weeks)),
@@ -104,24 +81,6 @@ func mapExercise(e generated.ProgramExercise, names map[uuid.UUID]string) Progra
 	}
 	for _, t := range e.SetTargets {
 		out.SetTargets = append(out.SetTargets, mapSetTarget(t))
-	}
-	return out
-}
-
-// mapProgramSummaries converts a flat list of program rows into the lighter
-// summary shape returned by the list endpoint. Returns an empty (non-nil)
-// slice when there are no rows so JSON serializes as `[]` instead of `null`.
-func mapProgramSummaries(rows []generated.Program) []ProgramSummaryResponse {
-	out := make([]ProgramSummaryResponse, 0, len(rows))
-	for _, p := range rows {
-		out = append(out, ProgramSummaryResponse{
-			ID:          p.ID,
-			Name:        p.Name,
-			Description: p.Description,
-			StartDate:   formatDatePtr(p.StartDate),
-			CreatedAt:   p.CreatedAt,
-			UpdatedAt:   p.UpdatedAt,
-		})
 	}
 	return out
 }

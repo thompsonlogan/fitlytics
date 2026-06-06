@@ -14,11 +14,6 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-// newMockDB returns a *gorm.DB wired to an sqlmock driver, plus the mock
-// object for setting expectations. The Postgres driver is asked NOT to ping
-// (PreferSimpleProtocol: true via WithoutQuoting wouldn't apply; we set
-// SkipInitializeWithVersion on the driver config). For unit tests we just
-// want a working *gorm.DB that emits SQL we can match against.
 func newMockDB(t *testing.T) (*gorm.DB, sqlmock.Sqlmock) {
 	t.Helper()
 
@@ -40,20 +35,16 @@ func newMockDB(t *testing.T) (*gorm.DB, sqlmock.Sqlmock) {
 	return gormDB, mock
 }
 
-// uuidArg makes a UUID work as a driver.Value matcher. GORM passes UUIDs as
-// their stringified form through the lib/pq driver.
 func uuidArg(id uuid.UUID) driver.Value {
 	return id.String()
 }
 
-// ─── LookupExerciseNames ────────────────────────────────────────────────────
+// ─── GetExercisesByIds ──────────────────────────────────────────────────────
 
-func TestRepositoryLookupExerciseNames_EmptyInputSkipsQuery(t *testing.T) {
+func TestRepositoryGetExercisesByIds_EmptyInputSkipsQuery(t *testing.T) {
 	db, mock := newMockDB(t)
 
-	// No SQL expectations set — the call should short-circuit on the empty
-	// slice. ExpectationsWereMet will fail if any unexpected query fires.
-	got, err := NewRepository(db).LookupExerciseNames(context.Background(), nil)
+	got, err := NewRepository(db).GetExercisesByIds(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -66,7 +57,7 @@ func TestRepositoryLookupExerciseNames_EmptyInputSkipsQuery(t *testing.T) {
 	}
 }
 
-func TestRepositoryLookupExerciseNames_ReturnsMap(t *testing.T) {
+func TestRepositoryGetExercisesByIds_ReturnsMap(t *testing.T) {
 	db, mock := newMockDB(t)
 
 	id1, id2 := uuid.New(), uuid.New()
@@ -76,11 +67,11 @@ func TestRepositoryLookupExerciseNames_ReturnsMap(t *testing.T) {
 		AddRow(id1, "Squat").
 		AddRow(id2, "Bench")
 
-	mock.ExpectQuery(`SELECT id, name FROM "exercises" WHERE id IN \(\$1,\$2\)`).
+	mock.ExpectQuery(`SELECT "exercises"\."id","exercises"\."name" FROM "exercises" WHERE "exercises"\."id" IN \(\$1,\$2\) AND "exercises"\."deleted_at" IS NULL`).
 		WithArgs(uuidArg(id1), uuidArg(id2)).
 		WillReturnRows(rows)
 
-	got, err := NewRepository(db).LookupExerciseNames(context.Background(), ids)
+	got, err := NewRepository(db).GetExercisesByIds(context.Background(), ids)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -92,15 +83,15 @@ func TestRepositoryLookupExerciseNames_ReturnsMap(t *testing.T) {
 	}
 }
 
-func TestRepositoryLookupExerciseNames_DBError(t *testing.T) {
+func TestRepositoryGetExercisesByIds_DBError(t *testing.T) {
 	db, mock := newMockDB(t)
 	id := uuid.New()
 
-	mock.ExpectQuery(`SELECT id, name FROM "exercises"`).
+	mock.ExpectQuery(`SELECT "exercises"\."id","exercises"\."name" FROM "exercises"`).
 		WithArgs(uuidArg(id)).
 		WillReturnError(errors.New("conn closed"))
 
-	_, err := NewRepository(db).LookupExerciseNames(context.Background(), []uuid.UUID{id})
+	_, err := NewRepository(db).GetExercisesByIds(context.Background(), []uuid.UUID{id})
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -109,17 +100,16 @@ func TestRepositoryLookupExerciseNames_DBError(t *testing.T) {
 	}
 }
 
-// ─── ListByOwner ────────────────────────────────────────────────────────────
+// ─── GetProgramsByUserId ────────────────────────────────────────────────────
 
-func TestRepositoryListByOwner_FiltersByOwnerAndOrders(t *testing.T) {
+func TestRepositoryGetProgramsByUserId_FiltersByOwnerAndOrders(t *testing.T) {
 	db, mock := newMockDB(t)
 
 	ownerID := uuid.New()
 	p1, p2 := uuid.New(), uuid.New()
 	now := time.Now()
 
-	// soft-delete tables get "deleted_at" IS NULL appended.
-	mock.ExpectQuery(`SELECT \* FROM "programs" WHERE owner_user_id = \$1 AND "programs"\."deleted_at" IS NULL ORDER BY created_at ASC`).
+	mock.ExpectQuery(`SELECT \* FROM "programs" WHERE "programs"\."owner_user_id" = \$1 AND "programs"\."deleted_at" IS NULL ORDER BY "programs"\."created_at"`).
 		WithArgs(uuidArg(ownerID)).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "owner_user_id", "name", "description", "created_at", "updated_at", "deleted_at",
@@ -127,7 +117,7 @@ func TestRepositoryListByOwner_FiltersByOwnerAndOrders(t *testing.T) {
 			AddRow(p1, ownerID, "Alpha", nil, now, now, nil).
 			AddRow(p2, ownerID, "Beta", nil, now, now, nil))
 
-	got, err := NewRepository(db).ListByOwner(context.Background(), ownerID)
+	got, err := NewRepository(db).GetProgramsByUserId(context.Background(), ownerID)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -139,7 +129,7 @@ func TestRepositoryListByOwner_FiltersByOwnerAndOrders(t *testing.T) {
 	}
 }
 
-func TestRepositoryListByOwner_EmptyResultReturnsEmpty(t *testing.T) {
+func TestRepositoryGetProgramsByUserId_EmptyResultReturnsEmpty(t *testing.T) {
 	db, mock := newMockDB(t)
 	ownerID := uuid.New()
 
@@ -147,7 +137,7 @@ func TestRepositoryListByOwner_EmptyResultReturnsEmpty(t *testing.T) {
 		WithArgs(uuidArg(ownerID)).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}))
 
-	got, err := NewRepository(db).ListByOwner(context.Background(), ownerID)
+	got, err := NewRepository(db).GetProgramsByUserId(context.Background(), ownerID)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -156,7 +146,7 @@ func TestRepositoryListByOwner_EmptyResultReturnsEmpty(t *testing.T) {
 	}
 }
 
-func TestRepositoryListByOwner_DBErrorBubbles(t *testing.T) {
+func TestRepositoryGetProgramsByUserId_DBErrorBubbles(t *testing.T) {
 	db, mock := newMockDB(t)
 	ownerID := uuid.New()
 
@@ -164,7 +154,7 @@ func TestRepositoryListByOwner_DBErrorBubbles(t *testing.T) {
 		WithArgs(uuidArg(ownerID)).
 		WillReturnError(errors.New("conn closed"))
 
-	_, err := NewRepository(db).ListByOwner(context.Background(), ownerID)
+	_, err := NewRepository(db).GetProgramsByUserId(context.Background(), ownerID)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -173,9 +163,9 @@ func TestRepositoryListByOwner_DBErrorBubbles(t *testing.T) {
 	}
 }
 
-// ─── GetFullTree ────────────────────────────────────────────────────────────
+// ─── GetProgramById ─────────────────────────────────────────────────────────
 
-func TestRepositoryGetFullTree_HappyPathPreloadsEntireAggregate(t *testing.T) {
+func TestRepositoryGetProgramById_HappyPathPreloadsEntireAggregate(t *testing.T) {
 	db, mock := newMockDB(t)
 
 	programID := uuid.New()
@@ -187,36 +177,32 @@ func TestRepositoryGetFullTree_HappyPathPreloadsEntireAggregate(t *testing.T) {
 	exID := uuid.New()
 	now := time.Now()
 
-	// GORM appends `"programs"."deleted_at" IS NULL` because programs has a
-	// gorm.DeletedAt column. The other tables don't have soft delete so they
-	// query without that clause.
-	mock.ExpectQuery(`SELECT \* FROM "programs" WHERE \(id = \$1 AND owner_user_id = \$2\) AND "programs"\."deleted_at" IS NULL ORDER BY "programs"\."id" LIMIT \$3`).
+	mock.ExpectQuery(`SELECT \* FROM "programs" WHERE "programs"\."id" = \$1 AND "programs"\."owner_user_id" = \$2 AND "programs"\."deleted_at" IS NULL ORDER BY "programs"\."id" LIMIT \$3`).
 		WithArgs(uuidArg(programID), uuidArg(ownerID), 1).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "owner_user_id", "name", "description",
 			"created_at", "updated_at", "deleted_at",
 		}).AddRow(programID, ownerID, "Prog", nil, now, now, nil))
 
-	// Weeks for the program — sequence ASC ordering from the preload scope.
-	mock.ExpectQuery(`SELECT \* FROM "program_weeks" WHERE "program_weeks"\."program_id" = \$1 ORDER BY sequence ASC`).
+	mock.ExpectQuery(`SELECT \* FROM "program_weeks" WHERE "program_weeks"\."program_id" = \$1`).
 		WithArgs(uuidArg(programID)).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "program_id", "sequence", "name", "notes", "created_at", "updated_at",
 		}).AddRow(weekID, programID, 1, nil, nil, now, now))
 
-	mock.ExpectQuery(`SELECT \* FROM "program_days" WHERE "program_days"\."week_id" = \$1 ORDER BY sequence ASC`).
+	mock.ExpectQuery(`SELECT \* FROM "program_days" WHERE "program_days"\."week_id" = \$1`).
 		WithArgs(uuidArg(weekID)).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "week_id", "sequence", "name", "tag", "is_rest_day", "notes", "created_at", "updated_at",
 		}).AddRow(dayID, weekID, 1, "Day 1", nil, false, nil, now, now))
 
-	mock.ExpectQuery(`SELECT \* FROM "program_exercises" WHERE "program_exercises"\."day_id" = \$1 ORDER BY sequence ASC`).
+	mock.ExpectQuery(`SELECT \* FROM "program_exercises" WHERE "program_exercises"\."day_id" = \$1`).
 		WithArgs(uuidArg(dayID)).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "day_id", "sequence", "exercise_id", "sub_text", "rest_seconds", "notes", "extras", "created_at", "updated_at",
 		}).AddRow(peID, dayID, 1, exID, nil, nil, nil, []byte("{}"), now, now))
 
-	mock.ExpectQuery(`SELECT \* FROM "program_set_targets" WHERE "program_set_targets"\."program_exercise_id" = \$1 ORDER BY sequence ASC`).
+	mock.ExpectQuery(`SELECT \* FROM "program_set_targets" WHERE "program_set_targets"\."program_exercise_id" = \$1`).
 		WithArgs(uuidArg(peID)).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "program_exercise_id", "sequence", "set_type", "sets_count",
@@ -230,7 +216,7 @@ func TestRepositoryGetFullTree_HappyPathPreloadsEntireAggregate(t *testing.T) {
 			nil, nil, nil, []byte("{}"), now, now,
 		))
 
-	prog, err := NewRepository(db).GetFullTree(context.Background(), programID, ownerID)
+	prog, err := NewRepository(db).GetProgramById(context.Background(), programID, ownerID)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -248,16 +234,15 @@ func TestRepositoryGetFullTree_HappyPathPreloadsEntireAggregate(t *testing.T) {
 	}
 }
 
-func TestRepositoryGetFullTree_NotFoundBubbles(t *testing.T) {
+func TestRepositoryGetProgramById_NotFoundBubbles(t *testing.T) {
 	db, mock := newMockDB(t)
 	programID, ownerID := uuid.New(), uuid.New()
 
-	// Empty result set → GORM returns ErrRecordNotFound from First.
 	mock.ExpectQuery(`SELECT \* FROM "programs"`).
 		WithArgs(uuidArg(programID), uuidArg(ownerID), 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}))
 
-	_, err := NewRepository(db).GetFullTree(context.Background(), programID, ownerID)
+	_, err := NewRepository(db).GetProgramById(context.Background(), programID, ownerID)
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		t.Fatalf("want ErrRecordNotFound, got %v", err)
 	}
@@ -266,7 +251,7 @@ func TestRepositoryGetFullTree_NotFoundBubbles(t *testing.T) {
 	}
 }
 
-func TestRepositoryGetFullTree_DBErrorBubbles(t *testing.T) {
+func TestRepositoryGetProgramById_DBErrorBubbles(t *testing.T) {
 	db, mock := newMockDB(t)
 	programID, ownerID := uuid.New(), uuid.New()
 
@@ -274,7 +259,7 @@ func TestRepositoryGetFullTree_DBErrorBubbles(t *testing.T) {
 		WithArgs(uuidArg(programID), uuidArg(ownerID), 1).
 		WillReturnError(errors.New("network down"))
 
-	_, err := NewRepository(db).GetFullTree(context.Background(), programID, ownerID)
+	_, err := NewRepository(db).GetProgramById(context.Background(), programID, ownerID)
 	if err == nil || errors.Is(err, gorm.ErrRecordNotFound) {
 		t.Fatalf("expected raw db error to bubble, got %v", err)
 	}

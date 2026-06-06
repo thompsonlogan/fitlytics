@@ -1,5 +1,3 @@
-// Package programs is the program feature slice: DTOs, repository, service,
-// and HTTP handler for reading and (later) mutating training programs.
 package programs
 
 import (
@@ -8,10 +6,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// ProgramSummaryResponse is the lightweight shape returned by
-// GET /api/programs (no children). The frontend's program picker only needs
-// id + name to render an entry; full detail is loaded lazily via
-// GET /api/programs/:id.
 type ProgramSummaryResponse struct {
 	ID          uuid.UUID `json:"id" example:"8d645f69-e0a2-4b07-a30b-0a20634e2abb"`
 	Name        string    `json:"name" example:"Logan PL — May/June 2026 Block"`
@@ -21,10 +15,6 @@ type ProgramSummaryResponse struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 } // @name ProgramSummaryResponse
 
-// ProgramResponse is the full program tree returned by GET /api/programs/:id.
-//
-// Stable, hand-curated shape (separate from the generated GORM models) so the
-// OpenAPI spec and the TypeScript client stay decoupled from schema evolution.
 type ProgramResponse struct {
 	ID          uuid.UUID             `json:"id" example:"8d645f69-e0a2-4b07-a30b-0a20634e2abb"`
 	Name        string                `json:"name" example:"Logan PL — May/June 2026 Block"`
@@ -35,7 +25,6 @@ type ProgramResponse struct {
 	Weeks       []ProgramWeekResponse `json:"weeks"`
 } // @name ProgramResponse
 
-// ProgramWeekResponse is one week inside a program, in `sequence` order.
 type ProgramWeekResponse struct {
 	ID       uuid.UUID            `json:"id"`
 	Sequence int32                `json:"sequence" example:"1"`
@@ -44,8 +33,6 @@ type ProgramWeekResponse struct {
 	Days     []ProgramDayResponse `json:"days"`
 } // @name ProgramWeekResponse
 
-// ProgramDayResponse is one day within a week. Rest days have IsRestDay=true
-// and typically no exercises.
 type ProgramDayResponse struct {
 	ID        uuid.UUID                 `json:"id"`
 	Sequence  int32                     `json:"sequence" example:"1"`
@@ -56,9 +43,6 @@ type ProgramDayResponse struct {
 	Exercises []ProgramExerciseResponse `json:"exercises"`
 } // @name ProgramDayResponse
 
-// ProgramExerciseResponse is one exercise block within a day. The
-// ExerciseName field is the snapshot the client should render; the
-// ExerciseID is the canonical id (useful for cross-program rollups).
 type ProgramExerciseResponse struct {
 	ID           uuid.UUID                  `json:"id"`
 	Sequence     int32                      `json:"sequence" example:"1"`
@@ -70,9 +54,6 @@ type ProgramExerciseResponse struct {
 	SetTargets   []ProgramSetTargetResponse `json:"set_targets"`
 } // @name ProgramExerciseResponse
 
-// ProgramSetTargetResponse is one prescription block (e.g. "2 sets of 2 reps
-// at 285lb RPE 5"). One target expands into SetsCount logged sets when a
-// session starts.
 type ProgramSetTargetResponse struct {
 	ID                     uuid.UUID `json:"id"`
 	Sequence               int32     `json:"sequence" example:"1"`
