@@ -4,6 +4,7 @@ package middleware
 
 import (
 	"log/slog"
+	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -41,7 +42,7 @@ func RequireAuth(verifier *auth.Verifier, userSvc *users.Service, log *slog.Logg
 			log.ErrorContext(c.Request.Context(), "resolve principal failed",
 				slog.String("workos_user_id", claims.Subject),
 				slog.String("error", err.Error()))
-			apierr.Abort(c, 500, "could not establish session")
+			apierr.Abort(c, http.StatusInternalServerError, "could not establish session")
 			return
 		}
 
@@ -59,7 +60,7 @@ func DevAuthBypass(userSvc *users.Service, userID uuid.UUID, log *slog.Logger) g
 			log.ErrorContext(c.Request.Context(), "dev auth bypass: user not found",
 				slog.String("user_id", userID.String()),
 				slog.String("error", err.Error()))
-			apierr.Abort(c, 500, "dev auth bypass: user not found")
+			apierr.Abort(c, http.StatusInternalServerError, "dev auth bypass: user not found")
 			return
 		}
 
@@ -89,4 +90,3 @@ func extractToken(c *gin.Context) (string, bool) {
 	}
 	return "", false
 }
-

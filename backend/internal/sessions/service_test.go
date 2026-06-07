@@ -137,6 +137,8 @@ func TestServiceUpdateSetLog_RejectsOutOfRangeValues(t *testing.T) {
 		name  string
 		input UpdateSetLogRequest
 	}{
+		{"reps below min", UpdateSetLogRequest{RepsActual: ptr(int32(minReps - 1))}},
+		{"reps above max", UpdateSetLogRequest{RepsActual: ptr(int32(maxReps + 1))}},
 		{"load below min", UpdateSetLogRequest{ActualLoadKg: ptr(minLoadKg - 1)}},
 		{"load above max", UpdateSetLogRequest{ActualLoadKg: ptr(maxLoadKg + 1)}},
 		{"rpe below min", UpdateSetLogRequest{ActualRpe: ptr(minRpe - 1)}},
@@ -166,6 +168,8 @@ func TestServiceUpdateSetLog_RejectsOutOfRangeValues(t *testing.T) {
 
 func TestServiceUpdateSetLog_AcceptsBoundaryAndKnownStates(t *testing.T) {
 	cases := []UpdateSetLogRequest{
+		{RepsActual: ptr(int32(minReps))},
+		{RepsActual: ptr(int32(maxReps))},
 		{ActualLoadKg: ptr(minLoadKg)},
 		{ActualLoadKg: ptr(maxLoadKg)},
 		{ActualRpe: ptr(minRpe)},

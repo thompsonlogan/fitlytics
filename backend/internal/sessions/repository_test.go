@@ -245,7 +245,7 @@ func TestRepositoryStartSessionForDay_SnapshotsProgramIntoNewSession(t *testing.
 		WithArgs(uuidArg(newSessionID), 1).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "user_id", "program_day_id", "state", "created_at", "updated_at",
-		}).AddRow(newSessionID, ownerID, dayID, "in_progress", now, now))
+		}).AddRow(newSessionID, ownerID, dayID, "planned", now, now))
 	mock.ExpectQuery(`SELECT \* FROM "session_exercises"`).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "session_id", "sequence", "exercise_id", "exercise_name_snap",
@@ -261,7 +261,7 @@ func TestRepositoryStartSessionForDay_SnapshotsProgramIntoNewSession(t *testing.
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if session.ID != newSessionID || session.State != "in_progress" {
+	if session.ID != newSessionID || session.State != "planned" {
 		t.Errorf("created session: %+v", session)
 	}
 	if len(session.Exercises) != 1 || len(session.Exercises[0].SetLogs) != 1 {
@@ -401,33 +401,20 @@ func TestRepositoryUpdateSetLog_MissingSetLogRollsBack(t *testing.T) {
 
 // ─── FindCompletedDays ──────────────────────────────────────────────────────
 
+// completedDaysQuery matches the single join query: completed sessions joined
+// up to program_days and program_weeks, filtered to the owner + program.
+const completedDaysQuery = `SELECT .*week_sequence.*day_sequence.* FROM "sessions" .*JOIN "program_days".*JOIN "program_weeks".*GROUP BY`
+
 func TestRepositoryFindCompletedDays_HappyPath(t *testing.T) {
 	db, mock := newMockDB(t)
 
 	ownerID := uuid.New()
 	programID := uuid.New()
-	dayID := uuid.New()
-	weekID := uuid.New()
-	now := time.Now()
 
-	// Completed sessions for the user.
-	mock.ExpectQuery(`SELECT \* FROM "sessions" WHERE`).
-		WithArgs(uuidArg(ownerID), "completed").
-		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "user_id", "program_day_id", "state", "created_at", "updated_at",
-		}).AddRow(uuid.New(), ownerID, dayID, "completed", now, now))
-
-	// Program days for the collected day ids.
-	mock.ExpectQuery(`SELECT \* FROM "program_days"`).
-		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "week_id", "sequence", "name", "is_rest_day", "created_at", "updated_at",
-		}).AddRow(dayID, weekID, 2, "Day 2", false, now, now))
-
-	// Weeks filtered to this program.
-	mock.ExpectQuery(`SELECT \* FROM "program_weeks"`).
-		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "program_id", "sequence", "created_at", "updated_at",
-		}).AddRow(weekID, programID, 4, now, now))
+	mock.ExpectQuery(completedDaysQuery).
+		WithArgs(uuidArg(ownerID), "completed", uuidArg(programID)).
+		WillReturnRows(sqlmock.NewRows([]string{"week_sequence", "day_sequence"}).
+			AddRow(4, 2))
 
 	rows, err := NewRepository(db).FindCompletedDays(context.Background(), programID, ownerID)
 	if err != nil {
@@ -445,9 +432,9 @@ func TestRepositoryFindCompletedDays_NoCompletedSessionsReturnsEmpty(t *testing.
 	db, mock := newMockDB(t)
 	ownerID, programID := uuid.New(), uuid.New()
 
-	mock.ExpectQuery(`SELECT \* FROM "sessions" WHERE`).
-		WithArgs(uuidArg(ownerID), "completed").
-		WillReturnRows(sqlmock.NewRows([]string{"id"}))
+	mock.ExpectQuery(completedDaysQuery).
+		WithArgs(uuidArg(ownerID), "completed", uuidArg(programID)).
+		WillReturnRows(sqlmock.NewRows([]string{"week_sequence", "day_sequence"}))
 
 	rows, err := NewRepository(db).FindCompletedDays(context.Background(), programID, ownerID)
 	if err != nil {
@@ -461,36 +448,34 @@ func TestRepositoryFindCompletedDays_NoCompletedSessionsReturnsEmpty(t *testing.
 	}
 }
 
-func TestRepositoryFindCompletedDays_FiltersOutDaysFromOtherPrograms(t *testing.T) {
+// The program filter now lives in the WHERE clause (pw.program_id = $3), so
+// days from other programs never come back from the DB. This asserts the
+// program id is bound and the (already-deduped) rows map through in order.
+func TestRepositoryFindCompletedDays_ScopesToProgramAndOrders(t *testing.T) {
 	db, mock := newMockDB(t)
 
 	ownerID := uuid.New()
 	programID := uuid.New()
-	dayID := uuid.New()
-	weekID := uuid.New()
-	now := time.Now()
 
-	mock.ExpectQuery(`SELECT \* FROM "sessions" WHERE`).
-		WithArgs(uuidArg(ownerID), "completed").
-		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "user_id", "program_day_id", "state", "created_at", "updated_at",
-		}).AddRow(uuid.New(), ownerID, dayID, "completed", now, now))
-
-	mock.ExpectQuery(`SELECT \* FROM "program_days"`).
-		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "week_id", "sequence", "name", "is_rest_day", "created_at", "updated_at",
-		}).AddRow(dayID, weekID, 2, "Day 2", false, now, now))
-
-	// The week belongs to a different program, so the query returns nothing.
-	mock.ExpectQuery(`SELECT \* FROM "program_weeks"`).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}))
+	mock.ExpectQuery(completedDaysQuery).
+		WithArgs(uuidArg(ownerID), "completed", uuidArg(programID)).
+		WillReturnRows(sqlmock.NewRows([]string{"week_sequence", "day_sequence"}).
+			AddRow(1, 1).
+			AddRow(1, 2).
+			AddRow(2, 1))
 
 	rows, err := NewRepository(db).FindCompletedDays(context.Background(), programID, ownerID)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(rows) != 0 {
-		t.Errorf("days from other programs should be filtered out, got %+v", rows)
+	want := []CompletedDayRow{{1, 1}, {1, 2}, {2, 1}}
+	if len(rows) != len(want) {
+		t.Fatalf("want %d rows, got %+v", len(want), rows)
+	}
+	for i, w := range want {
+		if rows[i] != w {
+			t.Errorf("row %d = %+v, want %+v", i, rows[i], w)
+		}
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("unmet expectations: %v", err)

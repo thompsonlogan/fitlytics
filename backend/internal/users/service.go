@@ -28,6 +28,11 @@ type Service struct {
 	db     *gorm.DB
 	workos *auth.WorkOSClient
 
+	// cacheSize and cacheTTL configure both caches; the options mutate these
+	// and NewService builds the caches once, after all options are applied.
+	cacheSize int
+	cacheTTL  time.Duration
+
 	// byWorkOSID is an LRU+TTL cache keyed by workos_user_id. Eliminates a
 	// DB round-trip on every authenticated request.
 	byWorkOSID *lru.LRU[string, *generated.User]
@@ -44,33 +49,25 @@ type Service struct {
 type Option func(*Service)
 
 func WithCacheSize(size int) Option {
-	return func(s *Service) {
-		s.byWorkOSID = lru.NewLRU[string, *generated.User](size, nil, defaultCacheTTL)
-		s.byUUID = lru.NewLRU[uuid.UUID, *generated.User](size, nil, defaultCacheTTL)
-	}
+	return func(s *Service) { s.cacheSize = size }
 }
 
 func WithCacheTTL(ttl time.Duration) Option {
-	return func(s *Service) {
-		size := s.byWorkOSID.Len()
-		if size == 0 {
-			size = defaultCacheSize
-		}
-		s.byWorkOSID = lru.NewLRU[string, *generated.User](size, nil, ttl)
-		s.byUUID = lru.NewLRU[uuid.UUID, *generated.User](size, nil, ttl)
-	}
+	return func(s *Service) { s.cacheTTL = ttl }
 }
 
 func NewService(db *gorm.DB, workos *auth.WorkOSClient, opts ...Option) *Service {
 	s := &Service{
-		db:         db,
-		workos:     workos,
-		byWorkOSID: lru.NewLRU[string, *generated.User](defaultCacheSize, nil, defaultCacheTTL),
-		byUUID:     lru.NewLRU[uuid.UUID, *generated.User](defaultCacheSize, nil, defaultCacheTTL),
+		db:        db,
+		workos:    workos,
+		cacheSize: defaultCacheSize,
+		cacheTTL:  defaultCacheTTL,
 	}
 	for _, o := range opts {
 		o(s)
 	}
+	s.byWorkOSID = lru.NewLRU[string, *generated.User](s.cacheSize, nil, s.cacheTTL)
+	s.byUUID = lru.NewLRU[uuid.UUID, *generated.User](s.cacheSize, nil, s.cacheTTL)
 	return s
 }
 
@@ -82,7 +79,7 @@ func (s *Service) ResolveOrProvision(ctx context.Context, claims *auth.Claims) (
 	workosUserID := claims.Subject
 
 	if cached, ok := s.byWorkOSID.Get(workosUserID); ok {
-		return cached, nil
+		return cloneUser(cached), nil
 	}
 
 	// singleflight: if N requests arrive for the same uncached user, only one
@@ -130,7 +127,7 @@ func (s *Service) resolveOrProvision(ctx context.Context, claims *auth.Claims) (
 
 func (s *Service) FindByID(ctx context.Context, id uuid.UUID) (*generated.User, error) {
 	if cached, ok := s.byUUID.Get(id); ok {
-		return cached, nil
+		return cloneUser(cached), nil
 	}
 
 	val, err, _ := s.sflight.Do("uuid:"+id.String(), func() (any, error) {
@@ -149,10 +146,20 @@ func (s *Service) FindByID(ctx context.Context, id uuid.UUID) (*generated.User, 
 	return user, nil
 }
 
-// cacheUser stores the user in both caches so either lookup path benefits.
+// cacheUser stores the user in both caches so either lookup path benefits. It
+// stores an independent copy so a later mutation of the caller's *User (e.g.
+// the request principal) cannot corrupt the shared cache entry.
 func (s *Service) cacheUser(u *generated.User) {
-	s.byWorkOSID.Add(u.WorkosUserID, u)
-	s.byUUID.Add(u.ID, u)
+	cp := cloneUser(u)
+	s.byWorkOSID.Add(cp.WorkosUserID, cp)
+	s.byUUID.Add(cp.ID, cp)
+}
+
+// cloneUser returns a shallow copy of u. User rows are flat scalar columns (no
+// preloaded navigation slices), so a shallow copy fully isolates the value.
+func cloneUser(u *generated.User) *generated.User {
+	cp := *u
+	return &cp
 }
 
 func (s *Service) findByWorkOSID(ctx context.Context, workosUserID string) (*generated.User, error) {

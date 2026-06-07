@@ -19,19 +19,19 @@ type SessionResponse struct {
 } // @name SessionResponse
 
 type SessionExerciseResponse struct {
-	ID               uuid.UUID         `json:"id"`
-	Sequence         int32             `json:"sequence"`
-	ExerciseID       uuid.UUID         `json:"exercise_id"`
-	ExerciseNameSnap string            `json:"exercise_name_snap"`
-	SubSnap          *string           `json:"sub_snap,omitempty"`
-	RestSecondsSnap  *int32            `json:"rest_seconds_snap,omitempty"`
-	SetLogs          []SetLogResponse  `json:"set_logs"`
+	ID               uuid.UUID        `json:"id"`
+	Sequence         int32            `json:"sequence"`
+	ExerciseID       uuid.UUID        `json:"exercise_id"`
+	ExerciseNameSnap string           `json:"exercise_name_snap"`
+	SubSnap          *string          `json:"sub_snap,omitempty"`
+	RestSecondsSnap  *int32           `json:"rest_seconds_snap,omitempty"`
+	SetLogs          []SetLogResponse `json:"set_logs"`
 } // @name SessionExerciseResponse
 
 type SetLogResponse struct {
-	ID                     uuid.UUID `json:"id"`
-	Sequence               int32     `json:"sequence"`
-	SetType                string    `json:"set_type" example:"working"`
+	ID       uuid.UUID `json:"id"`
+	Sequence int32     `json:"sequence"`
+	SetType  string    `json:"set_type" example:"working"`
 	// prescription snapshot
 	RepsTargetMin          *int32   `json:"reps_target_min,omitempty"`
 	RepsTargetMax          *int32   `json:"reps_target_max,omitempty"`
@@ -48,6 +48,7 @@ type SetLogResponse struct {
 } // @name SetLogResponse
 
 type UpdateSetLogRequest struct {
+	RepsActual   *int32   `json:"reps_actual,omitempty" example:"8"`
 	ActualLoadKg *float64 `json:"actual_load_kg,omitempty" example:"129.27"`
 	ActualRpe    *float64 `json:"actual_rpe,omitempty" example:"8.5"`
 	State        *string  `json:"state,omitempty" example:"completed"`
@@ -57,4 +58,3 @@ type CompletedDayResponse struct {
 	WeekSequence int32 `json:"week_sequence" example:"4"`
 	DaySequence  int32 `json:"day_sequence" example:"1"`
 } // @name CompletedDayResponse
-

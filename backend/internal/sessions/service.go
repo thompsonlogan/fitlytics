@@ -33,6 +33,8 @@ const (
 	maxLoadKg = 1500.0
 	minRpe    = 0.0
 	maxRpe    = 10.0
+	minReps   = 0
+	maxReps   = 1000
 )
 
 func (s *service) GetCurrentSession(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error) {
@@ -58,6 +60,11 @@ func (s *service) StartSession(ctx context.Context, programID, programDayID, own
 }
 
 func (s *service) UpdateSetLog(ctx context.Context, sessionID, setLogID, ownerUserID uuid.UUID, input UpdateSetLogRequest) (*SetLogResponse, error) {
+	if input.RepsActual != nil {
+		if *input.RepsActual < minReps || *input.RepsActual > maxReps {
+			return nil, fmt.Errorf("%w: reps_actual out of range", ErrInvalidInput)
+		}
+	}
 	if input.ActualLoadKg != nil {
 		if *input.ActualLoadKg < minLoadKg || *input.ActualLoadKg > maxLoadKg {
 			return nil, fmt.Errorf("%w: actual_load_kg out of range", ErrInvalidInput)

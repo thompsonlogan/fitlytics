@@ -156,19 +156,24 @@ func (r *repository) StartSessionForDay(ctx context.Context, programID, programD
 			ProgramDayID:    &programDayID,
 			ProgramNameSnap: &program.Name,
 			DayNameSnap:     &day.Name,
-			State:           "in_progress",
-			StartedAt:       &now,
+			State:     "planned",
+			StartedAt: &now,
 		}
 		if err := s.WithContext(ctx).Create(&session); err != nil {
 			return fmt.Errorf("create session: %w", err)
 		}
 
-		// 5) For each program_exercise, create a session_exercise + one
-		// set_log per program_set_target.
+		// 5) Snapshot the prescription into the session: one session_exercise
+		// per program_exercise, one set_log per program_set_target. Each level
+		// is inserted in a single batch — two INSERTs total rather than one per
+		// row. The session_exercises are created first so their generated IDs
+		// can be referenced by the set_logs.
 		seQ := q.SessionExercise
 		slQ := q.SetLog
-		for _, p := range pExercises {
-			se := generated.SessionExercise{
+
+		sessionExercises := make([]*generated.SessionExercise, len(pExercises))
+		for i, p := range pExercises {
+			sessionExercises[i] = &generated.SessionExercise{
 				SessionID:        session.ID,
 				Sequence:         p.Sequence,
 				ExerciseID:       p.ExerciseID,
@@ -176,13 +181,19 @@ func (r *repository) StartSessionForDay(ctx context.Context, programID, programD
 				SubSnap:          p.SubText,
 				RestSecondsSnap:  p.RestSeconds,
 			}
-			if err := seQ.WithContext(ctx).Create(&se); err != nil {
-				return fmt.Errorf("create session exercise: %w", err)
+		}
+		if len(sessionExercises) > 0 {
+			if err := seQ.WithContext(ctx).Create(sessionExercises...); err != nil {
+				return fmt.Errorf("create session exercises: %w", err)
 			}
+		}
 
+		var setLogs []*generated.SetLog
+		for i, p := range pExercises {
+			seID := sessionExercises[i].ID
 			for _, pst := range p.SetTargets {
-				log := generated.SetLog{
-					SessionExerciseID:      se.ID,
+				setLogs = append(setLogs, &generated.SetLog{
+					SessionExerciseID:      seID,
 					Sequence:               pst.Sequence,
 					SetType:                pst.SetType,
 					RepsTargetMin:          pst.RepsMin,
@@ -193,10 +204,12 @@ func (r *repository) StartSessionForDay(ctx context.Context, programID, programD
 					IntensityText:          pst.IntensityText,
 					ActualLoadModifier:     "absolute",
 					State:                  "pending",
-				}
-				if err := slQ.WithContext(ctx).Create(&log); err != nil {
-					return fmt.Errorf("create set log: %w", err)
-				}
+				})
+			}
+		}
+		if len(setLogs) > 0 {
+			if err := slQ.WithContext(ctx).Create(setLogs...); err != nil {
+				return fmt.Errorf("create set logs: %w", err)
 			}
 		}
 
@@ -251,6 +264,9 @@ func (r *repository) UpdateSetLog(ctx context.Context, sessionID, setLogID, owne
 
 		// Apply field updates.
 		var assigns []field.AssignExpr
+		if input.RepsActual != nil {
+			assigns = append(assigns, sl.RepsActual.Value(*input.RepsActual))
+		}
 		if input.ActualLoadKg != nil {
 			assigns = append(assigns, sl.ActualLoadKg.Value(*input.ActualLoadKg))
 		}
@@ -260,11 +276,13 @@ func (r *repository) UpdateSetLog(ctx context.Context, sessionID, setLogID, owne
 		if input.State != nil {
 			assigns = append(assigns, sl.State.Value(*input.State))
 		}
+		if len(assigns) == 0 {
+			out = setLog
+			return nil
+		}
 
-		if len(assigns) > 0 {
-			if _, err := sl.WithContext(ctx).Where(sl.ID.Eq(setLogID)).UpdateSimple(assigns...); err != nil {
-				return fmt.Errorf("update set log: %w", err)
-			}
+		if _, err := sl.WithContext(ctx).Where(sl.ID.Eq(setLogID)).UpdateSimple(assigns...); err != nil {
+			return fmt.Errorf("update set log: %w", err)
 		}
 
 		// Recompute session state from the current set_log distribution.
@@ -333,90 +351,23 @@ func (r *repository) UpdateSetLog(ctx context.Context, sessionID, setLogID, owne
 
 func (r *repository) FindCompletedDays(ctx context.Context, programID, ownerUserID uuid.UUID) ([]CompletedDayRow, error) {
 	s := r.q.Session
-
-	// Find all completed sessions for this program owned by the user.
-	sessions, err := s.WithContext(ctx).
-		Where(s.UserID.Eq(ownerUserID), s.State.Eq("completed")).
-		Find()
-	if err != nil {
-		return nil, fmt.Errorf("find completed sessions: %w", err)
-	}
-	if len(sessions) == 0 {
-		return []CompletedDayRow{}, nil
-	}
-
-	// Collect the program_day_ids from the completed sessions.
-	dayIDs := make([]driver.Valuer, 0, len(sessions))
-	for _, sess := range sessions {
-		if sess.ProgramDayID != nil {
-			dayIDs = append(dayIDs, *sess.ProgramDayID)
-		}
-	}
-	if len(dayIDs) == 0 {
-		return []CompletedDayRow{}, nil
-	}
-
-	// Look up the days and their parent weeks, filtering to the target program.
 	pd := r.q.ProgramDay
 	pw := r.q.ProgramWeek
-	days, err := pd.WithContext(ctx).
-		Where(pd.ID.In(dayIDs...)).
-		Find()
+
+	var rows []CompletedDayRow
+	err := s.WithContext(ctx).
+		Select(pw.Sequence.As("week_sequence"), pd.Sequence.As("day_sequence")).
+		Join(&generated.ProgramDay{}, pd.ID.EqCol(s.ProgramDayID)).
+		Join(&generated.ProgramWeek{}, pw.ID.EqCol(pd.WeekID)).
+		Where(s.UserID.Eq(ownerUserID), s.State.Eq("completed"), pw.ProgramID.Eq(programID)).
+		Group(pw.Sequence, pd.Sequence).
+		Order(pw.Sequence, pd.Sequence).
+		Scan(&rows)
 	if err != nil {
-		return nil, fmt.Errorf("lookup program days: %w", err)
+		return nil, fmt.Errorf("find completed days: %w", err)
 	}
-
-	// Collect week IDs and build day lookup.
-	weekIDSet := make(map[uuid.UUID]struct{})
-	for _, d := range days {
-		weekIDSet[d.WeekID] = struct{}{}
-	}
-	weekIDVals := make([]driver.Valuer, 0, len(weekIDSet))
-	for id := range weekIDSet {
-		weekIDVals = append(weekIDVals, id)
-	}
-
-	weeks, err := pw.WithContext(ctx).
-		Where(pw.ID.In(weekIDVals...), pw.ProgramID.Eq(programID)).
-		Find()
-	if err != nil {
-		return nil, fmt.Errorf("lookup program weeks: %w", err)
-	}
-
-	// Build week lookup: id -> sequence, filtered to this program.
-	weekByID := make(map[uuid.UUID]int32, len(weeks))
-	weekIDsInProgram := make(map[uuid.UUID]struct{}, len(weeks))
-	for _, w := range weeks {
-		weekByID[w.ID] = w.Sequence
-		weekIDsInProgram[w.ID] = struct{}{}
-	}
-
-	// Build day lookup: id -> (sequence, weekID), filtered to weeks in this program.
-	type dayInfo struct {
-		Sequence int32
-		WeekID   uuid.UUID
-	}
-	dayByID := make(map[uuid.UUID]dayInfo, len(days))
-	for _, d := range days {
-		if _, ok := weekIDsInProgram[d.WeekID]; ok {
-			dayByID[d.ID] = dayInfo{Sequence: d.Sequence, WeekID: d.WeekID}
-		}
-	}
-
-	// Assemble the result.
-	rows := make([]CompletedDayRow, 0, len(sessions))
-	for _, sess := range sessions {
-		if sess.ProgramDayID == nil {
-			continue
-		}
-		di, ok := dayByID[*sess.ProgramDayID]
-		if !ok {
-			continue
-		}
-		rows = append(rows, CompletedDayRow{
-			WeekSequence: weekByID[di.WeekID],
-			DaySequence:  di.Sequence,
-		})
+	if rows == nil {
+		rows = []CompletedDayRow{}
 	}
 	return rows, nil
 }
