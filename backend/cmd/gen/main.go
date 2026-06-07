@@ -47,9 +47,10 @@ func run() error {
 	g := gen.NewGenerator(gen.Config{
 		// Query-side (type-safe DAO) code lands here.
 		OutPath: "./internal/query",
-		// ModelPkgPath is resolved as a sibling of OutPath, so "models" lands
-		// at ./internal/models alongside the hand-written JSONB type.
-		ModelPkgPath: "models",
+		// ModelPkgPath is resolved as a sibling of OutPath, so "models/generated"
+		// lands at ./internal/models/generated, keeping generated code separate
+		// from hand-written types.
+		ModelPkgPath: "models/generated",
 
 		// Nullable columns become pointer types.
 		FieldNullable: true,
@@ -63,7 +64,7 @@ func run() error {
 	// driver reports via ColumnType.DatabaseTypeName().
 	g.WithDataTypeMap(map[string]func(gorm.ColumnType) string{
 		"uuid":    func(gorm.ColumnType) string { return "uuid.UUID" },
-		"jsonb":   func(gorm.ColumnType) string { return "JSONB" },
+		"jsonb":   func(gorm.ColumnType) string { return "models.JSONB" },
 		"numeric": func(gorm.ColumnType) string { return "float64" },
 
 		// Array columns -> pq.StringArray. If new array element types appear
@@ -86,6 +87,7 @@ func run() error {
 	g.WithImportPkgPath(
 		"github.com/google/uuid",
 		"github.com/lib/pq",
+		"github.com/thompsonlogan/fitlytics/backend/internal/models",
 	)
 
 	// Helper: gen.FieldType("deleted_at", "gorm.DeletedAt") opts in to GORM

@@ -6,22 +6,20 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/thompsonlogan/fitlytics/backend/internal/models"
+	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
 
 // ─── collectExerciseIDs ─────────────────────────────────────────────────────
 
 func TestCollectExerciseIDs(t *testing.T) {
 	t.Run("empty program returns empty slice", func(t *testing.T) {
-		got := collectExerciseIDs(&models.Program{})
+		got := collectExerciseIDs(&generated.Program{})
 		if len(got) != 0 {
 			t.Fatalf("want empty slice, got %v", got)
 		}
 	})
 
 	t.Run("dedupes ids that appear in multiple exercises", func(t *testing.T) {
-		// fullProgram() intentionally re-uses the squat id across two
-		// program_exercises so this branch exercises the seen-map.
 		got := collectExerciseIDs(fullProgram())
 
 		expected := map[uuid.UUID]bool{
@@ -105,7 +103,7 @@ func TestMapProgram_ExerciseNameLookup(t *testing.T) {
 // ─── mapWeek / mapDay / mapExercise / mapSetTarget (focused branch coverage) ─
 
 func TestMapWeek_NoDays(t *testing.T) {
-	w := models.ProgramWeek{ID: fixedID("w"), Sequence: 1, Name: strPtr("W1")}
+	w := generated.ProgramWeek{ID: fixedID("w"), Sequence: 1, Name: strPtr("W1")}
 	out := mapWeek(w, nil)
 	if out.ID != w.ID || out.Sequence != 1 || *out.Name != "W1" {
 		t.Errorf("scalar copy failed: %+v", out)
@@ -116,7 +114,7 @@ func TestMapWeek_NoDays(t *testing.T) {
 }
 
 func TestMapDay_RestDayWithNoExercises(t *testing.T) {
-	d := models.ProgramDay{
+	d := generated.ProgramDay{
 		ID:        fixedID("d"),
 		Sequence:  2,
 		Name:      "Rest",
@@ -138,7 +136,7 @@ func TestMapDay_RestDayWithNoExercises(t *testing.T) {
 
 func TestMapExercise_AllFieldsAndEmptySetTargets(t *testing.T) {
 	exID := fixedID("ex")
-	e := models.ProgramExercise{
+	e := generated.ProgramExercise{
 		ID:          fixedID("pe"),
 		Sequence:    1,
 		ExerciseID:  exID,
@@ -181,21 +179,21 @@ func TestMapProgramSummaries(t *testing.T) {
 	})
 
 	t.Run("copies all scalar fields and preserves order", func(t *testing.T) {
-		p1 := models.Program{
+		p1 := generated.Program{
 			ID:          fixedID("program:a"),
 			Name:        "A",
 			Description: ptr("first"),
 			CreatedAt:   builtAt,
 			UpdatedAt:   builtAt,
 		}
-		p2 := models.Program{
+		p2 := generated.Program{
 			ID:        fixedID("program:b"),
 			Name:      "B",
 			CreatedAt: builtAt,
 			UpdatedAt: builtAt,
 		}
 
-		out := mapProgramSummaries([]models.Program{p1, p2})
+		out := mapProgramSummaries([]generated.Program{p1, p2})
 
 		if len(out) != 2 {
 			t.Fatalf("len: want 2, got %d", len(out))
@@ -215,7 +213,7 @@ func TestMapProgramSummaries(t *testing.T) {
 
 func TestMapSetTarget_AllScalarFieldsCopied(t *testing.T) {
 	t.Run("populated", func(t *testing.T) {
-		in := models.ProgramSetTarget{
+		in := generated.ProgramSetTarget{
 			ID:                     fixedID("pst"),
 			Sequence:               2,
 			SetType:                "amrap",
@@ -248,7 +246,7 @@ func TestMapSetTarget_AllScalarFieldsCopied(t *testing.T) {
 	})
 
 	t.Run("all nullable fields nil", func(t *testing.T) {
-		in := models.ProgramSetTarget{
+		in := generated.ProgramSetTarget{
 			ID:                     fixedID("pst-empty"),
 			Sequence:               1,
 			SetType:                "working",

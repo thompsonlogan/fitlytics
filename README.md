@@ -217,7 +217,9 @@ $EDITOR database/flyway/sql_versioned/V2__injuries.sql
 cd database && docker compose down -v && docker compose up -d
 
 # 3. Regenerate Go models so they include the new table
-cd ../backend && go run ./cmd/gen
+#    (update cmd/gen/main.go first if you added a new table, enum, or FK —
+#     see "When cmd/gen/main.go needs updating" below)
+cd ../backend && make generate
 
 # 4. Build to catch any breakage from the regen
 go build ./...
@@ -239,19 +241,36 @@ environment, which is handy for hard-coding fixtures during frontend dev.
 
 ## Regenerating Go models from the schema
 
-This project is **database-first**: `backend/internal/models/*.gen.go` and
-`backend/internal/query/*.gen.go` are produced from the live DB by
+This project is **database-first**: `backend/internal/models/generated/*.gen.go`
+and `backend/internal/query/*.gen.go` are produced from the live DB by
 `gorm.io/gen`, the GORM analogue of EF Core's `Scaffold-DbContext`.
+Hand-written types (like the `JSONB` helper) live in `backend/internal/models/`
+and are imported by the generated code.
 
 ```bash
 cd backend
-go run ./cmd/gen
+make generate      # or: go run ./cmd/gen
 ```
 
-The generator config (`backend/cmd/gen/main.go`) pins the type mappings gen
-can't infer (uuid, jsonb, enum arrays, soft-delete) and wires the navigation
-fields for the program/session trees. Don't hand-edit `.gen.go` files — change
-the schema and regenerate.
+Don't hand-edit `.gen.go` files — change the schema and regenerate.
+
+### When `cmd/gen/main.go` needs updating
+
+Running `make generate` is enough for standard column changes (varchar, int,
+bool, timestamptz, etc.). But the generator config
+([`backend/cmd/gen/main.go`](backend/cmd/gen/main.go)) needs a manual update
+when a migration introduces:
+
+| Schema change | What to update |
+|---|---|
+| **New table** | Add `g.GenerateModel("table_name")` + include in `ApplyBasic` |
+| **New custom Postgres type** (enum, array) | Add entry to `WithDataTypeMap` so gen knows which Go type to emit |
+| **New FK / navigation field** | Add `gen.FieldRelate` call on the parent model |
+| **FK column that breaks GORM naming convention** | Add `GORMTag` override in the `FieldRelate` config |
+
+Generation order matters: children must be generated before parents (gen needs
+the child metadata to wire `FieldRelate`), so build bottom-up along each
+aggregate tree.
 
 ## Auth in one paragraph
 

@@ -16,14 +16,14 @@ import (
 
 	"gorm.io/plugin/dbresolver"
 
-	"github.com/thompsonlogan/fitlytics/backend/internal/models"
+	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
 
 func newSetLog(db *gorm.DB, opts ...gen.DOOption) setLog {
 	_setLog := setLog{}
 
 	_setLog.setLogDo.UseDB(db, opts...)
-	_setLog.setLogDo.UseModel(&models.SetLog{})
+	_setLog.setLogDo.UseModel(&generated.SetLog{})
 
 	tableName := _setLog.setLogDo.TableName()
 	_setLog.ALL = field.NewAsterisk(tableName)
@@ -47,7 +47,7 @@ func newSetLog(db *gorm.DB, opts ...gen.DOOption) setLog {
 	_setLog.ActualRpe = field.NewFloat64(tableName, "actual_rpe")
 	_setLog.StartedAt = field.NewTime(tableName, "started_at")
 	_setLog.CompletedAt = field.NewTime(tableName, "completed_at")
-	_setLog.WasCompleted = field.NewBool(tableName, "was_completed")
+	_setLog.State = field.NewString(tableName, "state")
 	_setLog.Notes = field.NewString(tableName, "notes")
 	_setLog.Extras = field.NewField(tableName, "extras")
 	_setLog.CreatedAt = field.NewTime(tableName, "created_at")
@@ -83,7 +83,7 @@ type setLog struct {
 	ActualRpe              field.Float64
 	StartedAt              field.Time
 	CompletedAt            field.Time
-	WasCompleted           field.Bool
+	State                  field.String
 	Notes                  field.String
 	Extras                 field.Field
 	CreatedAt              field.Time
@@ -125,7 +125,7 @@ func (s *setLog) updateTableName(table string) *setLog {
 	s.ActualRpe = field.NewFloat64(table, "actual_rpe")
 	s.StartedAt = field.NewTime(table, "started_at")
 	s.CompletedAt = field.NewTime(table, "completed_at")
-	s.WasCompleted = field.NewBool(table, "was_completed")
+	s.State = field.NewString(table, "state")
 	s.Notes = field.NewString(table, "notes")
 	s.Extras = field.NewField(table, "extras")
 	s.CreatedAt = field.NewTime(table, "created_at")
@@ -176,7 +176,7 @@ func (s *setLog) fillFieldMap() {
 	s.fieldMap["actual_rpe"] = s.ActualRpe
 	s.fieldMap["started_at"] = s.StartedAt
 	s.fieldMap["completed_at"] = s.CompletedAt
-	s.fieldMap["was_completed"] = s.WasCompleted
+	s.fieldMap["state"] = s.State
 	s.fieldMap["notes"] = s.Notes
 	s.fieldMap["extras"] = s.Extras
 	s.fieldMap["created_at"] = s.CreatedAt
@@ -288,57 +288,57 @@ func (s setLogDo) Unscoped() *setLogDo {
 	return s.withDO(s.DO.Unscoped())
 }
 
-func (s setLogDo) Create(values ...*models.SetLog) error {
+func (s setLogDo) Create(values ...*generated.SetLog) error {
 	if len(values) == 0 {
 		return nil
 	}
 	return s.DO.Create(values)
 }
 
-func (s setLogDo) CreateInBatches(values []*models.SetLog, batchSize int) error {
+func (s setLogDo) CreateInBatches(values []*generated.SetLog, batchSize int) error {
 	return s.DO.CreateInBatches(values, batchSize)
 }
 
 // Save : !!! underlying implementation is different with GORM
 // The method is equivalent to executing the statement: db.Clauses(clause.OnConflict{UpdateAll: true}).Create(values)
-func (s setLogDo) Save(values ...*models.SetLog) error {
+func (s setLogDo) Save(values ...*generated.SetLog) error {
 	if len(values) == 0 {
 		return nil
 	}
 	return s.DO.Save(values)
 }
 
-func (s setLogDo) First() (*models.SetLog, error) {
+func (s setLogDo) First() (*generated.SetLog, error) {
 	if result, err := s.DO.First(); err != nil {
 		return nil, err
 	} else {
-		return result.(*models.SetLog), nil
+		return result.(*generated.SetLog), nil
 	}
 }
 
-func (s setLogDo) Take() (*models.SetLog, error) {
+func (s setLogDo) Take() (*generated.SetLog, error) {
 	if result, err := s.DO.Take(); err != nil {
 		return nil, err
 	} else {
-		return result.(*models.SetLog), nil
+		return result.(*generated.SetLog), nil
 	}
 }
 
-func (s setLogDo) Last() (*models.SetLog, error) {
+func (s setLogDo) Last() (*generated.SetLog, error) {
 	if result, err := s.DO.Last(); err != nil {
 		return nil, err
 	} else {
-		return result.(*models.SetLog), nil
+		return result.(*generated.SetLog), nil
 	}
 }
 
-func (s setLogDo) Find() ([]*models.SetLog, error) {
+func (s setLogDo) Find() ([]*generated.SetLog, error) {
 	result, err := s.DO.Find()
-	return result.([]*models.SetLog), err
+	return result.([]*generated.SetLog), err
 }
 
-func (s setLogDo) FindInBatch(batchSize int, fc func(tx gen.Dao, batch int) error) (results []*models.SetLog, err error) {
-	buf := make([]*models.SetLog, 0, batchSize)
+func (s setLogDo) FindInBatch(batchSize int, fc func(tx gen.Dao, batch int) error) (results []*generated.SetLog, err error) {
+	buf := make([]*generated.SetLog, 0, batchSize)
 	err = s.DO.FindInBatches(&buf, batchSize, func(tx gen.Dao, batch int) error {
 		defer func() { results = append(results, buf...) }()
 		return fc(tx, batch)
@@ -346,7 +346,7 @@ func (s setLogDo) FindInBatch(batchSize int, fc func(tx gen.Dao, batch int) erro
 	return results, err
 }
 
-func (s setLogDo) FindInBatches(result *[]*models.SetLog, batchSize int, fc func(tx gen.Dao, batch int) error) error {
+func (s setLogDo) FindInBatches(result *[]*generated.SetLog, batchSize int, fc func(tx gen.Dao, batch int) error) error {
 	return s.DO.FindInBatches(result, batchSize, fc)
 }
 
@@ -372,23 +372,23 @@ func (s setLogDo) Preload(fields ...field.RelationField) *setLogDo {
 	return &s
 }
 
-func (s setLogDo) FirstOrInit() (*models.SetLog, error) {
+func (s setLogDo) FirstOrInit() (*generated.SetLog, error) {
 	if result, err := s.DO.FirstOrInit(); err != nil {
 		return nil, err
 	} else {
-		return result.(*models.SetLog), nil
+		return result.(*generated.SetLog), nil
 	}
 }
 
-func (s setLogDo) FirstOrCreate() (*models.SetLog, error) {
+func (s setLogDo) FirstOrCreate() (*generated.SetLog, error) {
 	if result, err := s.DO.FirstOrCreate(); err != nil {
 		return nil, err
 	} else {
-		return result.(*models.SetLog), nil
+		return result.(*generated.SetLog), nil
 	}
 }
 
-func (s setLogDo) FindByPage(offset int, limit int) (result []*models.SetLog, count int64, err error) {
+func (s setLogDo) FindByPage(offset int, limit int) (result []*generated.SetLog, count int64, err error) {
 	result, err = s.Offset(offset).Limit(limit).Find()
 	if err != nil {
 		return
@@ -417,7 +417,7 @@ func (s setLogDo) Scan(result interface{}) (err error) {
 	return s.DO.Scan(result)
 }
 
-func (s setLogDo) Delete(models ...*models.SetLog) (result gen.ResultInfo, err error) {
+func (s setLogDo) Delete(models ...*generated.SetLog) (result gen.ResultInfo, err error) {
 	return s.DO.Delete(models)
 }
 

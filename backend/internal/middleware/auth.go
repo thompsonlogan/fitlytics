@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/thompsonlogan/fitlytics/backend/internal/apierr"
 	"github.com/thompsonlogan/fitlytics/backend/internal/auth"
 	"github.com/thompsonlogan/fitlytics/backend/internal/users"
 )
@@ -24,13 +25,13 @@ func RequireAuth(verifier *auth.Verifier, userSvc *users.Service, log *slog.Logg
 	return func(c *gin.Context) {
 		raw, ok := extractToken(c)
 		if !ok {
-			abortUnauthorized(c, "missing access token")
+			apierr.Unauthorized(c, "missing access token")
 			return
 		}
 
 		claims, err := verifier.Verify(raw)
 		if err != nil {
-			abortUnauthorized(c, "invalid token")
+			apierr.Unauthorized(c, "invalid token")
 			return
 		}
 
@@ -41,8 +42,7 @@ func RequireAuth(verifier *auth.Verifier, userSvc *users.Service, log *slog.Logg
 			log.ErrorContext(c.Request.Context(), "resolve principal failed",
 				slog.String("workos_user_id", claims.Subject),
 				slog.String("error", err.Error()))
-			c.AbortWithStatusJSON(http.StatusInternalServerError,
-				gin.H{"error": "could not establish session"})
+			apierr.Abort(c, http.StatusInternalServerError, "could not establish session")
 			return
 		}
 
@@ -60,8 +60,7 @@ func DevAuthBypass(userSvc *users.Service, userID uuid.UUID, log *slog.Logger) g
 			log.ErrorContext(c.Request.Context(), "dev auth bypass: user not found",
 				slog.String("user_id", userID.String()),
 				slog.String("error", err.Error()))
-			c.AbortWithStatusJSON(http.StatusInternalServerError,
-				gin.H{"error": "dev auth bypass: user not found"})
+			apierr.Abort(c, http.StatusInternalServerError, "dev auth bypass: user not found")
 			return
 		}
 
@@ -90,8 +89,4 @@ func extractToken(c *gin.Context) (string, bool) {
 		return cookie, true
 	}
 	return "", false
-}
-
-func abortUnauthorized(c *gin.Context, reason string) {
-	c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": reason})
 }

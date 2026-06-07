@@ -15,7 +15,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/thompsonlogan/fitlytics/backend/internal/auth"
-	"github.com/thompsonlogan/fitlytics/backend/internal/models"
+	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
 
 func init() {
@@ -26,10 +26,8 @@ func silentLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(io.Discard, nil))
 }
 
-// withPrincipal returns a gin Context where the auth middleware has already
-// run — same pattern as programs/handler_test.go.
 func withPrincipal(c *gin.Context, userID uuid.UUID) {
-	auth.SetPrincipal(c, &auth.Principal{User: &models.User{ID: userID}})
+	auth.SetPrincipal(c, &auth.Principal{User: &generated.User{ID: userID}})
 }
 
 // ─── GetCurrentSession ──────────────────────────────────────────────────────
@@ -280,23 +278,23 @@ func TestHandlerUpdateSetLog_SuccessReturnsBody(t *testing.T) {
 	}
 }
 
-// ─── ListDayCompletions ────────────────────────────────────────────────────
+// ─── GetCompletedDays ──────────────────────────────────────────────────────
 
-func TestHandlerListDayCompletions_InvalidProgramIDReturns400(t *testing.T) {
+func TestHandlerGetCompletedDays_InvalidProgramIDReturns400(t *testing.T) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest(http.MethodGet, "/api/programs/x/day-completions", nil)
 	c.Params = gin.Params{{Key: "id", Value: "not-a-uuid"}}
 	withPrincipal(c, uuid.New())
 
-	NewHandler(&fakeService{}, silentLogger()).ListDayCompletions(c)
+	NewHandler(&fakeService{}, silentLogger()).GetCompletedDays(c)
 
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("status: want 400, got %d", w.Code)
 	}
 }
 
-func TestHandlerListDayCompletions_SuccessReturnsRows(t *testing.T) {
+func TestHandlerGetCompletedDays_SuccessReturnsRows(t *testing.T) {
 	userID := uuid.New()
 	programID := uuid.New()
 	want := []CompletedDayResponse{
@@ -316,7 +314,7 @@ func TestHandlerListDayCompletions_SuccessReturnsRows(t *testing.T) {
 	c.Params = gin.Params{{Key: "id", Value: programID.String()}}
 	withPrincipal(c, userID)
 
-	NewHandler(svc, silentLogger()).ListDayCompletions(c)
+	NewHandler(svc, silentLogger()).GetCompletedDays(c)
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("status: want 200, got %d (body=%s)", w.Code, w.Body.String())
@@ -355,7 +353,7 @@ func TestHandlerRegister_MountsAllRoutes(t *testing.T) {
 	}
 
 	g.Use(func(c *gin.Context) {
-		auth.SetPrincipal(c, &auth.Principal{User: &models.User{ID: uuid.New()}})
+		auth.SetPrincipal(c, &auth.Principal{User: &generated.User{ID: uuid.New()}})
 		c.Next()
 	})
 	NewHandler(svc, silentLogger()).Register(g)
@@ -373,7 +371,7 @@ func TestHandlerRegister_MountsAllRoutes(t *testing.T) {
 		{"UpdateSetLog", http.MethodPatch,
 			"/api/sessions/" + uuid.NewString() + "/set-logs/" + uuid.NewString(),
 			bytes.NewBufferString(`{"actual_rpe": 7.5}`)},
-		{"ListDayCompletions", http.MethodGet,
+		{"GetCompletedDays", http.MethodGet,
 			"/api/programs/" + uuid.NewString() + "/day-completions", nil},
 	}
 	for _, tc := range cases {

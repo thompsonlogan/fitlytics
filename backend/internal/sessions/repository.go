@@ -1,207 +1,199 @@
 package sessions
 
 import (
+	"cmp"
 	"context"
+	"database/sql/driver"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gen/field"
 	"gorm.io/gorm"
 
-	"github.com/thompsonlogan/fitlytics/backend/internal/models"
+	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
+	"github.com/thompsonlogan/fitlytics/backend/internal/query"
 )
 
-// Repository is the data-access boundary for the session aggregate. Like the
-// programs repo, the service layer talks to this interface and tests can
-// swap a fake without booting GORM.
 type Repository interface {
-	// FindCurrentByDay returns the most recent active (non-deleted) session
-	// for (user, program_day). Returns gorm.ErrRecordNotFound when none
-	// exists. Active here means deleted_at IS NULL; state can be any of
-	// planned/in_progress/completed — the FE displays them all the same.
-	FindCurrentByDay(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*models.Session, error)
-
-	// EnsureForDay finds or creates a session for the given program day.
-	// When creating, it snapshots the day's program tree into
-	// session_exercises and set_logs (one log per program_set_target).
-	// Returns the loaded aggregate either way. Verifies the program day
-	// belongs to a program owned by ownerUserID; otherwise
-	// gorm.ErrRecordNotFound.
-	EnsureForDay(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*models.Session, error)
-
-	// UpdateSetLog applies the supplied column updates to one set_logs row,
-	// scoped to a session owned by ownerUserID. After applying, it recomputes
-	// the parent session's state (pending → in_progress → completed) so the
-	// day-completions endpoint can read sessions.state directly without
-	// re-walking the set_logs every call. gorm.ErrRecordNotFound if the log
-	// doesn't roll up to the caller's session.
-	UpdateSetLog(ctx context.Context, sessionID, setLogID, ownerUserID uuid.UUID, updates map[string]any) (*models.SetLog, error)
-
-	// FindCompletedDays returns the (week_sequence, day_sequence) pairs for
-	// every session in this program (owned by ownerUserID) that has rolled to
-	// state='completed'. Used by the day selector to render the "done" dot.
+	GetCurrentSessionByDay(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*generated.Session, error)
+	StartSessionForDay(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*generated.Session, error)
+	UpdateSetLog(ctx context.Context, sessionID, setLogID, ownerUserID uuid.UUID, input UpdateSetLogRequest) (*generated.SetLog, error)
 	FindCompletedDays(ctx context.Context, programID, ownerUserID uuid.UUID) ([]CompletedDayRow, error)
 }
 
-// CompletedDayRow is the flat shape returned by FindCompletedDays — bare
-// (week, day) sequence numbers so the API layer can hand them back without
-// loading the full program tree.
 type CompletedDayRow struct {
-	WeekSequence int32 `gorm:"column:week_sequence"`
-	DaySequence  int32 `gorm:"column:day_sequence"`
+	WeekSequence int32
+	DaySequence  int32
 }
 
 type repository struct {
 	db *gorm.DB
+	q  *query.Query
 }
 
-// NewRepository wires the sessions repository to a live *gorm.DB.
 func NewRepository(db *gorm.DB) Repository {
-	return &repository{db: db}
+	return &repository{db: db, q: query.Use(db)}
 }
 
-// preloadSessionTree applies the standard child preload chain used by every
-// session read. Set log ordering is by sequence ASC so the FE doesn't have to
-// re-sort the table.
-func preloadSessionTree(db *gorm.DB) *gorm.DB {
-	return db.
-		Preload("Exercises", func(db *gorm.DB) *gorm.DB { return db.Order("sequence ASC") }).
-		Preload("Exercises.SetLogs", func(db *gorm.DB) *gorm.DB {
-			return db.Where("deleted_at IS NULL").Order("sequence ASC")
+func sortSessionTree(s *generated.Session) {
+	slices.SortFunc(s.Exercises, func(a, b generated.SessionExercise) int {
+		return cmp.Compare(a.Sequence, b.Sequence)
+	})
+	for i := range s.Exercises {
+		slices.SortFunc(s.Exercises[i].SetLogs, func(a, b generated.SetLog) int {
+			return cmp.Compare(a.Sequence, b.Sequence)
 		})
+	}
 }
 
-func (r *repository) FindCurrentByDay(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*models.Session, error) {
-	var s models.Session
-	err := preloadSessionTree(r.db.WithContext(ctx)).
-		Where("user_id = ? AND program_day_id = ?", ownerUserID, programDayID).
-		Order("created_at DESC").
-		First(&s).Error
+func (r *repository) GetCurrentSessionByDay(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*generated.Session, error) {
+	s := r.q.Session
+
+	session, err := s.WithContext(ctx).
+		Preload(s.Exercises).
+		Preload(s.Exercises.SetLogs).
+		Where(s.UserID.Eq(ownerUserID), s.ProgramDayID.Eq(programDayID)).
+		Order(s.CreatedAt.Desc()).
+		First()
 	if err != nil {
 		return nil, err
 	}
-	return &s, nil
+
+	sortSessionTree(session)
+	return session, nil
 }
 
-func (r *repository) EnsureForDay(
-	ctx context.Context,
-	programID, programDayID, ownerUserID uuid.UUID,
-) (*models.Session, error) {
-	var out models.Session
+func (r *repository) StartSessionForDay(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*generated.Session, error) {
+	var out generated.Session
 
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// 1) Existing session? Reuse it. This is the "idempotent" arm — if
-		// the user already started this day, hand the same session back
-		// rather than littering the DB with duplicates.
-		var existing models.Session
-		err := preloadSessionTree(tx).
-			Where("user_id = ? AND program_day_id = ?", ownerUserID, programDayID).
-			Order("created_at DESC").
-			First(&existing).Error
+		q := query.Use(tx)
+		s := q.Session
+
+		// 1) Existing session? Reuse it.
+		existing, err := s.WithContext(ctx).
+			Preload(s.Exercises).
+			Preload(s.Exercises.SetLogs).
+			Where(s.UserID.Eq(ownerUserID), s.ProgramDayID.Eq(programDayID)).
+			Order(s.CreatedAt.Desc()).
+			First()
 		if err == nil {
-			out = existing
+			sortSessionTree(existing)
+			out = *existing
 			return nil
 		}
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return fmt.Errorf("lookup existing session: %w", err)
 		}
 
-		// 2) Need to create. First verify the program day belongs to a
-		// program owned by the caller AND the program id in the URL matches.
-		// Same ownership-via-join pattern used in programs.
-		var dayProbe struct {
-			ID              uuid.UUID
-			Name            string
-			ProgramName     string
-			ProgramID       uuid.UUID
-			Sequence        int32
-			ProgramSequence int32
+		// 2) Verify the program day belongs to a program owned by the caller.
+		pr := q.Program
+		program, err := pr.WithContext(ctx).
+			Where(pr.ID.Eq(programID), pr.OwnerUserID.Eq(ownerUserID)).
+			First()
+		if err != nil {
+			return err
 		}
-		err = tx.Table(models.TableNameProgramDay).
-			Select("program_days.id AS id, program_days.name AS name, programs.name AS program_name, programs.id AS program_id, program_days.sequence AS sequence, program_weeks.sequence AS program_sequence").
-			Joins("JOIN program_weeks ON program_weeks.id = program_days.week_id").
-			Joins("JOIN programs ON programs.id = program_weeks.program_id").
-			Where("program_days.id = ? AND programs.id = ? AND programs.owner_user_id = ? AND programs.deleted_at IS NULL",
-				programDayID, programID, ownerUserID).
-			Take(&dayProbe).Error
+
+		pd := q.ProgramDay
+		pw := q.ProgramWeek
+		day, err := pd.WithContext(ctx).
+			Join(&generated.ProgramWeek{}, pw.ID.EqCol(pd.WeekID)).
+			Where(pd.ID.Eq(programDayID), pw.ProgramID.Eq(programID)).
+			First()
 		if err != nil {
 			return err
 		}
 
 		// 3) Pull the program exercises + set targets for the snapshot.
-		var pExercises []models.ProgramExercise
-		if err := tx.
-			Preload("SetTargets", func(db *gorm.DB) *gorm.DB { return db.Order("sequence ASC") }).
-			Where("day_id = ?", programDayID).
-			Order("sequence ASC").
-			Find(&pExercises).Error; err != nil {
+		pe := q.ProgramExercise
+		pExercises, err := pe.WithContext(ctx).
+			Preload(pe.SetTargets).
+			Where(pe.DayID.Eq(programDayID)).
+			Order(pe.Sequence).
+			Find()
+		if err != nil {
 			return fmt.Errorf("load program exercises: %w", err)
 		}
 
-		// Bulk-fetch exercise names for the name_snap field. Same trick the
-		// programs service uses.
+		// Bulk-fetch exercise names for the name_snap field.
 		nameByID := make(map[uuid.UUID]string)
 		if len(pExercises) > 0 {
 			ids := make([]uuid.UUID, 0, len(pExercises))
 			seen := make(map[uuid.UUID]struct{})
-			for _, pe := range pExercises {
-				if _, ok := seen[pe.ExerciseID]; ok {
+			for _, p := range pExercises {
+				if _, ok := seen[p.ExerciseID]; ok {
 					continue
 				}
-				seen[pe.ExerciseID] = struct{}{}
-				ids = append(ids, pe.ExerciseID)
+				seen[p.ExerciseID] = struct{}{}
+				ids = append(ids, p.ExerciseID)
 			}
-			type row struct {
-				ID   uuid.UUID
-				Name string
+
+			e := q.Exercise
+			vals := make([]driver.Valuer, len(ids))
+			for i, id := range ids {
+				vals[i] = id
 			}
-			var rows []row
-			if err := tx.Table(models.TableNameExercise).
-				Select("id, name").
-				Where("id IN ?", ids).
-				Find(&rows).Error; err != nil {
+			rows, err := e.WithContext(ctx).
+				Select(e.ID, e.Name).
+				Where(e.ID.In(vals...)).
+				Find()
+			if err != nil {
 				return fmt.Errorf("lookup exercise names: %w", err)
 			}
-			for _, r := range rows {
-				nameByID[r.ID] = r.Name
+			for _, row := range rows {
+				nameByID[row.ID] = row.Name
 			}
 		}
 
 		// 4) Create the session row.
 		now := time.Now()
-		programName := dayProbe.ProgramName
-		dayName := dayProbe.Name
-		session := models.Session{
+		session := generated.Session{
 			UserID:          ownerUserID,
 			ProgramDayID:    &programDayID,
-			ProgramNameSnap: &programName,
-			DayNameSnap:     &dayName,
-			State:           "in_progress",
-			StartedAt:       &now,
+			ProgramNameSnap: &program.Name,
+			DayNameSnap:     &day.Name,
+			State:     "planned",
+			StartedAt: &now,
 		}
-		if err := tx.Create(&session).Error; err != nil {
+		if err := s.WithContext(ctx).Create(&session); err != nil {
 			return fmt.Errorf("create session: %w", err)
 		}
 
-		// 5) For each program_exercise, create a session_exercise + one
-		// set_log per program_set_target. "One log per block" per design.
-		for _, pe := range pExercises {
-			se := models.SessionExercise{
-				SessionID:        session.ID,
-				Sequence:         pe.Sequence,
-				ExerciseID:       pe.ExerciseID,
-				ExerciseNameSnap: nameByID[pe.ExerciseID],
-				SubSnap:          pe.SubText,
-				RestSecondsSnap:  pe.RestSeconds,
-			}
-			if err := tx.Create(&se).Error; err != nil {
-				return fmt.Errorf("create session exercise: %w", err)
-			}
+		// 5) Snapshot the prescription into the session: one session_exercise
+		// per program_exercise, one set_log per program_set_target. Each level
+		// is inserted in a single batch — two INSERTs total rather than one per
+		// row. The session_exercises are created first so their generated IDs
+		// can be referenced by the set_logs.
+		seQ := q.SessionExercise
+		slQ := q.SetLog
 
-			for _, pst := range pe.SetTargets {
-				log := models.SetLog{
-					SessionExerciseID:      se.ID,
+		sessionExercises := make([]*generated.SessionExercise, len(pExercises))
+		for i, p := range pExercises {
+			sessionExercises[i] = &generated.SessionExercise{
+				SessionID:        session.ID,
+				Sequence:         p.Sequence,
+				ExerciseID:       p.ExerciseID,
+				ExerciseNameSnap: nameByID[p.ExerciseID],
+				SubSnap:          p.SubText,
+				RestSecondsSnap:  p.RestSeconds,
+			}
+		}
+		if len(sessionExercises) > 0 {
+			if err := seQ.WithContext(ctx).Create(sessionExercises...); err != nil {
+				return fmt.Errorf("create session exercises: %w", err)
+			}
+		}
+
+		var setLogs []*generated.SetLog
+		for i, p := range pExercises {
+			seID := sessionExercises[i].ID
+			for _, pst := range p.SetTargets {
+				setLogs = append(setLogs, &generated.SetLog{
+					SessionExerciseID:      seID,
 					Sequence:               pst.Sequence,
 					SetType:                pst.SetType,
 					RepsTargetMin:          pst.RepsMin,
@@ -212,17 +204,27 @@ func (r *repository) EnsureForDay(
 					IntensityText:          pst.IntensityText,
 					ActualLoadModifier:     "absolute",
 					State:                  "pending",
-				}
-				if err := tx.Create(&log).Error; err != nil {
-					return fmt.Errorf("create set log: %w", err)
-				}
+				})
+			}
+		}
+		if len(setLogs) > 0 {
+			if err := slQ.WithContext(ctx).Create(setLogs...); err != nil {
+				return fmt.Errorf("create set logs: %w", err)
 			}
 		}
 
 		// 6) Reload with full preloads for the response.
-		return preloadSessionTree(tx).
-			Where("id = ?", session.ID).
-			First(&out).Error
+		loaded, err := s.WithContext(ctx).
+			Preload(s.Exercises).
+			Preload(s.Exercises.SetLogs).
+			Where(s.ID.Eq(session.ID)).
+			First()
+		if err != nil {
+			return err
+		}
+		sortSessionTree(loaded)
+		out = *loaded
+		return nil
 	})
 	if err != nil {
 		return nil, err
@@ -230,108 +232,142 @@ func (r *repository) EnsureForDay(
 	return &out, nil
 }
 
-func (r *repository) UpdateSetLog(
-	ctx context.Context,
-	sessionID, setLogID, ownerUserID uuid.UUID,
-	updates map[string]any,
-) (*models.SetLog, error) {
-	var out models.SetLog
+func (r *repository) UpdateSetLog(ctx context.Context, sessionID, setLogID, ownerUserID uuid.UUID, input UpdateSetLogRequest) (*generated.SetLog, error) {
+	var out *generated.SetLog
 
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// Ownership probe: the set_log must belong to a session_exercise of a
-		// session owned by the caller, AND the path session id must match.
-		// The same join pattern guards against id-swapping.
-		var probe struct{ ID uuid.UUID }
-		err := tx.Table(models.TableNameSetLog).
-			Select("set_logs.id").
-			Joins("JOIN session_exercises ON session_exercises.id = set_logs.session_exercise_id").
-			Joins("JOIN sessions ON sessions.id = session_exercises.session_id").
-			Where("set_logs.id = ? AND sessions.id = ? AND sessions.user_id = ? AND sessions.deleted_at IS NULL AND set_logs.deleted_at IS NULL",
-				setLogID, sessionID, ownerUserID).
-			Take(&probe).Error
+		q := query.Use(tx)
+		sl := q.SetLog
+		se := q.SessionExercise
+		ss := q.Session
+
+		// Ownership probe: verify the set_log rolls up to a session owned
+		// by the caller and matches the path session id.
+		setLog, err := sl.WithContext(ctx).Where(sl.ID.Eq(setLogID)).First()
 		if err != nil {
 			return err
 		}
 
-		if len(updates) > 0 {
-			if err := tx.Model(&models.SetLog{}).
-				Where("id = ?", setLogID).
-				Updates(updates).Error; err != nil {
-				return fmt.Errorf("update set log: %w", err)
-			}
+		_, err = se.WithContext(ctx).
+			Where(se.ID.Eq(setLog.SessionExerciseID), se.SessionID.Eq(sessionID)).
+			First()
+		if err != nil {
+			return err
 		}
 
-		// Recompute session state from the current set_log distribution. This
-		// keeps sessions.state in lockstep with the per-set states so the day
-		// selector can read it directly. Counts only live (non-deleted) logs.
-		var counts struct {
-			Total     int64
-			Pending   int64
-			Completed int64
-			Skipped   int64
+		_, err = ss.WithContext(ctx).
+			Where(ss.ID.Eq(sessionID), ss.UserID.Eq(ownerUserID)).
+			First()
+		if err != nil {
+			return err
 		}
-		if err := tx.Table(models.TableNameSetLog).
-			Select(`COUNT(*) AS total,
-				COUNT(*) FILTER (WHERE state = 'pending') AS pending,
-				COUNT(*) FILTER (WHERE state = 'completed') AS completed,
-				COUNT(*) FILTER (WHERE state = 'skipped') AS skipped`).
-			Joins("JOIN session_exercises ON session_exercises.id = set_logs.session_exercise_id").
-			Where("session_exercises.session_id = ? AND set_logs.deleted_at IS NULL", sessionID).
-			Scan(&counts).Error; err != nil {
+
+		// Apply field updates.
+		var assigns []field.AssignExpr
+		if input.RepsActual != nil {
+			assigns = append(assigns, sl.RepsActual.Value(*input.RepsActual))
+		}
+		if input.ActualLoadKg != nil {
+			assigns = append(assigns, sl.ActualLoadKg.Value(*input.ActualLoadKg))
+		}
+		if input.ActualRpe != nil {
+			assigns = append(assigns, sl.ActualRpe.Value(*input.ActualRpe))
+		}
+		if input.State != nil {
+			assigns = append(assigns, sl.State.Value(*input.State))
+		}
+		if len(assigns) == 0 {
+			out = setLog
+			return nil
+		}
+
+		if _, err := sl.WithContext(ctx).Where(sl.ID.Eq(setLogID)).UpdateSimple(assigns...); err != nil {
+			return fmt.Errorf("update set log: %w", err)
+		}
+
+		// Recompute session state from the current set_log distribution.
+		exercises, err := se.WithContext(ctx).
+			Select(se.ID).
+			Where(se.SessionID.Eq(sessionID)).
+			Find()
+		if err != nil {
+			return fmt.Errorf("find session exercises: %w", err)
+		}
+
+		seIDs := make([]driver.Valuer, len(exercises))
+		for i, ex := range exercises {
+			seIDs[i] = ex.ID
+		}
+
+		logs, err := sl.WithContext(ctx).
+			Select(sl.State).
+			Where(sl.SessionExerciseID.In(seIDs...)).
+			Find()
+		if err != nil {
 			return fmt.Errorf("count session set_logs: %w", err)
 		}
 
-		sessionUpdates := map[string]any{}
-		switch {
-		case counts.Total == 0:
-			// Defensive: a session with no set_logs shouldn't auto-complete.
-		case counts.Pending == 0:
-			now := time.Now()
-			sessionUpdates["state"] = "completed"
-			sessionUpdates["completed_at"] = &now
-		case counts.Completed > 0 || counts.Skipped > 0:
-			sessionUpdates["state"] = "in_progress"
-			sessionUpdates["completed_at"] = nil
-		default:
-			sessionUpdates["state"] = "planned"
-			sessionUpdates["completed_at"] = nil
+		var pending, completed, skipped int
+		for _, log := range logs {
+			switch log.State {
+			case "pending":
+				pending++
+			case "completed":
+				completed++
+			case "skipped":
+				skipped++
+			}
 		}
-		if len(sessionUpdates) > 0 {
-			if err := tx.Model(&models.Session{}).
-				Where("id = ?", sessionID).
-				Updates(sessionUpdates).Error; err != nil {
+		total := len(logs)
+
+		switch {
+		case total == 0:
+		case pending == 0:
+			now := time.Now()
+			if _, err := ss.WithContext(ctx).Where(ss.ID.Eq(sessionID)).
+				UpdateSimple(ss.State.Value("completed"), ss.CompletedAt.Value(now)); err != nil {
+				return fmt.Errorf("update session state: %w", err)
+			}
+		case completed > 0 || skipped > 0:
+			if _, err := ss.WithContext(ctx).Where(ss.ID.Eq(sessionID)).
+				UpdateSimple(ss.State.Value("in_progress"), ss.CompletedAt.Null()); err != nil {
+				return fmt.Errorf("update session state: %w", err)
+			}
+		default:
+			if _, err := ss.WithContext(ctx).Where(ss.ID.Eq(sessionID)).
+				UpdateSimple(ss.State.Value("planned"), ss.CompletedAt.Null()); err != nil {
 				return fmt.Errorf("update session state: %w", err)
 			}
 		}
 
-		return tx.Where("id = ?", setLogID).First(&out).Error
+		out, err = sl.WithContext(ctx).Where(sl.ID.Eq(setLogID)).First()
+		return err
 	})
 	if err != nil {
 		return nil, err
 	}
-	return &out, nil
+	return out, nil
 }
 
-func (r *repository) FindCompletedDays(
-	ctx context.Context,
-	programID, ownerUserID uuid.UUID,
-) ([]CompletedDayRow, error) {
+func (r *repository) FindCompletedDays(ctx context.Context, programID, ownerUserID uuid.UUID) ([]CompletedDayRow, error) {
+	s := r.q.Session
+	pd := r.q.ProgramDay
+	pw := r.q.ProgramWeek
+
 	var rows []CompletedDayRow
-	err := r.db.WithContext(ctx).
-		Table(models.TableNameSession).
-		Select("program_weeks.sequence AS week_sequence, program_days.sequence AS day_sequence").
-		Joins("JOIN program_days ON program_days.id = sessions.program_day_id").
-		Joins("JOIN program_weeks ON program_weeks.id = program_days.week_id").
-		Joins("JOIN programs ON programs.id = program_weeks.program_id").
-		Where(`sessions.user_id = ?
-			AND programs.id = ?
-			AND programs.owner_user_id = ?
-			AND sessions.state = 'completed'
-			AND sessions.deleted_at IS NULL
-			AND programs.deleted_at IS NULL`, ownerUserID, programID, ownerUserID).
-		Scan(&rows).Error
+	err := s.WithContext(ctx).
+		Select(pw.Sequence.As("week_sequence"), pd.Sequence.As("day_sequence")).
+		Join(&generated.ProgramDay{}, pd.ID.EqCol(s.ProgramDayID)).
+		Join(&generated.ProgramWeek{}, pw.ID.EqCol(pd.WeekID)).
+		Where(s.UserID.Eq(ownerUserID), s.State.Eq("completed"), pw.ProgramID.Eq(programID)).
+		Group(pw.Sequence, pd.Sequence).
+		Order(pw.Sequence, pd.Sequence).
+		Scan(&rows)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("find completed days: %w", err)
+	}
+	if rows == nil {
+		rows = []CompletedDayRow{}
 	}
 	return rows, nil
 }

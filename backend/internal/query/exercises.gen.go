@@ -16,14 +16,14 @@ import (
 
 	"gorm.io/plugin/dbresolver"
 
-	"github.com/thompsonlogan/fitlytics/backend/internal/models"
+	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
 
 func newExercise(db *gorm.DB, opts ...gen.DOOption) exercise {
 	_exercise := exercise{}
 
 	_exercise.exerciseDo.UseDB(db, opts...)
-	_exercise.exerciseDo.UseModel(&models.Exercise{})
+	_exercise.exerciseDo.UseModel(&generated.Exercise{})
 
 	tableName := _exercise.exerciseDo.TableName()
 	_exercise.ALL = field.NewAsterisk(tableName)
@@ -248,57 +248,57 @@ func (e exerciseDo) Unscoped() *exerciseDo {
 	return e.withDO(e.DO.Unscoped())
 }
 
-func (e exerciseDo) Create(values ...*models.Exercise) error {
+func (e exerciseDo) Create(values ...*generated.Exercise) error {
 	if len(values) == 0 {
 		return nil
 	}
 	return e.DO.Create(values)
 }
 
-func (e exerciseDo) CreateInBatches(values []*models.Exercise, batchSize int) error {
+func (e exerciseDo) CreateInBatches(values []*generated.Exercise, batchSize int) error {
 	return e.DO.CreateInBatches(values, batchSize)
 }
 
 // Save : !!! underlying implementation is different with GORM
 // The method is equivalent to executing the statement: db.Clauses(clause.OnConflict{UpdateAll: true}).Create(values)
-func (e exerciseDo) Save(values ...*models.Exercise) error {
+func (e exerciseDo) Save(values ...*generated.Exercise) error {
 	if len(values) == 0 {
 		return nil
 	}
 	return e.DO.Save(values)
 }
 
-func (e exerciseDo) First() (*models.Exercise, error) {
+func (e exerciseDo) First() (*generated.Exercise, error) {
 	if result, err := e.DO.First(); err != nil {
 		return nil, err
 	} else {
-		return result.(*models.Exercise), nil
+		return result.(*generated.Exercise), nil
 	}
 }
 
-func (e exerciseDo) Take() (*models.Exercise, error) {
+func (e exerciseDo) Take() (*generated.Exercise, error) {
 	if result, err := e.DO.Take(); err != nil {
 		return nil, err
 	} else {
-		return result.(*models.Exercise), nil
+		return result.(*generated.Exercise), nil
 	}
 }
 
-func (e exerciseDo) Last() (*models.Exercise, error) {
+func (e exerciseDo) Last() (*generated.Exercise, error) {
 	if result, err := e.DO.Last(); err != nil {
 		return nil, err
 	} else {
-		return result.(*models.Exercise), nil
+		return result.(*generated.Exercise), nil
 	}
 }
 
-func (e exerciseDo) Find() ([]*models.Exercise, error) {
+func (e exerciseDo) Find() ([]*generated.Exercise, error) {
 	result, err := e.DO.Find()
-	return result.([]*models.Exercise), err
+	return result.([]*generated.Exercise), err
 }
 
-func (e exerciseDo) FindInBatch(batchSize int, fc func(tx gen.Dao, batch int) error) (results []*models.Exercise, err error) {
-	buf := make([]*models.Exercise, 0, batchSize)
+func (e exerciseDo) FindInBatch(batchSize int, fc func(tx gen.Dao, batch int) error) (results []*generated.Exercise, err error) {
+	buf := make([]*generated.Exercise, 0, batchSize)
 	err = e.DO.FindInBatches(&buf, batchSize, func(tx gen.Dao, batch int) error {
 		defer func() { results = append(results, buf...) }()
 		return fc(tx, batch)
@@ -306,7 +306,7 @@ func (e exerciseDo) FindInBatch(batchSize int, fc func(tx gen.Dao, batch int) er
 	return results, err
 }
 
-func (e exerciseDo) FindInBatches(result *[]*models.Exercise, batchSize int, fc func(tx gen.Dao, batch int) error) error {
+func (e exerciseDo) FindInBatches(result *[]*generated.Exercise, batchSize int, fc func(tx gen.Dao, batch int) error) error {
 	return e.DO.FindInBatches(result, batchSize, fc)
 }
 
@@ -332,23 +332,23 @@ func (e exerciseDo) Preload(fields ...field.RelationField) *exerciseDo {
 	return &e
 }
 
-func (e exerciseDo) FirstOrInit() (*models.Exercise, error) {
+func (e exerciseDo) FirstOrInit() (*generated.Exercise, error) {
 	if result, err := e.DO.FirstOrInit(); err != nil {
 		return nil, err
 	} else {
-		return result.(*models.Exercise), nil
+		return result.(*generated.Exercise), nil
 	}
 }
 
-func (e exerciseDo) FirstOrCreate() (*models.Exercise, error) {
+func (e exerciseDo) FirstOrCreate() (*generated.Exercise, error) {
 	if result, err := e.DO.FirstOrCreate(); err != nil {
 		return nil, err
 	} else {
-		return result.(*models.Exercise), nil
+		return result.(*generated.Exercise), nil
 	}
 }
 
-func (e exerciseDo) FindByPage(offset int, limit int) (result []*models.Exercise, count int64, err error) {
+func (e exerciseDo) FindByPage(offset int, limit int) (result []*generated.Exercise, count int64, err error) {
 	result, err = e.Offset(offset).Limit(limit).Find()
 	if err != nil {
 		return
@@ -377,7 +377,7 @@ func (e exerciseDo) Scan(result interface{}) (err error) {
 	return e.DO.Scan(result)
 }
 
-func (e exerciseDo) Delete(models ...*models.Exercise) (result gen.ResultInfo, err error) {
+func (e exerciseDo) Delete(models ...*generated.Exercise) (result gen.ResultInfo, err error) {
 	return e.DO.Delete(models)
 }
 

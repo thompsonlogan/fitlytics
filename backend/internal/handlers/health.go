@@ -6,6 +6,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+
+	"github.com/thompsonlogan/fitlytics/backend/internal/apierr"
 )
 
 // Health is a public liveness/readiness probe that also verifies the DB
@@ -17,7 +19,7 @@ func Health(db *gorm.DB) gin.HandlerFunc {
 			err = sqlDB.PingContext(c.Request.Context())
 		}
 		if err != nil {
-			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "database": "down"})
+			apierr.Respond(c, http.StatusServiceUnavailable, "database is unreachable")
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"status": "ok", "database": "up"})

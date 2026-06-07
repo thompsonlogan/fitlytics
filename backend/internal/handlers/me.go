@@ -32,8 +32,8 @@ type MeResponse struct {
 // @Tags         Auth
 // @Produce      json
 // @Success      200  {object}  MeResponse
-// @Failure      401  {object}  ErrorResponse  "missing or invalid session"
-// @Failure      500  {object}  ErrorResponse  "internal server error"
+// @Failure      401  {object}  apierr.ProblemDetails  "missing or invalid session"
+// @Failure      500  {object}  apierr.ProblemDetails  "internal server error"
 // @Security     BearerAuth
 // @Router       /api/me [get]
 func Me() gin.HandlerFunc {

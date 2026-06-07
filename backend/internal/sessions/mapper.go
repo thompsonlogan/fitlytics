@@ -1,13 +1,10 @@
 package sessions
 
 import (
-	"github.com/thompsonlogan/fitlytics/backend/internal/models"
+	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
 
-// Pure model → DTO mappers, kept in this file so service.go stays focused on
-// orchestration.
-
-func mapSession(s *models.Session) *SessionResponse {
+func mapSession(s *generated.Session) *SessionResponse {
 	out := &SessionResponse{
 		ID:              s.ID,
 		UserID:          s.UserID,
@@ -25,7 +22,7 @@ func mapSession(s *models.Session) *SessionResponse {
 	return out
 }
 
-func mapSessionExercise(e models.SessionExercise) SessionExerciseResponse {
+func mapSessionExercise(e generated.SessionExercise) SessionExerciseResponse {
 	out := SessionExerciseResponse{
 		ID:               e.ID,
 		Sequence:         e.Sequence,
@@ -41,7 +38,7 @@ func mapSessionExercise(e models.SessionExercise) SessionExerciseResponse {
 	return out
 }
 
-func mapSetLog(l models.SetLog) SetLogResponse {
+func mapSetLog(l generated.SetLog) SetLogResponse {
 	return SetLogResponse{
 		ID:                     l.ID,
 		Sequence:               l.Sequence,

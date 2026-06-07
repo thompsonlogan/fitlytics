@@ -3,7 +3,7 @@ package auth
 import (
 	"github.com/gin-gonic/gin"
 
-	"github.com/thompsonlogan/fitlytics/backend/internal/models"
+	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
 
 // principalKey is the gin context key under which the authenticated principal
@@ -13,7 +13,7 @@ const principalKey = "auth.principal"
 // Principal is the authenticated caller for the current request: the local
 // user row plus the verified token claims (role/permissions live in Claims).
 type Principal struct {
-	User   *models.User
+	User   *generated.User
 	Claims *Claims
 }
 

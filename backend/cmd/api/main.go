@@ -60,7 +60,7 @@ func main() {
 	}
 
 	workosClient := auth.NewWorkOSClient(cfg.WorkOSAPIKey)
-	userSvc := users.NewService(db, workosClient)
+	userService := users.NewService(db, workosClient)
 
 	var bypassUserID uuid.UUID
 	if cfg.AuthBypassUserID != "" {
@@ -79,7 +79,7 @@ func main() {
 	router := server.NewRouter(server.Dependencies{
 		DB:               db,
 		Verifier:         verifier,
-		Users:            userSvc,
+		Users:            userService,
 		Log:              log,
 		AuthBypassUserID: bypassUserID,
 		Auth: handlers.AuthDeps{

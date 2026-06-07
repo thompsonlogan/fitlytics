@@ -8,22 +8,21 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/thompsonlogan/fitlytics/backend/internal/models"
+	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
 
-func TestServiceGetFullTree_HappyPath(t *testing.T) {
+func TestServiceGetProgramById_HappyPath(t *testing.T) {
 	repo := &fakeRepository{
-		getFullTreeFn: func(_ context.Context, _, _ uuid.UUID) (*models.Program, error) {
+		getProgramByIdFn: func(_ context.Context, _, _ uuid.UUID) (*generated.Program, error) {
 			return fullProgram(), nil
 		},
-		lookupExerciseFn: func(_ context.Context, ids []uuid.UUID) (map[uuid.UUID]string, error) {
-			// Echo the canonical names the mapper expects.
+		getExercisesByIdsFn: func(_ context.Context, ids []uuid.UUID) (map[uuid.UUID]string, error) {
 			return exerciseNames(), nil
 		},
 	}
 
 	svc := NewService(repo)
-	resp, err := svc.GetFullTree(context.Background(),
+	resp, err := svc.GetProgramById(context.Background(),
 		fixedID("program:1"), fixedID("user:1"))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -34,31 +33,26 @@ func TestServiceGetFullTree_HappyPath(t *testing.T) {
 	if resp.ID != fixedID("program:1") {
 		t.Errorf("ID: want program:1 fixture, got %v", resp.ID)
 	}
-
-	// Sanity: service should have called the repo exactly once each.
-	if repo.getFullTreeCallCount != 1 {
-		t.Errorf("GetFullTree calls: want 1, got %d", repo.getFullTreeCallCount)
+	if repo.getProgramByIdCount != 1 {
+		t.Errorf("GetProgramById calls: want 1, got %d", repo.getProgramByIdCount)
 	}
-	if repo.lookupCalledCount != 1 {
-		t.Errorf("LookupExerciseNames calls: want 1, got %d", repo.lookupCalledCount)
+	if repo.getExercisesByIdsCount != 1 {
+		t.Errorf("GetExercisesByIds calls: want 1, got %d", repo.getExercisesByIdsCount)
 	}
-
-	// And it should have asked for exactly the distinct exercise ids — the
-	// dedup is part of the service contract.
 	if len(repo.lastLookupIDs) != 2 {
 		t.Errorf("distinct exercise ids: want 2, got %d (%v)",
 			len(repo.lastLookupIDs), repo.lastLookupIDs)
 	}
 }
 
-func TestServiceGetFullTree_NotFoundMapsToErrNotFound(t *testing.T) {
+func TestServiceGetProgramById_NotFoundMapsToErrNotFound(t *testing.T) {
 	repo := &fakeRepository{
-		getFullTreeFn: func(_ context.Context, _, _ uuid.UUID) (*models.Program, error) {
+		getProgramByIdFn: func(_ context.Context, _, _ uuid.UUID) (*generated.Program, error) {
 			return nil, gorm.ErrRecordNotFound
 		},
 	}
 
-	resp, err := NewService(repo).GetFullTree(context.Background(),
+	resp, err := NewService(repo).GetProgramById(context.Background(),
 		uuid.New(), uuid.New())
 
 	if resp != nil {
@@ -67,21 +61,20 @@ func TestServiceGetFullTree_NotFoundMapsToErrNotFound(t *testing.T) {
 	if !errors.Is(err, ErrNotFound) {
 		t.Errorf("error: want ErrNotFound, got %v", err)
 	}
-	// Should not have attempted the exercise lookup once the program is gone.
-	if repo.lookupCalledCount != 0 {
-		t.Errorf("LookupExerciseNames should not be called when program is missing, got %d", repo.lookupCalledCount)
+	if repo.getExercisesByIdsCount != 0 {
+		t.Errorf("GetExercisesByIds should not be called when program is missing, got %d", repo.getExercisesByIdsCount)
 	}
 }
 
-func TestServiceGetFullTree_RepoErrorIsWrapped(t *testing.T) {
+func TestServiceGetProgramById_RepoErrorIsWrapped(t *testing.T) {
 	boom := errors.New("connection refused")
 	repo := &fakeRepository{
-		getFullTreeFn: func(_ context.Context, _, _ uuid.UUID) (*models.Program, error) {
+		getProgramByIdFn: func(_ context.Context, _, _ uuid.UUID) (*generated.Program, error) {
 			return nil, boom
 		},
 	}
 
-	resp, err := NewService(repo).GetFullTree(context.Background(),
+	resp, err := NewService(repo).GetProgramById(context.Background(),
 		uuid.New(), uuid.New())
 
 	if resp != nil {
@@ -90,33 +83,32 @@ func TestServiceGetFullTree_RepoErrorIsWrapped(t *testing.T) {
 	if !errors.Is(err, boom) {
 		t.Errorf("error should wrap underlying repo error; got %v", err)
 	}
-	// Wrapping should not collapse to ErrNotFound.
 	if errors.Is(err, ErrNotFound) {
 		t.Error("generic repo error was incorrectly mapped to ErrNotFound")
 	}
 }
 
-// ─── ListByOwner ────────────────────────────────────────────────────────────
+// ─── GetProgramsByUserId ────────────────────────────────────────────────────
 
-func TestServiceListByOwner_PassesOwnerAndMapsRows(t *testing.T) {
+func TestServiceGetProgramsByUserId_PassesOwnerAndMapsRows(t *testing.T) {
 	ownerID := fixedID("user:1")
-	rows := []models.Program{
+	rows := []generated.Program{
 		{ID: fixedID("program:1"), Name: "A", CreatedAt: builtAt, UpdatedAt: builtAt},
 		{ID: fixedID("program:2"), Name: "B", CreatedAt: builtAt, UpdatedAt: builtAt},
 	}
 
 	repo := &fakeRepository{
-		listByOwnerFn: func(_ context.Context, _ uuid.UUID) ([]models.Program, error) {
+		getProgramsByUserIdFn: func(_ context.Context, _ uuid.UUID) ([]generated.Program, error) {
 			return rows, nil
 		},
 	}
 
-	got, err := NewService(repo).ListByOwner(context.Background(), ownerID)
+	got, err := NewService(repo).GetProgramsByUserId(context.Background(), ownerID)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if repo.listByOwnerCallCount != 1 {
-		t.Errorf("repo ListByOwner calls: want 1, got %d", repo.listByOwnerCallCount)
+	if repo.getProgramsByUserIdCount != 1 {
+		t.Errorf("repo GetProgramsByUserId calls: want 1, got %d", repo.getProgramsByUserIdCount)
 	}
 	if repo.lastListOwnerID != ownerID {
 		t.Errorf("owner id passed to repo: want %v, got %v", ownerID, repo.lastListOwnerID)
@@ -126,19 +118,17 @@ func TestServiceListByOwner_PassesOwnerAndMapsRows(t *testing.T) {
 	}
 }
 
-func TestServiceListByOwner_EmptyRowsReturnsEmptySlice(t *testing.T) {
+func TestServiceGetProgramsByUserId_EmptyRowsReturnsEmptySlice(t *testing.T) {
 	repo := &fakeRepository{
-		listByOwnerFn: func(_ context.Context, _ uuid.UUID) ([]models.Program, error) {
+		getProgramsByUserIdFn: func(_ context.Context, _ uuid.UUID) ([]generated.Program, error) {
 			return nil, nil
 		},
 	}
 
-	got, err := NewService(repo).ListByOwner(context.Background(), uuid.New())
+	got, err := NewService(repo).GetProgramsByUserId(context.Background(), uuid.New())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// Must be non-nil for JSON [] rendering — the API contract is "always
-	// an array, never null".
 	if got == nil {
 		t.Fatal("returned slice must be non-nil")
 	}
@@ -147,15 +137,15 @@ func TestServiceListByOwner_EmptyRowsReturnsEmptySlice(t *testing.T) {
 	}
 }
 
-func TestServiceListByOwner_RepoErrorIsWrapped(t *testing.T) {
+func TestServiceGetProgramsByUserId_RepoErrorIsWrapped(t *testing.T) {
 	boom := errors.New("connection refused")
 	repo := &fakeRepository{
-		listByOwnerFn: func(_ context.Context, _ uuid.UUID) ([]models.Program, error) {
+		getProgramsByUserIdFn: func(_ context.Context, _ uuid.UUID) ([]generated.Program, error) {
 			return nil, boom
 		},
 	}
 
-	got, err := NewService(repo).ListByOwner(context.Background(), uuid.New())
+	got, err := NewService(repo).GetProgramsByUserId(context.Background(), uuid.New())
 	if got != nil {
 		t.Errorf("expected nil slice on error, got %v", got)
 	}
@@ -164,18 +154,18 @@ func TestServiceListByOwner_RepoErrorIsWrapped(t *testing.T) {
 	}
 }
 
-func TestServiceGetFullTree_NameLookupErrorIsWrapped(t *testing.T) {
+func TestServiceGetProgramById_NameLookupErrorIsWrapped(t *testing.T) {
 	boom := errors.New("exercise table unavailable")
 	repo := &fakeRepository{
-		getFullTreeFn: func(_ context.Context, _, _ uuid.UUID) (*models.Program, error) {
+		getProgramByIdFn: func(_ context.Context, _, _ uuid.UUID) (*generated.Program, error) {
 			return fullProgram(), nil
 		},
-		lookupExerciseFn: func(_ context.Context, _ []uuid.UUID) (map[uuid.UUID]string, error) {
+		getExercisesByIdsFn: func(_ context.Context, _ []uuid.UUID) (map[uuid.UUID]string, error) {
 			return nil, boom
 		},
 	}
 
-	resp, err := NewService(repo).GetFullTree(context.Background(),
+	resp, err := NewService(repo).GetProgramById(context.Background(),
 		uuid.New(), uuid.New())
 
 	if resp != nil {
