@@ -12,24 +12,20 @@ import (
 	"github.com/thompsonlogan/fitlytics/backend/internal/auth"
 )
 
-// Handler is the HTTP layer for the sessions feature. Mounts routes onto a
-// gin.RouterGroup already protected by the auth middleware.
 type Handler struct {
 	service Service
 	log     *slog.Logger
 }
 
-// NewHandler wires the handler to its dependencies.
 func NewHandler(service Service, log *slog.Logger) *Handler {
 	return &Handler{service: service, log: log}
 }
 
-// Register mounts the session routes on the given (authenticated) group.
 func (h *Handler) Register(rg *gin.RouterGroup) {
 	rg.GET("/programs/:id/days/:dayId/sessions/current", h.GetCurrentSession)
 	rg.POST("/programs/:id/days/:dayId/sessions", h.StartSession)
 	rg.PATCH("/sessions/:sessionId/set-logs/:setLogId", h.UpdateSetLog)
-	rg.GET("/programs/:id/day-completions", h.ListDayCompletions)
+	rg.GET("/programs/:id/day-completions", h.GetCompletedDays)
 }
 
 // GetCurrentSession returns the active session for the day, or 404 if the
@@ -62,7 +58,7 @@ func (h *Handler) GetCurrentSession(c *gin.Context) {
 
 	principal := auth.MustPrincipal(c)
 
-	session, err := h.service.FindCurrent(c.Request.Context(), programDayID, principal.User.ID)
+	session, err := h.service.GetCurrentSession(c.Request.Context(), programDayID, principal.User.ID)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			apierr.NotFound(c, "no current session")
@@ -110,7 +106,7 @@ func (h *Handler) StartSession(c *gin.Context) {
 
 	principal := auth.MustPrincipal(c)
 
-	session, err := h.service.EnsureForDay(c.Request.Context(), programID, programDayID, principal.User.ID)
+	session, err := h.service.StartSession(c.Request.Context(), programID, programDayID, principal.User.ID)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			apierr.NotFound(c, "program day not found")
@@ -189,10 +185,10 @@ func (h *Handler) UpdateSetLog(c *gin.Context) {
 	c.JSON(http.StatusOK, updated)
 }
 
-// ListDayCompletions returns the (week, day) sequence pairs for sessions in
+// GetCompletedDays returns the (week, day) sequence pairs for sessions in
 // this program that have rolled to state='completed'.
 //
-// @Summary      List completed days for a program
+// @Summary      Get completed days for a program
 // @Description  Returns one entry per program day where the user's session has reached state='completed' (every set is either completed or skipped). The day selector renders a "done" dot for each pair. Cheap to compute — single index-friendly query against sessions joined to program_weeks/program_days.
 // @Tags         Sessions
 // @Produce      json
@@ -203,7 +199,7 @@ func (h *Handler) UpdateSetLog(c *gin.Context) {
 // @Failure      500  {object}  apierr.ProblemDetails  "internal server error"
 // @Security     BearerAuth
 // @Router       /api/programs/{id}/day-completions [get]
-func (h *Handler) ListDayCompletions(c *gin.Context) {
+func (h *Handler) GetCompletedDays(c *gin.Context) {
 	programID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		apierr.BadRequest(c, "invalid program id")
@@ -212,7 +208,7 @@ func (h *Handler) ListDayCompletions(c *gin.Context) {
 
 	principal := auth.MustPrincipal(c)
 
-	rows, err := h.service.ListCompletedDays(c.Request.Context(), programID, principal.User.ID)
+	rows, err := h.service.GetCompletedDays(c.Request.Context(), programID, principal.User.ID)
 	if err != nil {
 		h.log.Error("list day completions failed",
 			slog.String("program_id", programID.String()),

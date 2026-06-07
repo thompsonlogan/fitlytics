@@ -9,48 +9,25 @@ import (
 	"gorm.io/gorm"
 )
 
-// ErrNotFound is returned when the requested session or set log does not
-// exist OR is not owned by the caller. We collapse both cases so attackers
-// can't probe id existence — handler maps to 404.
 var ErrNotFound = errors.New("session not found")
 
-// ErrInvalidInput is returned for domain-bound violations the type system
-// can't catch (e.g. RPE out of range). Handler maps to 400.
 var ErrInvalidInput = errors.New("invalid input")
 
-// Service is the application layer for the sessions feature.
 type Service interface {
-	// FindCurrent returns the active session for (caller, programDay) if
-	// one exists. ErrNotFound when there's no session yet.
-	FindCurrent(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error)
-
-	// EnsureForDay finds or creates a session for the given day. Idempotent:
-	// repeated calls return the same session. ErrNotFound when the day is
-	// not reachable through a program the caller owns.
-	EnsureForDay(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error)
-
-	// UpdateSetLog writes actuals (load, RPE, state) to one set_log
-	// inside a session owned by the caller. The repository recomputes the
-	// parent session's state as a side effect.
+	GetCurrentSession(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error)
+	StartSession(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error)
 	UpdateSetLog(ctx context.Context, sessionID, setLogID, ownerUserID uuid.UUID, input UpdateSetLogRequest) (*SetLogResponse, error)
-
-	// ListCompletedDays returns the (week, day) sequence pairs for completed
-	// sessions in this program. Powers the day-selector completion dot.
-	ListCompletedDays(ctx context.Context, programID, ownerUserID uuid.UUID) ([]CompletedDayResponse, error)
+	GetCompletedDays(ctx context.Context, programID, ownerUserID uuid.UUID) ([]CompletedDayResponse, error)
 }
 
 type service struct {
 	repo Repository
 }
 
-// NewService wires a Service to its dependencies.
 func NewService(repo Repository) Service {
 	return &service{repo: repo}
 }
 
-// Sanity bounds for set actuals — same kg ceiling and RPE scale as the
-// programs validator. Keeps typos out of the actuals stream without
-// constraining the column types.
 const (
 	minLoadKg = 0.0
 	maxLoadKg = 1500.0
@@ -58,8 +35,8 @@ const (
 	maxRpe    = 10.0
 )
 
-func (s *service) FindCurrent(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error) {
-	row, err := s.repo.FindCurrentByDay(ctx, programDayID, ownerUserID)
+func (s *service) GetCurrentSession(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error) {
+	row, err := s.repo.GetCurrentSessionByDay(ctx, programDayID, ownerUserID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrNotFound
@@ -69,11 +46,8 @@ func (s *service) FindCurrent(ctx context.Context, programDayID, ownerUserID uui
 	return mapSession(row), nil
 }
 
-func (s *service) EnsureForDay(
-	ctx context.Context,
-	programID, programDayID, ownerUserID uuid.UUID,
-) (*SessionResponse, error) {
-	row, err := s.repo.EnsureForDay(ctx, programID, programDayID, ownerUserID)
+func (s *service) StartSession(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error) {
+	row, err := s.repo.StartSessionForDay(ctx, programID, programDayID, ownerUserID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrNotFound
@@ -83,37 +57,26 @@ func (s *service) EnsureForDay(
 	return mapSession(row), nil
 }
 
-func (s *service) UpdateSetLog(
-	ctx context.Context,
-	sessionID, setLogID, ownerUserID uuid.UUID,
-	input UpdateSetLogRequest,
-) (*SetLogResponse, error) {
-	updates := make(map[string]any, 3)
-
+func (s *service) UpdateSetLog(ctx context.Context, sessionID, setLogID, ownerUserID uuid.UUID, input UpdateSetLogRequest) (*SetLogResponse, error) {
 	if input.ActualLoadKg != nil {
-		v := *input.ActualLoadKg
-		if v < minLoadKg || v > maxLoadKg {
+		if *input.ActualLoadKg < minLoadKg || *input.ActualLoadKg > maxLoadKg {
 			return nil, fmt.Errorf("%w: actual_load_kg out of range", ErrInvalidInput)
 		}
-		updates["actual_load_kg"] = v
 	}
 	if input.ActualRpe != nil {
-		v := *input.ActualRpe
-		if v < minRpe || v > maxRpe {
+		if *input.ActualRpe < minRpe || *input.ActualRpe > maxRpe {
 			return nil, fmt.Errorf("%w: actual_rpe out of range", ErrInvalidInput)
 		}
-		updates["actual_rpe"] = v
 	}
 	if input.State != nil {
 		switch *input.State {
 		case "pending", "completed", "skipped":
-			updates["state"] = *input.State
 		default:
 			return nil, fmt.Errorf("%w: state must be one of pending, completed, skipped", ErrInvalidInput)
 		}
 	}
 
-	row, err := s.repo.UpdateSetLog(ctx, sessionID, setLogID, ownerUserID, updates)
+	row, err := s.repo.UpdateSetLog(ctx, sessionID, setLogID, ownerUserID, input)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrNotFound
@@ -125,10 +88,7 @@ func (s *service) UpdateSetLog(
 	return &resp, nil
 }
 
-func (s *service) ListCompletedDays(
-	ctx context.Context,
-	programID, ownerUserID uuid.UUID,
-) ([]CompletedDayResponse, error) {
+func (s *service) GetCompletedDays(ctx context.Context, programID, ownerUserID uuid.UUID) ([]CompletedDayResponse, error) {
 	rows, err := s.repo.FindCompletedDays(ctx, programID, ownerUserID)
 	if err != nil {
 		return nil, fmt.Errorf("list completed days: %w", err)

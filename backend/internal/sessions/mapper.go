@@ -4,9 +4,6 @@ import (
 	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
 
-// Pure model → DTO mappers, kept in this file so service.go stays focused on
-// orchestration.
-
 func mapSession(s *generated.Session) *SessionResponse {
 	out := &SessionResponse{
 		ID:              s.ID,
