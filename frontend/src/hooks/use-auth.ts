@@ -10,8 +10,8 @@ export const ME_KEY = ["me"] as const
 
 // fetchMe resolves the current session through the typed Auth API. A 401
 // triggers one silent refresh; if the refresh also fails we return null so
-// the route guard can redirect to /login. Any other error bubbles so React
-// Query can surface it.
+// the route guard can hand off to the WorkOS login. Any other error bubbles so
+// React Query can surface it.
 export async function fetchMe(authApi: AuthApi): Promise<MeResponse | null> {
   try {
     return await authApi.apiMeGet()
@@ -64,8 +64,9 @@ export function useAuth() {
       } finally {
         queryClient.setQueryData(ME_KEY, null)
         // Full-page navigation rather than router.navigate so any React state
-        // tied to the previous session is reset cleanly.
-        window.location.href = "/login"
+        // tied to the previous session is reset cleanly. Lands on the public
+        // landing page ("/").
+        window.location.href = "/"
       }
     },
   }

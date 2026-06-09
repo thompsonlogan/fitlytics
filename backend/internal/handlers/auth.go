@@ -101,7 +101,7 @@ func AuthCallback(d AuthDeps) gin.HandlerFunc {
 		if resp.RefreshToken != "" {
 			auth.SetRefreshCookie(c.Writer, resp.RefreshToken, d.Cookies)
 		}
-		c.Redirect(http.StatusFound, d.AppURL)
+		c.Redirect(http.StatusFound, d.AppURL+"/today")
 	}
 }
 
@@ -111,7 +111,7 @@ func AuthCallback(d AuthDeps) gin.HandlerFunc {
 // sign in again.
 //
 // @Summary      Refresh the session
-// @Description  Swaps the refresh-token cookie for a fresh access-token cookie. Returns 204 on success and 401 when the refresh token is missing, expired, or rejected by WorkOS — in which case both session cookies are cleared and the SPA should redirect to /login.
+// @Description  Swaps the refresh-token cookie for a fresh access-token cookie. Returns 204 on success and 401 when the refresh token is missing, expired, or rejected by WorkOS — in which case both session cookies are cleared and the SPA should redirect to /auth/login.
 // @Tags         Auth
 // @Success      204  "session refreshed"
 // @Failure      401  "no refresh token or refresh rejected"
