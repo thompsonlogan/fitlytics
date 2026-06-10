@@ -1,5 +1,8 @@
 import { useMemo, useState } from "react"
 
+import { RotateCw } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
 import { AppHeader, type Section } from "@/components/workout/app-header"
 import { DayBoard, DayBoardSkeleton } from "@/components/workout/day-board"
 import { Footer } from "@/components/workout/footer"
@@ -17,7 +20,7 @@ const PLACEHOLDER_DAY: ProgramDay = { id: "", name: "Loading…", tag: "—" }
 
 export function TodayPage() {
   const [section, setSection] = useState<Section>("today")
-  const { data: program, isLoading, isError } = useWorkoutProgram()
+  const { data: program, isLoading, isError, refetch } = useWorkoutProgram()
   const { data: dayCompletions } = useDayCompletions(program?.id)
   const { user, signOut } = useAuth()
 
@@ -57,9 +60,27 @@ export function TodayPage() {
   const initialCompleted: Record<string, boolean> = {}
 
   if (isError) {
+    // The program failed to load. Keep the user in the app shell (header/nav
+    // stay live) and surface a contextual, retryable message in the body
+    // rather than swapping to a separate full-screen error page.
     return (
-      <div className="grid h-svh place-items-center text-sm text-destructive">
-        Failed to load program. Try refreshing.
+      <div
+        className="grid min-h-svh bg-background text-foreground"
+        style={{ gridTemplateRows: "auto minmax(0,1fr) auto" }}
+      >
+        <AppHeader section={section} onSectionChange={setSection} onLogout={signOut} user={user} />
+        <main className="grid place-items-center px-6 py-8">
+          <div className="flex max-w-sm flex-col items-center gap-3 text-center">
+            <p className="text-sm text-muted-foreground">
+              We couldn't load your program. This is usually temporary — give it another try.
+            </p>
+            <Button variant="outline" size="sm" onClick={() => void refetch()}>
+              <RotateCw />
+              Try again
+            </Button>
+          </div>
+        </main>
+        <Footer />
       </div>
     )
   }
