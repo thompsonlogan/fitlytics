@@ -7,6 +7,7 @@ import {
   redirect,
 } from "@tanstack/react-router"
 
+import { NotFoundPage } from "@/components/not-found/not-found-page"
 import { fetchMe, ME_KEY } from "@/hooks/use-auth"
 import { LandingPage } from "@/routes/landing"
 import { TodayPage } from "@/routes/today"
@@ -65,6 +66,11 @@ export const router = createRouter({
   // real instances.
   context: { queryClient: undefined!, services: undefined! },
   defaultPreload: "intent",
+  // A route the user navigates to that doesn't exist renders the branded 404
+  // view. Data-loading failures are handled inline by the page that owns the
+  // data (e.g. /today), so unexpected thrown errors fall back to the router's
+  // built-in error component rather than a separate full-screen error page.
+  defaultNotFoundComponent: NotFoundPage,
 })
 
 declare module "@tanstack/react-router" {
