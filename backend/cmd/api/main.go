@@ -29,7 +29,9 @@ import (
 	"github.com/thompsonlogan/fitlytics/backend/internal/handlers"
 	"github.com/thompsonlogan/fitlytics/backend/internal/logger"
 	"github.com/thompsonlogan/fitlytics/backend/internal/server"
+	"github.com/thompsonlogan/fitlytics/backend/internal/storage"
 	"github.com/thompsonlogan/fitlytics/backend/internal/users"
+	"github.com/thompsonlogan/fitlytics/backend/internal/videos"
 )
 
 func main() {
@@ -76,12 +78,38 @@ func main() {
 		bypassUserID = parsed
 	}
 
+	// Object store for set videos. Optional: if R2 isn't configured the videos
+	// routes return 503 and the rest of the API runs unaffected.
+	var videoStore storage.ObjectStore
+	if cfg.VideoStorageEnabled() {
+		s, err := storage.NewR2Store(storage.R2Config{
+			Endpoint:        cfg.R2Endpoint,
+			Bucket:          cfg.R2Bucket,
+			AccessKeyID:     cfg.R2AccessKeyID,
+			SecretAccessKey: cfg.R2SecretAccessKey,
+		})
+		if err != nil {
+			log.Error("R2 storage setup failed", "error", err)
+			os.Exit(1)
+		}
+		videoStore = s
+		log.Info("set video uploads enabled", "bucket", cfg.R2Bucket)
+	} else {
+		log.Warn("set video uploads disabled — R2 not configured")
+	}
+
 	router := server.NewRouter(server.Dependencies{
 		DB:               db,
 		Verifier:         verifier,
 		Users:            userService,
 		Log:              log,
 		AuthBypassUserID: bypassUserID,
+		VideoStore:       videoStore,
+		VideoLimits: videos.Limits{
+			MaxBytes:   cfg.MaxVideoBytes,
+			MaxPerUser: cfg.MaxVideosPerUser,
+			MaxPerDay:  cfg.MaxVideosPerDay,
+		},
 		Auth: handlers.AuthDeps{
 			ClientID:    cfg.WorkOSClientID,
 			RedirectURI: cfg.WorkOSRedirectURI,

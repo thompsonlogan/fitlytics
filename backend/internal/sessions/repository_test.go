@@ -275,6 +275,105 @@ func TestRepositoryStartSessionForDay_SnapshotsProgramIntoNewSession(t *testing.
 	}
 }
 
+// A target with sets_count = 2 must expand into two set_logs that share the
+// originating block_sequence and carry a contiguous per-exercise sequence.
+func TestRepositoryStartSessionForDay_ExpandsSetsCountIntoPerSetLogs(t *testing.T) {
+	db, mock := newMockDB(t)
+
+	ownerID := uuid.New()
+	programID := uuid.New()
+	dayID := uuid.New()
+	weekID := uuid.New()
+	peID := uuid.New()
+	pstID := uuid.New()
+	exID := uuid.New()
+	newSessionID := uuid.New()
+	newSeID := uuid.New()
+	logID1 := uuid.New()
+	logID2 := uuid.New()
+	now := time.Now()
+
+	mock.ExpectBegin()
+
+	mock.ExpectQuery(`SELECT \* FROM "sessions" WHERE .* ORDER BY "sessions"\."created_at" DESC.* LIMIT`).
+		WithArgs(uuidArg(ownerID), uuidArg(dayID), 1).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}))
+
+	mock.ExpectQuery(`SELECT \* FROM "programs"`).
+		WithArgs(uuidArg(programID), uuidArg(ownerID), 1).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "owner_user_id", "name", "created_at", "updated_at",
+		}).AddRow(programID, ownerID, "Prog", now, now))
+
+	mock.ExpectQuery(`SELECT .* FROM "program_days" .*JOIN "program_weeks"`).
+		WithArgs(uuidArg(dayID), uuidArg(programID), 1).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "week_id", "sequence", "name", "is_rest_day", "created_at", "updated_at",
+		}).AddRow(dayID, weekID, 1, "Day 1", false, now, now))
+
+	mock.ExpectQuery(`SELECT \* FROM "program_exercises" WHERE`).
+		WithArgs(uuidArg(dayID)).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "day_id", "sequence", "exercise_id", "sub_text", "rest_seconds", "created_at", "updated_at",
+		}).AddRow(peID, dayID, 1, exID, nil, nil, now, now))
+
+	// One block prescribing two sets.
+	mock.ExpectQuery(`SELECT \* FROM "program_set_targets"`).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "program_exercise_id", "sequence", "set_type", "sets_count", "prescribed_load_modifier", "created_at", "updated_at",
+		}).AddRow(pstID, peID, 1, "working", 2, "absolute", now, now))
+
+	mock.ExpectQuery(`SELECT "exercises"\."id","exercises"\."name" FROM "exercises"`).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(exID, "Squat"))
+
+	mock.ExpectQuery(`INSERT INTO "sessions"`).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(newSessionID))
+
+	mock.ExpectQuery(`INSERT INTO "session_exercises"`).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(newSeID))
+	// The two expanded set_logs are inserted in a single batch returning two ids.
+	mock.ExpectQuery(`INSERT INTO "set_logs"`).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(logID1).AddRow(logID2))
+
+	mock.ExpectQuery(`SELECT \* FROM "sessions" WHERE .*"sessions"\."id" = \$1.* LIMIT`).
+		WithArgs(uuidArg(newSessionID), 1).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "user_id", "program_day_id", "state", "created_at", "updated_at",
+		}).AddRow(newSessionID, ownerID, dayID, "planned", now, now))
+	mock.ExpectQuery(`SELECT \* FROM "session_exercises"`).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "session_id", "sequence", "exercise_id", "exercise_name_snap",
+		}).AddRow(newSeID, newSessionID, 1, exID, "Squat"))
+	mock.ExpectQuery(`SELECT \* FROM "set_logs"`).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "session_exercise_id", "sequence", "block_sequence", "set_type", "state",
+		}).
+			AddRow(logID1, newSeID, 1, 1, "working", "pending").
+			AddRow(logID2, newSeID, 2, 1, "working", "pending"))
+
+	mock.ExpectCommit()
+
+	session, err := NewRepository(db).StartSessionForDay(context.Background(), programID, dayID, ownerID)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(session.Exercises) != 1 || len(session.Exercises[0].SetLogs) != 2 {
+		t.Fatalf("expected one exercise with two set logs, got: %+v", session)
+	}
+	logs := session.Exercises[0].SetLogs
+	for i, l := range logs {
+		if l.BlockSequence == nil || *l.BlockSequence != 1 {
+			t.Errorf("set log %d: expected block_sequence 1, got %v", i, l.BlockSequence)
+		}
+		if l.Sequence != int32(i+1) {
+			t.Errorf("set log %d: expected sequence %d, got %d", i, i+1, l.Sequence)
+		}
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
 func TestRepositoryStartSessionForDay_UnknownProgramRollsBack(t *testing.T) {
 	db, mock := newMockDB(t)
 

@@ -15,13 +15,13 @@
 
 import * as runtime from '../runtime';
 import type {
-  ErrorResponse,
+  ProblemDetails,
   ProgramResponse,
   ProgramSummaryResponse,
 } from '../models/index';
 import {
-    ErrorResponseFromJSON,
-    ErrorResponseToJSON,
+    ProblemDetailsFromJSON,
+    ProblemDetailsToJSON,
     ProgramResponseFromJSON,
     ProgramResponseToJSON,
     ProgramSummaryResponseFromJSON,
@@ -38,7 +38,7 @@ export interface ApiProgramsIdGetRequest {
 export class ProgramsApi extends runtime.BaseAPI {
 
     /**
-     * Returns the lightweight program summaries (id, name, description, timestamps) for the authenticated user, ordered by created_at ASC. The frontend\'s program picker uses this to populate its list before fetching the full tree via GET /api/programs/{id}.
+     * Returns the lightweight program summaries (id, name, description, timestamps) for the authenticated user, ordered by created_at ASC.
      * List the caller\'s programs
      */
     async apiProgramsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<ProgramSummaryResponse>>> {
@@ -61,7 +61,7 @@ export class ProgramsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Returns the lightweight program summaries (id, name, description, timestamps) for the authenticated user, ordered by created_at ASC. The frontend\'s program picker uses this to populate its list before fetching the full tree via GET /api/programs/{id}.
+     * Returns the lightweight program summaries (id, name, description, timestamps) for the authenticated user, ordered by created_at ASC.
      * List the caller\'s programs
      */
     async apiProgramsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<ProgramSummaryResponse>> {
@@ -70,7 +70,7 @@ export class ProgramsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Returns the full program tree (program → weeks → days → exercises → set targets) for the authenticated user. The program must be owned by the caller; otherwise 404 is returned (existence is not leaked across users).
+     * Returns the full program tree (program → weeks → days → exercises → set targets) for the authenticated user.
      * Get a program by id
      */
     async apiProgramsIdGetRaw(requestParameters: ApiProgramsIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ProgramResponse>> {
@@ -100,7 +100,7 @@ export class ProgramsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Returns the full program tree (program → weeks → days → exercises → set targets) for the authenticated user. The program must be owned by the caller; otherwise 404 is returned (existence is not leaked across users).
+     * Returns the full program tree (program → weeks → days → exercises → set targets) for the authenticated user.
      * Get a program by id
      */
     async apiProgramsIdGet(requestParameters: ApiProgramsIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProgramResponse> {

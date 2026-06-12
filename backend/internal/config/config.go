@@ -4,6 +4,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/joho/godotenv"
@@ -34,9 +35,30 @@ type Config struct {
 	// verification and authenticates every request as this local user.
 	// Set to the users.id UUID from the database.
 	AuthBypassUserID string
+
+	// ── Set video upload (Cloudflare R2) ──────────────────────────────────────
+	// All optional: when the R2 settings are incomplete the video feature stays
+	// disabled and its endpoints return 503, so the rest of the app boots fine
+	// without storage configured.
+	R2Endpoint        string // https://<account>.r2.cloudflarestorage.com
+	R2Bucket          string
+	R2AccessKeyID     string
+	R2SecretAccessKey string
+
+	// MaxVideoBytes caps a single upload (default 500 MB). MaxVideosPerUser and
+	// MaxVideosPerDay bound how many a user can accumulate to prevent abuse.
+	MaxVideoBytes    int64
+	MaxVideosPerUser int
+	MaxVideosPerDay  int
 }
 
 func (c Config) IsProduction() bool { return c.Env == "production" }
+
+// VideoStorageEnabled reports whether the R2 settings needed to issue uploads
+// are all present. The videos handler returns 503 when this is false.
+func (c Config) VideoStorageEnabled() bool {
+	return c.R2Endpoint != "" && c.R2Bucket != "" && c.R2AccessKeyID != "" && c.R2SecretAccessKey != ""
+}
 
 // Load reads configuration from the environment. In development a local .env
 // file (if present) is loaded first; in production env vars are expected to be
@@ -56,6 +78,14 @@ func Load() (Config, error) {
 		WorkOSRedirectURI: env("WORKOS_REDIRECT_URI", ""),
 		AppURL:            env("APP_URL", ""),
 		AuthBypassUserID:  env("AUTH_BYPASS_USER_ID", ""),
+
+		R2Endpoint:        env("R2_ENDPOINT", ""),
+		R2Bucket:          env("R2_BUCKET", ""),
+		R2AccessKeyID:     env("R2_ACCESS_KEY_ID", ""),
+		R2SecretAccessKey: env("R2_SECRET_ACCESS_KEY", ""),
+		MaxVideoBytes:     envInt64("MAX_VIDEO_BYTES", 500*1024*1024), // 500 MB
+		MaxVideosPerUser:  envInt("MAX_VIDEOS_PER_USER", 200),
+		MaxVideosPerDay:   envInt("MAX_VIDEOS_PER_DAY", 50),
 	}
 
 	var missing []string
@@ -95,6 +125,24 @@ func Load() (Config, error) {
 func env(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
+	}
+	return fallback
+}
+
+func envInt(key string, fallback int) int {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			return n
+		}
+	}
+	return fallback
+}
+
+func envInt64(key string, fallback int64) int64 {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.ParseInt(v, 10, 64); err == nil {
+			return n
+		}
 	}
 	return fallback
 }

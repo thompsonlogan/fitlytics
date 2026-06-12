@@ -1,0 +1,428 @@
+import { useRef, useState } from "react"
+import { Check, CircleCheck, Film, Info, Repeat2, Trash2, UploadCloud, Video } from "lucide-react"
+import { toast } from "sonner"
+
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Progress } from "@/components/ui/progress"
+import { Textarea } from "@/components/ui/textarea"
+import { SetVideoPicker } from "@/components/workout/set-video-picker"
+import { type Exercise, type SetBlock } from "@/lib/program-data"
+import {
+  isAllowedVideoType,
+  MAX_VIDEO_BYTES,
+  useDeleteSetVideo,
+  useUpdateVideoNote,
+  useUploadSetVideo,
+} from "@/hooks/use-set-videos"
+import { type SetLogResponse, type VideoResponse } from "@/services/generated"
+
+// ── formatting helpers ──────────────────────────────────────────
+function fmtBytes(n: number | undefined): string {
+  if (n == null) return ""
+  if (n < 1024) return `${n} B`
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`
+}
+function fmtTime(s: number | undefined): string {
+  if (s == null) return "0:00"
+  const r = Math.round(s)
+  return `${Math.floor(r / 60)}:${String(r % 60).padStart(2, "0")}`
+}
+
+// probeDuration reads a video file's duration via an off-DOM element so the
+// client can send it as a hint with the upload (best-effort).
+function probeDuration(file: File): Promise<number | undefined> {
+  return new Promise((resolve) => {
+    const el = document.createElement("video")
+    el.preload = "metadata"
+    el.onloadedmetadata = () => {
+      const d = el.duration
+      URL.revokeObjectURL(el.src)
+      resolve(Number.isFinite(d) ? d : undefined)
+    }
+    el.onerror = () => resolve(undefined)
+    el.src = URL.createObjectURL(file)
+  })
+}
+
+type EnsureSetLog = (setIdx: number) => Promise<{ sessionId: string; setLogId: string } | undefined>
+
+type VideoUploadDialogProps = {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  sessionId: string | undefined
+  exercise: Exercise
+  exNum: number
+  block: SetBlock
+  // The block's set logs (empty before the session is started); index aligns
+  // with the set picker.
+  blockLogs: SetLogResponse[]
+  videosBySetLogId: Map<string, VideoResponse>
+  initialSet: number
+  // ensureSetLog lazily starts the session (if needed) and returns the ids for
+  // the chosen physical set so an upload can target it.
+  ensureSetLog: EnsureSetLog
+}
+
+// VideoUploadDialog is the stacked set-video uploader/reviewer: drop-zone →
+// progress → inline player, plus a set picker, prescription context, and note.
+export function VideoUploadDialog({
+  open,
+  onOpenChange,
+  sessionId,
+  exercise,
+  exNum,
+  block,
+  blockLogs,
+  videosBySetLogId,
+  initialSet,
+  ensureSetLog,
+}: VideoUploadDialogProps) {
+  const [setIdx, setSetIdx] = useState(initialSet)
+  const [dragOver, setDragOver] = useState(false)
+  const [uploadingSet, setUploadingSet] = useState<number | null>(null)
+  const [progress, setProgress] = useState(0)
+  const [localError, setLocalError] = useState<string | null>(null)
+  const [noteDrafts, setNoteDrafts] = useState<Record<number, string>>({})
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const upload = useUploadSetVideo()
+  const remove = useDeleteSetVideo()
+  const updateNote = useUpdateVideoNote()
+
+  const videoFor = (i: number): VideoResponse | undefined => {
+    const log = blockLogs[i]
+    return log ? videosBySetLogId.get(log.id) : undefined
+  }
+
+  const filmed = Array.from({ length: block.sets }, (_, i) => videoFor(i)?.status === "ready")
+  const uploadingArr = Array.from({ length: block.sets }, (_, i) => uploadingSet === i)
+  const filmedCount = filmed.filter(Boolean).length
+
+  const currentVideo = videoFor(setIdx)
+  const isUploading = uploadingSet === setIdx
+  const isReady = currentVideo?.status === "ready"
+
+  const noteValue = noteDrafts[setIdx] ?? currentVideo?.note ?? ""
+
+  async function beginUpload(file: File) {
+    setLocalError(null)
+    if (!isAllowedVideoType(file.type)) {
+      setLocalError("Use an MP4, MOV or WebM video.")
+      return
+    }
+    if (file.size > MAX_VIDEO_BYTES) {
+      setLocalError("That file is over the 500 MB limit.")
+      return
+    }
+
+    const resolved = await ensureSetLog(setIdx)
+    if (!resolved) {
+      toast.error("Couldn't prepare the set for upload.")
+      return
+    }
+
+    const durationSec = await probeDuration(file)
+    setUploadingSet(setIdx)
+    setProgress(0)
+    try {
+      await upload.mutateAsync({
+        sessionId: resolved.sessionId,
+        setLogId: resolved.setLogId,
+        file,
+        durationSec,
+        note: noteDrafts[setIdx] || undefined,
+        onProgress: (f) => setProgress(f),
+      })
+    } catch {
+      toast.error("Upload failed. Check your connection and try again.")
+    } finally {
+      setUploadingSet(null)
+    }
+  }
+
+  const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]
+    if (f) void beginUpload(f)
+    e.target.value = ""
+  }
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOver(false)
+    const f = e.dataTransfer.files?.[0]
+    if (f) void beginUpload(f)
+  }
+
+  async function handleRemove() {
+    if (!currentVideo?.id || !sessionId) return
+    try {
+      await remove.mutateAsync({ sessionId, videoId: currentVideo.id })
+    } catch {
+      toast.error("Couldn't remove the video.")
+    }
+  }
+
+  function commitNote() {
+    const draft = noteDrafts[setIdx]
+    if (draft == null || !currentVideo?.id || !sessionId) return
+    if (draft === (currentVideo.note ?? "")) return
+    updateNote.mutate({ sessionId, videoId: currentVideo.id, note: draft })
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <span className="inline-flex w-fit items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[0.625rem] font-semibold tracking-wider text-muted-foreground uppercase">
+            <Video className="size-3" />
+            Set video
+          </span>
+          <DialogTitle className="flex items-center gap-2">
+            <span className="inline-flex size-[1.125rem] shrink-0 items-center justify-center rounded-full bg-muted text-[0.6875rem] font-medium text-muted-foreground tabular-nums">
+              {exNum}
+            </span>
+            {exercise.name}
+          </DialogTitle>
+          <DialogDescription>
+            {exercise.sub ? `${exercise.sub} · ` : ""}rest {exercise.rest} min
+          </DialogDescription>
+        </DialogHeader>
+
+        {/* media region */}
+        <div>
+          {isReady && currentVideo?.playbackUrl ? (
+            <div className="flex flex-col gap-2.5">
+              <video
+                src={currentVideo.playbackUrl}
+                controls
+                playsInline
+                preload="metadata"
+                className="aspect-video max-h-72 w-full rounded-md border bg-black"
+              />
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <CircleCheck className="size-3.5 text-emerald-500" />
+                <span className="max-w-44 truncate font-medium text-foreground">
+                  {currentVideo.originalName}
+                </span>
+                <span className="tabular-nums whitespace-nowrap">
+                  {fmtBytes(currentVideo.sizeBytes)} · {fmtTime(currentVideo.durationSec)}
+                </span>
+                <span className="flex-1" />
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  className="inline-flex items-center gap-1 font-medium text-foreground hover:underline"
+                >
+                  <Repeat2 className="size-3" />
+                  Replace
+                </button>
+              </div>
+            </div>
+          ) : isUploading ? (
+            <div className="flex min-h-40 items-center">
+              <div className="flex w-full items-center gap-3 rounded-md border bg-background p-3.5">
+                <div className="flex size-13 shrink-0 items-center justify-center rounded bg-muted text-muted-foreground">
+                  <Film className="size-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline gap-2">
+                    <span className="truncate text-sm font-medium">Uploading…</span>
+                    <span className="ml-auto text-xs font-semibold tabular-nums">
+                      {Math.round(progress * 100)}%
+                    </span>
+                  </div>
+                  <Progress value={progress * 100} className="my-1.5" />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              onDragOver={(e) => {
+                e.preventDefault()
+                setDragOver(true)
+              }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={onDrop}
+              className={cnDrop(dragOver)}
+            >
+              <span className="mb-1 flex size-11 items-center justify-center rounded-full bg-muted text-foreground">
+                <UploadCloud className="size-5.5" />
+              </span>
+              <span className="text-sm font-semibold text-foreground">
+                Drag &amp; drop your lift video
+              </span>
+              <span className="text-[0.8125rem]">
+                or <u className="underline-offset-2">browse files</u> to upload
+              </span>
+              <span className="mt-1 text-[0.6875rem] opacity-80">MP4, MOV or WebM · up to 500 MB</span>
+            </button>
+          )}
+          {localError ? (
+            <p className="mt-2 text-xs text-destructive" role="alert">
+              {localError}
+            </p>
+          ) : null}
+        </div>
+
+        {/* set picker */}
+        {block.sets > 1 ? (
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-baseline gap-1.5 text-xs font-semibold text-foreground">
+              Which set?
+              <span className="ml-auto text-[0.625rem] font-medium tracking-wide text-muted-foreground uppercase">
+                {filmedCount}/{block.sets} filmed
+              </span>
+            </div>
+            <SetVideoPicker
+              count={block.sets}
+              value={setIdx}
+              filmed={filmed}
+              uploading={uploadingArr}
+              onChange={setSetIdx}
+            />
+          </div>
+        ) : null}
+
+        {/* prescription context */}
+        <div className="grid grid-cols-4 overflow-hidden rounded-md border">
+          <ContextCell label="Set" value={`${setIdx + 1}`} unit={`/${block.sets}`} />
+          <ContextCell label="Reps" value={block.reps} />
+          <ContextCell label="Load" value={block.used === "" ? "—" : String(block.used)} unit="lb" />
+          <ContextCell label="RPE" value={block.rpe == null ? "—" : String(block.rpe)} last />
+        </div>
+
+        {/* note */}
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-baseline gap-1.5 text-xs font-semibold text-foreground">
+            Note
+            <span className="text-[0.625rem] font-medium tracking-wide text-muted-foreground uppercase">
+              optional
+            </span>
+          </div>
+          <Textarea
+            value={noteValue}
+            placeholder="How did it feel? e.g. felt heavy, slight knee cave, good bar speed…"
+            onChange={(e) => setNoteDrafts((prev) => ({ ...prev, [setIdx]: e.target.value }))}
+            onBlur={commitNote}
+            className="min-h-18 resize-none text-[0.8125rem]"
+          />
+        </div>
+
+        {/* footer */}
+        <DialogFooterRow
+          status={isReady ? "ready" : isUploading ? "uploading" : "empty"}
+          setNumber={setIdx + 1}
+          onRemove={handleRemove}
+          onDone={() => onOpenChange(false)}
+          onChooseFile={() => fileRef.current?.click()}
+          removing={remove.isPending}
+        />
+
+        <input ref={fileRef} type="file" accept="video/*" hidden onChange={onPick} />
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function cnDrop(dragOver: boolean): string {
+  return [
+    "flex min-h-40 w-full flex-col items-center justify-center gap-1.5 rounded-md border-[1.5px] border-dashed p-6 text-center text-muted-foreground transition-colors",
+    dragOver
+      ? "border-foreground border-solid bg-muted"
+      : "border-border bg-background hover:border-ring hover:bg-muted",
+  ].join(" ")
+}
+
+function ContextCell({
+  label,
+  value,
+  unit,
+  last,
+}: {
+  label: string
+  value: string
+  unit?: string
+  last?: boolean
+}) {
+  return (
+    <div className={["flex flex-col gap-0.5 px-2.5 py-2", last ? "" : "border-r"].join(" ")}>
+      <span className="text-[0.5625rem] font-medium tracking-wide text-muted-foreground uppercase">
+        {label}
+      </span>
+      <span className="text-[0.9375rem] font-semibold tabular-nums">
+        {value}
+        {unit ? <span className="ml-px text-[0.625rem] font-normal text-muted-foreground">{unit}</span> : null}
+      </span>
+    </div>
+  )
+}
+
+function DialogFooterRow({
+  status,
+  setNumber,
+  onRemove,
+  onDone,
+  onChooseFile,
+  removing,
+}: {
+  status: "ready" | "uploading" | "empty"
+  setNumber: number
+  onRemove: () => void
+  onDone: () => void
+  onChooseFile: () => void
+  removing: boolean
+}) {
+  return (
+    <div className="-mx-4 -mb-4 flex items-center gap-2 rounded-b-xl border-t bg-muted/50 px-4 py-3">
+      <div className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+        {status === "ready" ? (
+          <>
+            <span className="size-1.5 rounded-full bg-emerald-500" />
+            Saved to set {setNumber}
+          </>
+        ) : status === "uploading" ? (
+          <>
+            <span className="size-1.5 animate-pulse rounded-full bg-foreground" />
+            Uploading…
+          </>
+        ) : (
+          <>
+            <Info className="size-3" />
+            Video attaches to <b className="font-semibold text-foreground">set {setNumber}</b>
+          </>
+        )}
+      </div>
+      <span className="flex-1" />
+      {status === "ready" ? (
+        <>
+          <Button variant="ghost" size="sm" onClick={onRemove} disabled={removing}>
+            <Trash2 className="size-3.5" />
+            Remove
+          </Button>
+          <Button size="sm" onClick={onDone}>
+            <Check className="size-3.5" />
+            Done
+          </Button>
+        </>
+      ) : status === "uploading" ? (
+        <Button variant="outline" size="sm" disabled>
+          Uploading…
+        </Button>
+      ) : (
+        <Button size="sm" onClick={onChooseFile}>
+          <UploadCloud className="size-3.5" />
+          Choose file
+        </Button>
+      )}
+    </div>
+  )
+}

@@ -19,6 +19,9 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      // Honour a PORT env var when one is provided (e.g. by hosted preview
+      // tooling that assigns a port); otherwise Vite uses its default (5173).
+      port: process.env.PORT ? Number(process.env.PORT) : undefined,
       // Same-origin proxy so the session cookie set by the Go backend is
       // first-party from the SPA's perspective — no CORS, no SameSite issues.
       proxy: {

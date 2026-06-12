@@ -191,20 +191,34 @@ func (r *repository) StartSessionForDay(ctx context.Context, programID, programD
 		var setLogs []*generated.SetLog
 		for i, p := range pExercises {
 			seID := sessionExercises[i].ID
+			// Expand each prescribed block into one set_log per physical set. A
+			// "2 sets × 5" target (sets_count = 2) becomes two set_logs that share
+			// the same block_sequence so the UI can group them under one row.
+			// sequence is a contiguous per-exercise counter across all blocks.
+			seq := int32(1)
 			for _, pst := range p.SetTargets {
-				setLogs = append(setLogs, &generated.SetLog{
-					SessionExerciseID:      seID,
-					Sequence:               pst.Sequence,
-					SetType:                pst.SetType,
-					RepsTargetMin:          pst.RepsMin,
-					RepsTargetMax:          pst.RepsMax,
-					PrescribedLoadKg:       pst.PrescribedLoadKg,
-					PrescribedLoadModifier: pst.PrescribedLoadModifier,
-					PrescribedRpe:          pst.PrescribedRpe,
-					IntensityText:          pst.IntensityText,
-					ActualLoadModifier:     "absolute",
-					State:                  "pending",
-				})
+				blockSeq := pst.Sequence
+				count := pst.SetsCount
+				if count < 1 {
+					count = 1
+				}
+				for k := int32(0); k < count; k++ {
+					setLogs = append(setLogs, &generated.SetLog{
+						SessionExerciseID:      seID,
+						Sequence:               seq,
+						BlockSequence:          &blockSeq,
+						SetType:                pst.SetType,
+						RepsTargetMin:          pst.RepsMin,
+						RepsTargetMax:          pst.RepsMax,
+						PrescribedLoadKg:       pst.PrescribedLoadKg,
+						PrescribedLoadModifier: pst.PrescribedLoadModifier,
+						PrescribedRpe:          pst.PrescribedRpe,
+						IntensityText:          pst.IntensityText,
+						ActualLoadModifier:     "absolute",
+						State:                  "pending",
+					})
+					seq++
+				}
 			}
 		}
 		if len(setLogs) > 0 {

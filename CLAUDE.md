@@ -117,6 +117,15 @@ Optional:
 | `HTTP_PORT` | API port (default `8080`) |
 | `LOG_LEVEL` | `debug`, `info`, `warn`, `error` (default `info`) |
 | `AUTH_BYPASS_USER_ID` | Skip WorkOS auth in dev — set to a `users.id` UUID |
+| `R2_ENDPOINT` | Cloudflare R2 endpoint (`https://<account>.r2.cloudflarestorage.com`) — enables set video uploads |
+| `R2_BUCKET` | R2 bucket name for set videos |
+| `R2_ACCESS_KEY_ID` | R2 access key ID |
+| `R2_SECRET_ACCESS_KEY` | R2 secret access key |
+| `MAX_VIDEO_BYTES` | Per-upload size cap in bytes (default `524288000` = 500 MB) |
+| `MAX_VIDEOS_PER_USER` | Max active videos per user (default `200`) |
+| `MAX_VIDEOS_PER_DAY` | Max videos a user can upload per rolling 24h (default `50`) |
+
+> Set videos require all four `R2_*` vars. When any is missing the feature self-disables and the `/api/.../videos` routes return 503; the rest of the API is unaffected.
 
 ## Frontend
 

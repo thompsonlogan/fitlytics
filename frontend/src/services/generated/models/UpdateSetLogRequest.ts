@@ -32,7 +32,13 @@ export interface UpdateSetLogRequest {
      */
     actualRpe?: number;
     /**
-     *
+     * 
+     * @type {number}
+     * @memberof UpdateSetLogRequest
+     */
+    repsActual?: number;
+    /**
+     * 
      * @type {string}
      * @memberof UpdateSetLogRequest
      */
@@ -58,6 +64,7 @@ export function UpdateSetLogRequestFromJSONTyped(json: any, ignoreDiscriminator:
         
         'actualLoadKg': json['actual_load_kg'] == null ? undefined : json['actual_load_kg'],
         'actualRpe': json['actual_rpe'] == null ? undefined : json['actual_rpe'],
+        'repsActual': json['reps_actual'] == null ? undefined : json['reps_actual'],
         'state': json['state'] == null ? undefined : json['state'],
     };
 }
@@ -75,6 +82,7 @@ export function UpdateSetLogRequestToJSONTyped(value?: UpdateSetLogRequest | nul
         
         'actual_load_kg': value['actualLoadKg'],
         'actual_rpe': value['actualRpe'],
+        'reps_actual': value['repsActual'],
         'state': value['state'],
     };
 }

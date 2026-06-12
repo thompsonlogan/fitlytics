@@ -7,10 +7,17 @@ import { SidePanel } from "@/components/workout/side-panel"
 import { CYCLE_NEXT, type SetState } from "@/components/workout/set-state-cell"
 import { WorkoutTableSkeleton } from "@/components/workout/workout-table-skeleton"
 import { RestDayCard, WorkoutTable } from "@/components/workout/workout-table"
+import { VideoUploadDialog } from "@/components/workout/video-upload-dialog"
 import { useCurrentSession, useLogSet, useStartSession } from "@/hooks/use-session"
+import { useSessionVideos } from "@/hooks/use-set-videos"
 import { type ProgramDay } from "@/lib/program-data"
 import { LB_TO_KG } from "@/lib/program-mapper"
-import { ResponseError, type SessionResponse, type SetLogResponse } from "@/services/generated"
+import {
+  ResponseError,
+  type SessionResponse,
+  type SetLogResponse,
+  type VideoResponse,
+} from "@/services/generated"
 
 // SET_STATE_DEBOUNCE_MS — how long to wait after the last click before firing
 // the PATCH. Lets the user cycle pending → completed → skipped → pending in
@@ -56,20 +63,47 @@ function is4xx(err: unknown): err is ResponseError {
   return err instanceof ResponseError && err.response.status >= 400 && err.response.status < 500
 }
 
-// buildSetLogIndex turns the per-session-exercise list of set logs into a
-// (exerciseSequence, blockSequence) → SetLog map keyed in the same shape as
-// WorkoutRow.key (`${exIdx}-${blIdx}`, 0-based). Snapshot order is preserved
-// from the program tree, so this aligns 1:1 even though the FE uses 0-based
-// indices and the DB stores 1-based `sequence`.
-function buildSetLogIndex(session: SessionResponse | null | undefined): Map<string, SetLogResponse> {
-  const out = new Map<string, SetLogResponse>()
+// buildBlockIndex groups each session exercise's per-set logs back under their
+// block row, keyed in the same shape as WorkoutRow.key (`${exIdx}-${blIdx}`,
+// 0-based). One program block ("2 × 5") expands into multiple set_logs that
+// share a `blockSequence`; we group by it, preserving the set order the backend
+// already sorted by. Logs without a blockSequence (pre-expansion sessions) each
+// form their own block so older data keeps rendering 1:1.
+function buildBlockIndex(
+  session: SessionResponse | null | undefined
+): Map<string, SetLogResponse[]> {
+  const out = new Map<string, SetLogResponse[]>()
   if (!session?.exercises) return out
   session.exercises.forEach((exercise, exIdx) => {
-    exercise.setLogs?.forEach((log, blIdx) => {
-      out.set(`${exIdx}-${blIdx}`, log)
+    const groups = new Map<number, SetLogResponse[]>()
+    const order: number[] = [] // distinct block keys in first-seen (== ascending) order
+    let synthetic = -1
+    for (const log of exercise.setLogs ?? []) {
+      // Null blockSequence → unique negative key so each log stands alone.
+      const blockKey = log.blockSequence ?? synthetic--
+      let group = groups.get(blockKey)
+      if (!group) {
+        group = []
+        groups.set(blockKey, group)
+        order.push(blockKey)
+      }
+      group.push(log)
+    }
+    order.forEach((blockKey, blIdx) => {
+      out.set(`${exIdx}-${blIdx}`, groups.get(blockKey)!)
     })
   })
   return out
+}
+
+// readBlockState collapses a block's per-set states into the single tri-state
+// the row's check renders: completed only when every set is, skipped only when
+// every set is, otherwise pending (covers fresh and mixed blocks).
+function readBlockState(logs: SetLogResponse[] | undefined): SetState {
+  if (!logs || logs.length === 0) return "pending"
+  if (logs.every((l) => readState(l) === "completed")) return "completed"
+  if (logs.every((l) => readState(l) === "skipped")) return "skipped"
+  return "pending"
 }
 
 // KG_PER_LB inverse for display; kept here so we don't pull the program-mapper
@@ -97,9 +131,40 @@ export function DayBoard({ day, programId, programDayId, initialCompleted = {} }
 
   const session = sessionQuery.data
 
-  // Pull a (exerciseIdx-blockIdx) → SetLog map so the cell renderers can look
-  // up actuals by the same row key the workout table already uses.
-  const setLogByKey = useMemo(() => buildSetLogIndex(session), [session])
+  // Pull a (exerciseIdx-blockIdx) → SetLog[] map so the cell renderers can look
+  // up a block's set logs by the same row key the workout table already uses.
+  const blockLogsByKey = useMemo(() => buildBlockIndex(session), [session])
+
+  // Set videos for this session, indexed by set_log id so each block row can
+  // resolve its sets' clips.
+  const videosQuery = useSessionVideos(session?.id)
+  const videosBySetLogId = useMemo(() => {
+    const m = new Map<string, VideoResponse>()
+    for (const v of videosQuery.data ?? []) {
+      if (v.setLogId) m.set(v.setLogId, v)
+    }
+    return m
+  }, [videosQuery.data])
+
+  // Per-block filmed summary for the table's video cell.
+  const videoInfo = useMemo(() => {
+    const out: Record<string, { filmedCount: number; firstFilmedSet: number | null }> = {}
+    for (const [key, logs] of blockLogsByKey) {
+      let filmedCount = 0
+      let firstFilmedSet: number | null = null
+      logs.forEach((log, i) => {
+        if (videosBySetLogId.get(log.id)?.status === "ready") {
+          filmedCount++
+          if (firstFilmedSet === null) firstFilmedSet = i
+        }
+      })
+      out[key] = { filmedCount, firstFilmedSet }
+    }
+    return out
+  }, [blockLogsByKey, videosBySetLogId])
+
+  // Which block's video dialog is open (null = closed), and which set to land on.
+  const [videoDialog, setVideoDialog] = useState<{ rowKey: string; initialSet: number } | null>(null)
 
   // Local edit state holds in-flight cell input. We clear after a successful
   // mutation so the cell reads from the cached session again.
@@ -128,14 +193,14 @@ export function DayBoard({ day, programId, programDayId, initialCompleted = {} }
   // we drop the override).
   const cellState = useMemo(() => {
     const out: Record<string, SetState> = {}
-    for (const [key, log] of setLogByKey) {
-      out[key] = readState(log)
+    for (const [key, logs] of blockLogsByKey) {
+      out[key] = readBlockState(logs)
     }
     for (const [key, val] of Object.entries(stateLocal)) {
       out[key] = val
     }
     return out
-  }, [setLogByKey, stateLocal])
+  }, [blockLogsByKey, stateLocal])
 
   // SidePanel still uses a boolean "completed" map. Derive it from cellState
   // so the side-panel API doesn't need to change for tri-state — a skipped
@@ -156,10 +221,23 @@ export function DayBoard({ day, programId, programDayId, initialCompleted = {} }
     return await startSession.mutateAsync()
   }
 
-  const findSetLog = (rowKey: string, s: SessionResponse | null): SetLogResponse | undefined => {
-    if (!s?.exercises) return undefined
-    const [exIdx, blIdx] = rowKey.split("-").map(Number)
-    return s.exercises[exIdx]?.setLogs?.[blIdx]
+  // findBlockLogs re-derives the block grouping from a freshly returned session
+  // (e.g. right after ensureSession) so writes target the correct set log ids.
+  const findBlockLogs = (rowKey: string, s: SessionResponse | null): SetLogResponse[] => {
+    return buildBlockIndex(s).get(rowKey) ?? []
+  }
+
+  // ensureSetLogFor lazily starts the session (so the set_logs exist) and
+  // returns the ids needed to upload a video for one physical set of a block.
+  const ensureSetLogFor = async (
+    rowKey: string,
+    setIdx: number
+  ): Promise<{ sessionId: string; setLogId: string } | undefined> => {
+    const s = await ensureSession()
+    if (!s?.id) return undefined
+    const log = findBlockLogs(rowKey, s)[setIdx]
+    if (!log) return undefined
+    return { sessionId: s.id, setLogId: log.id }
   }
 
   const clearEdit = (which: "load" | "rpe", key: string) => {
@@ -199,8 +277,9 @@ export function DayBoard({ day, programId, programDayId, initialCompleted = {} }
   }
 
   const blurLoad = async (key: string, value: string) => {
-    const existing = setLogByKey.get(key)
-    const previousLb = readActualLoadLb(existing)
+    // Load Used is a block-level value; display reads from the first set.
+    const existing = blockLogsByKey.get(key)
+    const previousLb = readActualLoadLb(existing?.[0])
     const previousStr = previousLb === "" ? "" : String(previousLb)
     if (value === previousStr || value === "") {
       clearEdit("load", key)
@@ -214,15 +293,16 @@ export function DayBoard({ day, programId, programDayId, initialCompleted = {} }
 
     try {
       const s = await ensureSession()
-      const log = findSetLog(key, s)
-      if (!log) {
+      const logs = findBlockLogs(key, s)
+      if (logs.length === 0) {
         clearEdit("load", key)
         return
       }
-      await logSet.mutateAsync({
-        setLogId: log.id,
-        body: { actualLoadKg: Number(LB_TO_KG(lb).toFixed(2)) },
-      })
+      // Fan the load out to every set in the block.
+      const actualLoadKg = Number(LB_TO_KG(lb).toFixed(2))
+      await Promise.all(
+        logs.map((log) => logSet.mutateAsync({ setLogId: log.id, body: { actualLoadKg } }))
+      )
       clearEdit("load", key)
     } catch (err) {
       const apiMsg = await readApiErrorMessage(err)
@@ -236,8 +316,9 @@ export function DayBoard({ day, programId, programDayId, initialCompleted = {} }
   }
 
   const blurRpe = async (key: string, value: string) => {
-    const existing = setLogByKey.get(key)
-    const previousRpe = readActualRpe(existing)
+    // "Last Set RPE" reads from / writes to the final set of the block.
+    const existing = blockLogsByKey.get(key)
+    const previousRpe = readActualRpe(existing?.[existing.length - 1])
     const previousStr = previousRpe == null ? "" : String(previousRpe)
     if (value === previousStr || value === "") {
       clearEdit("rpe", key)
@@ -251,13 +332,14 @@ export function DayBoard({ day, programId, programDayId, initialCompleted = {} }
 
     try {
       const s = await ensureSession()
-      const log = findSetLog(key, s)
-      if (!log) {
+      const logs = findBlockLogs(key, s)
+      const last = logs[logs.length - 1]
+      if (!last) {
         clearEdit("rpe", key)
         return
       }
       await logSet.mutateAsync({
-        setLogId: log.id,
+        setLogId: last.id,
         body: { actualRpe: rpe },
       })
       clearEdit("rpe", key)
@@ -278,7 +360,7 @@ export function DayBoard({ day, programId, programDayId, initialCompleted = {} }
   // microtask both register — reading the latest from cellState would miss
   // the second click because React hasn't re-rendered yet.
   const cycleSet = (key: string) => {
-    const serverState = readState(setLogByKey.get(key))
+    const serverState = readBlockState(blockLogsByKey.get(key))
     const current = desiredStateRef.current[key] ?? serverState
     const next = CYCLE_NEXT[current]
 
@@ -292,7 +374,7 @@ export function DayBoard({ day, programId, programDayId, initialCompleted = {} }
       timersRef.current.delete(key)
       const desired = desiredStateRef.current[key]
       delete desiredStateRef.current[key]
-      const serverState = readState(setLogByKey.get(key))
+      const serverState = readBlockState(blockLogsByKey.get(key))
 
       // No-op: user cycled all the way back to the server's state.
       if (desired === serverState) {
@@ -305,13 +387,13 @@ export function DayBoard({ day, programId, programDayId, initialCompleted = {} }
 
       try {
         const s = await ensureSession()
-        const log = findSetLog(key, s)
-        if (!log) return
-        await logSet.mutateAsync({
-          setLogId: log.id,
-          body: { state: desired },
-        })
-        // onSuccess merged the updated log into the cache — drop the local
+        const logs = findBlockLogs(key, s)
+        if (logs.length === 0) return
+        // Completing/skipping a block fans the state out to every set in it.
+        await Promise.all(
+          logs.map((log) => logSet.mutateAsync({ setLogId: log.id, body: { state: desired } }))
+        )
+        // onSuccess merged the updated logs into the cache — drop the local
         // override so the merged map pulls from the session again.
         setStateLocal((prev) => {
           const { [key]: _, ...rest } = prev
@@ -334,18 +416,18 @@ export function DayBoard({ day, programId, programDayId, initialCompleted = {} }
   // session-backed value. We do that inside WorkoutTable via the meta.
   const persistedLoad = useMemo(() => {
     const out: Record<string, number | ""> = {}
-    for (const [key, log] of setLogByKey) {
-      out[key] = readActualLoadLb(log)
+    for (const [key, logs] of blockLogsByKey) {
+      out[key] = readActualLoadLb(logs[0])
     }
     return out
-  }, [setLogByKey])
+  }, [blockLogsByKey])
   const persistedRpe = useMemo(() => {
     const out: Record<string, number | null> = {}
-    for (const [key, log] of setLogByKey) {
-      out[key] = readActualRpe(log)
+    for (const [key, logs] of blockLogsByKey) {
+      out[key] = readActualRpe(logs[logs.length - 1])
     }
     return out
-  }, [setLogByKey])
+  }, [blockLogsByKey])
 
   return (
     <div className="grid min-h-0 grid-cols-1 gap-4 px-5 py-4 lg:grid-cols-[minmax(0,1fr)_clamp(16rem,22vw,22rem)]">
@@ -360,16 +442,44 @@ export function DayBoard({ day, programId, programDayId, initialCompleted = {} }
           persistedLoad={persistedLoad}
           persistedRpe={persistedRpe}
           cellErrors={cellErrors}
+          videoInfo={videoInfo}
           onCycleSet={cycleSet}
           onEditLoad={editLoad}
           onEditRpe={editRpe}
           onBlurLoad={blurLoad}
           onBlurRpe={blurRpe}
+          onOpenVideo={(rowKey, initialSet) => setVideoDialog({ rowKey, initialSet })}
         />
       )}
       <div className="hidden min-h-0 lg:block">
         <SidePanel day={day} completed={completed} />
       </div>
+
+      {videoDialog
+        ? (() => {
+            const [exIdx, blIdx] = videoDialog.rowKey.split("-").map(Number)
+            const exercise = day.exercises?.[exIdx]
+            const block = exercise?.blocks[blIdx]
+            if (!exercise || !block) return null
+            return (
+              <VideoUploadDialog
+                key={`${videoDialog.rowKey}:${videoDialog.initialSet}`}
+                open
+                onOpenChange={(o) => {
+                  if (!o) setVideoDialog(null)
+                }}
+                sessionId={session?.id}
+                exercise={exercise}
+                exNum={exIdx + 1}
+                block={block}
+                blockLogs={blockLogsByKey.get(videoDialog.rowKey) ?? []}
+                videosBySetLogId={videosBySetLogId}
+                initialSet={videoDialog.initialSet}
+                ensureSetLog={(setIdx) => ensureSetLogFor(videoDialog.rowKey, setIdx)}
+              />
+            )
+          })()
+        : null}
     </div>
   )
 }

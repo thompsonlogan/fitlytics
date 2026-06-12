@@ -16,23 +16,27 @@
 import * as runtime from '../runtime';
 import type {
   CompletedDayResponse,
+  ProblemDetails,
   SessionResponse,
-  SessionsErrorResponse,
   SetLogResponse,
   UpdateSetLogRequest,
 } from '../models/index';
 import {
     CompletedDayResponseFromJSON,
     CompletedDayResponseToJSON,
+    ProblemDetailsFromJSON,
+    ProblemDetailsToJSON,
     SessionResponseFromJSON,
     SessionResponseToJSON,
-    SessionsErrorResponseFromJSON,
-    SessionsErrorResponseToJSON,
     SetLogResponseFromJSON,
     SetLogResponseToJSON,
     UpdateSetLogRequestFromJSON,
     UpdateSetLogRequestToJSON,
 } from '../models/index';
+
+export interface ApiProgramsIdDayCompletionsGetRequest {
+    id: string;
+}
 
 export interface ApiProgramsIdDaysDayIdSessionsCurrentGetRequest {
     id: string;
@@ -50,14 +54,49 @@ export interface ApiSessionsSessionIdSetLogsSetLogIdPatchRequest {
     body: UpdateSetLogRequest;
 }
 
-export interface ApiProgramsIdDayCompletionsGetRequest {
-    id: string;
-}
-
 /**
  * 
  */
 export class SessionsApi extends runtime.BaseAPI {
+
+    /**
+     * Returns one entry per program day where the user\'s session has reached state=\'completed\' (every set is either completed or skipped). The day selector renders a \"done\" dot for each pair. Cheap to compute — single index-friendly query against sessions joined to program_weeks/program_days.
+     * Get completed days for a program
+     */
+    async apiProgramsIdDayCompletionsGetRaw(requestParameters: ApiProgramsIdDayCompletionsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<CompletedDayResponse>>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling apiProgramsIdDayCompletionsGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["Authorization"] = await this.configuration.apiKey("Authorization"); // BearerAuth authentication
+        }
+
+        const response = await this.request({
+            path: `/api/programs/{id}/day-completions`.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id']))),
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(CompletedDayResponseFromJSON));
+    }
+
+    /**
+     * Returns one entry per program day where the user\'s session has reached state=\'completed\' (every set is either completed or skipped). The day selector renders a \"done\" dot for each pair. Cheap to compute — single index-friendly query against sessions joined to program_weeks/program_days.
+     * Get completed days for a program
+     */
+    async apiProgramsIdDayCompletionsGet(requestParameters: ApiProgramsIdDayCompletionsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<CompletedDayResponse>> {
+        const response = await this.apiProgramsIdDayCompletionsGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Returns the most recent non-deleted session for the authenticated user on the given program day. 404 if none exists — the FE uses this to populate cell actuals on first render of a day without creating a session for users who are just browsing.
@@ -204,45 +243,6 @@ export class SessionsApi extends runtime.BaseAPI {
      */
     async apiSessionsSessionIdSetLogsSetLogIdPatch(requestParameters: ApiSessionsSessionIdSetLogsSetLogIdPatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SetLogResponse> {
         const response = await this.apiSessionsSessionIdSetLogsSetLogIdPatchRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Returns one entry per program day where the user's session has reached state='completed' (every set is either completed or skipped). The day selector renders a "done" dot for each pair.
-     * List completed days for a program
-     */
-    async apiProgramsIdDayCompletionsGetRaw(requestParameters: ApiProgramsIdDayCompletionsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<CompletedDayResponse>>> {
-        if (requestParameters['id'] == null) {
-            throw new runtime.RequiredError(
-                'id',
-                'Required parameter "id" was null or undefined when calling apiProgramsIdDayCompletionsGet().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["Authorization"] = await this.configuration.apiKey("Authorization"); // BearerAuth authentication
-        }
-
-        const response = await this.request({
-            path: `/api/programs/{id}/day-completions`.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id']))),
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => (jsonValue as Array<any>).map(CompletedDayResponseFromJSON));
-    }
-
-    /**
-     * Returns one entry per program day where the user's session has reached state='completed'.
-     * List completed days for a program
-     */
-    async apiProgramsIdDayCompletionsGet(requestParameters: ApiProgramsIdDayCompletionsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<CompletedDayResponse>> {
-        const response = await this.apiProgramsIdDayCompletionsGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
