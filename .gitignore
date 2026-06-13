@@ -25,5 +25,5 @@ dist-ssr
 
 # Claude Code / agent tooling
 .claude/
-.agent/
+.agents/
 skills-lock.json
