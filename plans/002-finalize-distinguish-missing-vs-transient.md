@@ -7,10 +7,10 @@
 > in `plans/README.md` — unless a reviewer dispatched you and told you they
 > maintain the index.
 >
-> **Drift check (run first)**: This plan was written against **uncommitted**
-> work on branch `set-video-upload` (HEAD was `eb95537`; the videos code exists
-> only in the working tree). Verify the "Current state" excerpts below match
-> the live files. If `backend/internal/videos/` does not exist, STOP.
+> **Drift check (run first)**: Reconciled 2026-06-12 against branch
+> `set-video-upload` at commit `311b632` — all "Current state" excerpts
+> verified, no drift. Re-verify the excerpts below still match the live files
+> before proceeding. If `backend/internal/videos/` does not exist, STOP.
 >
 > **Additional Context**: You should not edit any of the generated files. You can review
 > information in the repos README.md for information on how to run all the services and
@@ -24,7 +24,7 @@
 - **Risk**: LOW
 - **Depends on**: none
 - **Category**: bug
-- **Planned at**: commit `eb95537` (+ uncommitted `set-video-upload` working tree), 2026-06-12
+- **Planned at**: commit `eb95537` + working tree, 2026-06-12; reconciled at `311b632` (excerpts verified, no drift)
 
 ## Why this matters
 
@@ -121,8 +121,8 @@ func (s *R2Store) Head(ctx context.Context, key string) (HeadResult, error) {
 
 ## Git workflow
 
-- The feature branch `set-video-upload` is uncommitted; edit in place on that
-  working tree. Do NOT commit, push, or open a PR unless the operator
+- Work on branch `set-video-upload` (committed through `311b632`); edit in
+  the working tree. Do NOT commit, push, or open a PR unless the operator
   instructed it.
 
 ## Steps

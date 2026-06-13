@@ -7,11 +7,12 @@
 > in `plans/README.md` — unless a reviewer dispatched you and told you they
 > maintain the index.
 >
-> **Drift check (run first)**: This plan was written against **uncommitted**
-> work on branch `set-video-upload` (HEAD was `eb95537`; the block-expansion
-> code exists only in the working tree). Verify the "Current state" excerpts
-> below match the live files. If `day-board.tsx` has no `Promise.all(` fan-out,
-> the problem may already be fixed — STOP and report.
+> **Drift check (run first)**: Reconciled 2026-06-12 against branch
+> `set-video-upload` at commit `311b632` — all "Current state" excerpts
+> verified, no drift (`Promise.all` fan-outs live at `day-board.tsx:303` and
+> `:393`). Re-verify the excerpts below still match the live files before
+> proceeding. If `day-board.tsx` has no `Promise.all(` fan-out, the problem
+> may already be fixed — STOP and report.
 >
 > **Additional Context**: You should not edit any of the generated files. You can review
 > information in the repos README.md for information on how to run all the services and
@@ -25,7 +26,7 @@
 - **Risk**: MED (touches the debounced set-state flow and the session cache merge)
 - **Depends on**: none (001–005 can land in any order relative to this)
 - **Category**: bug / perf
-- **Planned at**: commit `eb95537` (+ uncommitted `set-video-upload` working tree), 2026-06-12
+- **Planned at**: commit `eb95537` + working tree, 2026-06-12; reconciled at `311b632` (excerpts verified, no drift)
 
 ## Why this matters
 
@@ -140,8 +141,8 @@ of the block (one request — leave it on `useLogSet`).
 
 ## Git workflow
 
-- The feature branch `set-video-upload` is uncommitted; edit in place on that
-  working tree. Do NOT commit, push, or open a PR unless the operator
+- Work on branch `set-video-upload` (committed through `311b632`); edit in
+  the working tree. Do NOT commit, push, or open a PR unless the operator
   instructed it.
 
 ## Steps

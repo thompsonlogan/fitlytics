@@ -11,11 +11,16 @@ Execute in the order below unless dependencies say otherwise. Each executor:
 read the plan fully before starting, honor its STOP conditions, and update
 your row when done.
 
+**Reconciled 2026-06-12 at `311b632`** (after 001 landed as `c1cff84`): all
+"Current state" excerpts in plans 002–006 re-verified against the live files —
+no drift; 001's done criteria re-confirmed on HEAD (55/55 frontend tests,
+typecheck clean, `onSettled` in place). Plans 002–006 are executable as-is.
+
 ## Execution order & status
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| 001  | Invalidate the session-video cache even when an upload fails | P1 | S | — | DONE (2026-06-12, executed in worktree `agent-a93fc5eb1b21a238c`, reviewed + criteria re-verified; awaiting user merge) |
+| 001  | Invalidate the session-video cache even when an upload fails | P1 | S | — | DONE (committed as `c1cff84`; criteria verified on HEAD at reconcile) |
 | 002  | Stop Finalize from failing uploads on transient storage errors | P1 | S | — | TODO |
 | 003  | Characterization tests for the videos repository | P1 | M | — | TODO |
 | 004  | Make the daily upload quota count replaced (soft-deleted) videos | P1 | S | 003 | TODO |

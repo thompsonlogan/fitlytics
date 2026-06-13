@@ -7,10 +7,11 @@
 > in `plans/README.md` — unless a reviewer dispatched you and told you they
 > maintain the index.
 >
-> **Drift check (run first)**: This plan was written against **uncommitted**
-> work on branch `set-video-upload` (HEAD was `eb95537`; the videos code exists
-> only in the working tree). Verify the "Current state" excerpts below match
-> the live files. If `backend/internal/videos/repository.go` does not exist, STOP.
+> **Drift check (run first)**: Reconciled 2026-06-12 against branch
+> `set-video-upload` at commit `311b632` — all "Current state" excerpts and
+> line ranges verified, no drift. Re-verify the excerpts below still match the
+> live files before proceeding. If `backend/internal/videos/repository.go`
+> does not exist, STOP.
 >
 > **Additional Context**: You should not edit any of the generated files. You can review
 > information in the repos README.md for information on how to run all the services and
@@ -24,7 +25,7 @@
 - **Risk**: LOW
 - **Depends on**: none (but plan 004 depends on THIS)
 - **Category**: tests
-- **Planned at**: commit `eb95537` (+ uncommitted `set-video-upload` working tree), 2026-06-12
+- **Planned at**: commit `eb95537` + working tree, 2026-06-12; reconciled at `311b632` (excerpts verified, no drift)
 
 ## Why this matters
 
@@ -124,9 +125,9 @@ test file (package `videos`); do not export or import them across packages.
 
 ## Git workflow
 
-- The feature branch `set-video-upload` is uncommitted; add the new file on
-  that working tree. Do NOT commit, push, or open a PR unless the operator
-  instructed it.
+- Work on branch `set-video-upload` (committed through `311b632`); add the
+  new file in the working tree. Do NOT commit, push, or open a PR unless the
+  operator instructed it.
 
 ## Steps
 
