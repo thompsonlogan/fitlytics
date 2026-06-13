@@ -498,6 +498,162 @@ func TestRepositoryUpdateSetLog_MissingSetLogRollsBack(t *testing.T) {
 	}
 }
 
+// ─── UpdateSetLogs ──────────────────────────────────────────────────────────
+
+func TestRepositoryUpdateSetLogs_AppliesAllInOneTransaction(t *testing.T) {
+	db, mock := newMockDB(t)
+
+	ownerID := uuid.New()
+	sessionID := uuid.New()
+	seID := uuid.New()
+	logID1 := uuid.New()
+	logID2 := uuid.New()
+	now := time.Now()
+
+	mock.ExpectBegin()
+
+	// Session ownership probe (once).
+	mock.ExpectQuery(`SELECT \* FROM "sessions" WHERE .* LIMIT`).
+		WithArgs(uuidArg(sessionID), uuidArg(ownerID), 1).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "user_id", "state", "created_at", "updated_at",
+		}).AddRow(sessionID, ownerID, "in_progress", now, now))
+
+	// Load session exercise ids (once).
+	mock.ExpectQuery(`SELECT "session_exercises"\."id" FROM "session_exercises"`).
+		WithArgs(uuidArg(sessionID)).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(seID))
+
+	// First item: First set_log, UPDATE, reload.
+	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE .*"set_logs"\."id" = \$1.* LIMIT`).
+		WithArgs(uuidArg(logID1), 1).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "session_exercise_id", "sequence", "set_type", "state",
+		}).AddRow(logID1, seID, 1, "working", "pending"))
+
+	mock.ExpectExec(`UPDATE "set_logs" SET`).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE .*"set_logs"\."id" = \$1.* LIMIT`).
+		WithArgs(uuidArg(logID1), 1).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "session_exercise_id", "sequence", "set_type", "state",
+		}).AddRow(logID1, seID, 1, "working", "completed"))
+
+	// Second item: First set_log, UPDATE, reload.
+	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE .*"set_logs"\."id" = \$1.* LIMIT`).
+		WithArgs(uuidArg(logID2), 1).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "session_exercise_id", "sequence", "set_type", "state",
+		}).AddRow(logID2, seID, 2, "working", "pending"))
+
+	mock.ExpectExec(`UPDATE "set_logs" SET`).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE .*"set_logs"\."id" = \$1.* LIMIT`).
+		WithArgs(uuidArg(logID2), 1).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "session_exercise_id", "sequence", "set_type", "state",
+		}).AddRow(logID2, seID, 2, "working", "completed"))
+
+	// Recompute (once): session exercises, set_log states, UPDATE session.
+	mock.ExpectQuery(`SELECT "session_exercises"\."id" FROM "session_exercises"`).
+		WithArgs(uuidArg(sessionID)).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(seID))
+
+	mock.ExpectQuery(`SELECT "set_logs"\."state" FROM "set_logs"`).
+		WithArgs(uuidArg(seID)).
+		WillReturnRows(sqlmock.NewRows([]string{"state"}).
+			AddRow("completed").
+			AddRow("completed"))
+
+	mock.ExpectExec(`UPDATE "sessions" SET`).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	mock.ExpectCommit()
+
+	updates := []BatchUpdateSetLogItem{
+		{SetLogID: logID1, UpdateSetLogRequest: UpdateSetLogRequest{State: ptr("completed")}},
+		{SetLogID: logID2, UpdateSetLogRequest: UpdateSetLogRequest{State: ptr("completed")}},
+	}
+	out, err := NewRepository(db).UpdateSetLogs(context.Background(), sessionID, ownerID, updates)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(out) != 2 {
+		t.Fatalf("want 2 rows returned, got %d", len(out))
+	}
+	if out[0].ID != logID1 || out[1].ID != logID2 {
+		t.Errorf("returned ids: %v %v", out[0].ID, out[1].ID)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
+func TestRepositoryUpdateSetLogs_ForeignSetLogRollsBackAll(t *testing.T) {
+	db, mock := newMockDB(t)
+
+	ownerID := uuid.New()
+	sessionID := uuid.New()
+	seID := uuid.New()         // belongs to this session
+	foreignSeID := uuid.New()  // belongs to a different session
+	logID1 := uuid.New()
+	logID2 := uuid.New()
+	now := time.Now()
+
+	mock.ExpectBegin()
+
+	// Session ownership probe.
+	mock.ExpectQuery(`SELECT \* FROM "sessions" WHERE .* LIMIT`).
+		WithArgs(uuidArg(sessionID), uuidArg(ownerID), 1).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "user_id", "state", "created_at", "updated_at",
+		}).AddRow(sessionID, ownerID, "in_progress", now, now))
+
+	// Load session exercise ids — only seID belongs to this session.
+	mock.ExpectQuery(`SELECT "session_exercises"\."id" FROM "session_exercises"`).
+		WithArgs(uuidArg(sessionID)).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(seID))
+
+	// First item succeeds the membership check.
+	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE .*"set_logs"\."id" = \$1.* LIMIT`).
+		WithArgs(uuidArg(logID1), 1).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "session_exercise_id", "sequence", "set_type", "state",
+		}).AddRow(logID1, seID, 1, "working", "pending"))
+
+	mock.ExpectExec(`UPDATE "set_logs" SET`).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE .*"set_logs"\."id" = \$1.* LIMIT`).
+		WithArgs(uuidArg(logID1), 1).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "session_exercise_id", "sequence", "set_type", "state",
+		}).AddRow(logID1, seID, 1, "working", "completed"))
+
+	// Second item's set_log belongs to a different session_exercise — membership fails.
+	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE .*"set_logs"\."id" = \$1.* LIMIT`).
+		WithArgs(uuidArg(logID2), 1).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "session_exercise_id", "sequence", "set_type", "state",
+		}).AddRow(logID2, foreignSeID, 1, "working", "pending"))
+
+	mock.ExpectRollback()
+
+	updates := []BatchUpdateSetLogItem{
+		{SetLogID: logID1, UpdateSetLogRequest: UpdateSetLogRequest{State: ptr("completed")}},
+		{SetLogID: logID2, UpdateSetLogRequest: UpdateSetLogRequest{State: ptr("completed")}},
+	}
+	_, err := NewRepository(db).UpdateSetLogs(context.Background(), sessionID, ownerID, updates)
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		t.Fatalf("want ErrRecordNotFound, got %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
 // ─── FindCompletedDays ──────────────────────────────────────────────────────
 
 // completedDaysQuery matches the single join query: completed sessions joined

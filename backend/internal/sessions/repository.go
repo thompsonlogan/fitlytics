@@ -21,6 +21,7 @@ type Repository interface {
 	GetCurrentSessionByDay(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*generated.Session, error)
 	StartSessionForDay(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*generated.Session, error)
 	UpdateSetLog(ctx context.Context, sessionID, setLogID, ownerUserID uuid.UUID, input UpdateSetLogRequest) (*generated.SetLog, error)
+	UpdateSetLogs(ctx context.Context, sessionID, ownerUserID uuid.UUID, updates []BatchUpdateSetLogItem) ([]*generated.SetLog, error)
 	FindCompletedDays(ctx context.Context, programID, ownerUserID uuid.UUID) ([]CompletedDayRow, error)
 }
 
@@ -299,7 +300,101 @@ func (r *repository) UpdateSetLog(ctx context.Context, sessionID, setLogID, owne
 			return fmt.Errorf("update set log: %w", err)
 		}
 
-		// Recompute session state from the current set_log distribution.
+		if err := recomputeSessionState(ctx, q, sessionID); err != nil {
+			return err
+		}
+
+		out, err = sl.WithContext(ctx).Where(sl.ID.Eq(setLogID)).First()
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// recomputeSessionState rebuilds the session's state column from its current
+// set_log distribution. It must be called inside an open transaction (q must
+// wrap that tx via query.Use(tx)).
+func recomputeSessionState(ctx context.Context, q *query.Query, sessionID uuid.UUID) error {
+	se := q.SessionExercise
+	sl := q.SetLog
+	ss := q.Session
+
+	exercises, err := se.WithContext(ctx).
+		Select(se.ID).
+		Where(se.SessionID.Eq(sessionID)).
+		Find()
+	if err != nil {
+		return fmt.Errorf("find session exercises: %w", err)
+	}
+
+	seIDs := make([]driver.Valuer, len(exercises))
+	for i, ex := range exercises {
+		seIDs[i] = ex.ID
+	}
+
+	logs, err := sl.WithContext(ctx).
+		Select(sl.State).
+		Where(sl.SessionExerciseID.In(seIDs...)).
+		Find()
+	if err != nil {
+		return fmt.Errorf("count session set_logs: %w", err)
+	}
+
+	var pending, completed, skipped int
+	for _, log := range logs {
+		switch log.State {
+		case "pending":
+			pending++
+		case "completed":
+			completed++
+		case "skipped":
+			skipped++
+		}
+	}
+	total := len(logs)
+
+	switch {
+	case total == 0:
+	case pending == 0:
+		now := time.Now()
+		if _, err := ss.WithContext(ctx).Where(ss.ID.Eq(sessionID)).
+			UpdateSimple(ss.State.Value("completed"), ss.CompletedAt.Value(now)); err != nil {
+			return fmt.Errorf("update session state: %w", err)
+		}
+	case completed > 0 || skipped > 0:
+		if _, err := ss.WithContext(ctx).Where(ss.ID.Eq(sessionID)).
+			UpdateSimple(ss.State.Value("in_progress"), ss.CompletedAt.Null()); err != nil {
+			return fmt.Errorf("update session state: %w", err)
+		}
+	default:
+		if _, err := ss.WithContext(ctx).Where(ss.ID.Eq(sessionID)).
+			UpdateSimple(ss.State.Value("planned"), ss.CompletedAt.Null()); err != nil {
+			return fmt.Errorf("update session state: %w", err)
+		}
+	}
+	return nil
+}
+
+func (r *repository) UpdateSetLogs(ctx context.Context, sessionID, ownerUserID uuid.UUID, updates []BatchUpdateSetLogItem) ([]*generated.SetLog, error) {
+	var out []*generated.SetLog
+
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		q := query.Use(tx)
+		sl := q.SetLog
+		se := q.SessionExercise
+		ss := q.Session
+
+		// Probe session ownership once.
+		_, err := ss.WithContext(ctx).
+			Where(ss.ID.Eq(sessionID), ss.UserID.Eq(ownerUserID)).
+			First()
+		if err != nil {
+			return err
+		}
+
+		// Load all session exercise ids for membership checks.
 		exercises, err := se.WithContext(ctx).
 			Select(se.ID).
 			Where(se.SessionID.Eq(sessionID)).
@@ -307,55 +402,49 @@ func (r *repository) UpdateSetLog(ctx context.Context, sessionID, setLogID, owne
 		if err != nil {
 			return fmt.Errorf("find session exercises: %w", err)
 		}
-
-		seIDs := make([]driver.Valuer, len(exercises))
-		for i, ex := range exercises {
-			seIDs[i] = ex.ID
+		seSet := make(map[uuid.UUID]struct{}, len(exercises))
+		for _, ex := range exercises {
+			seSet[ex.ID] = struct{}{}
 		}
 
-		logs, err := sl.WithContext(ctx).
-			Select(sl.State).
-			Where(sl.SessionExerciseID.In(seIDs...)).
-			Find()
-		if err != nil {
-			return fmt.Errorf("count session set_logs: %w", err)
+		out = make([]*generated.SetLog, 0, len(updates))
+		for _, item := range updates {
+			setLog, err := sl.WithContext(ctx).Where(sl.ID.Eq(item.SetLogID)).First()
+			if err != nil {
+				return err
+			}
+			if _, ok := seSet[setLog.SessionExerciseID]; !ok {
+				return gorm.ErrRecordNotFound
+			}
+
+			var assigns []field.AssignExpr
+			if item.RepsActual != nil {
+				assigns = append(assigns, sl.RepsActual.Value(*item.RepsActual))
+			}
+			if item.ActualLoadKg != nil {
+				assigns = append(assigns, sl.ActualLoadKg.Value(*item.ActualLoadKg))
+			}
+			if item.ActualRpe != nil {
+				assigns = append(assigns, sl.ActualRpe.Value(*item.ActualRpe))
+			}
+			if item.State != nil {
+				assigns = append(assigns, sl.State.Value(*item.State))
+			}
+			if len(assigns) > 0 {
+				if _, err := sl.WithContext(ctx).Where(sl.ID.Eq(item.SetLogID)).UpdateSimple(assigns...); err != nil {
+					return fmt.Errorf("update set log: %w", err)
+				}
+			}
+
+			reloaded, err := sl.WithContext(ctx).Where(sl.ID.Eq(item.SetLogID)).First()
+			if err != nil {
+				return err
+			}
+			out = append(out, reloaded)
 		}
 
-		var pending, completed, skipped int
-		for _, log := range logs {
-			switch log.State {
-			case "pending":
-				pending++
-			case "completed":
-				completed++
-			case "skipped":
-				skipped++
-			}
-		}
-		total := len(logs)
-
-		switch {
-		case total == 0:
-		case pending == 0:
-			now := time.Now()
-			if _, err := ss.WithContext(ctx).Where(ss.ID.Eq(sessionID)).
-				UpdateSimple(ss.State.Value("completed"), ss.CompletedAt.Value(now)); err != nil {
-				return fmt.Errorf("update session state: %w", err)
-			}
-		case completed > 0 || skipped > 0:
-			if _, err := ss.WithContext(ctx).Where(ss.ID.Eq(sessionID)).
-				UpdateSimple(ss.State.Value("in_progress"), ss.CompletedAt.Null()); err != nil {
-				return fmt.Errorf("update session state: %w", err)
-			}
-		default:
-			if _, err := ss.WithContext(ctx).Where(ss.ID.Eq(sessionID)).
-				UpdateSimple(ss.State.Value("planned"), ss.CompletedAt.Null()); err != nil {
-				return fmt.Errorf("update session state: %w", err)
-			}
-		}
-
-		out, err = sl.WithContext(ctx).Where(sl.ID.Eq(setLogID)).First()
-		return err
+		// Recompute session state exactly once after all updates.
+		return recomputeSessionState(ctx, q, sessionID)
 	})
 	if err != nil {
 		return nil, err

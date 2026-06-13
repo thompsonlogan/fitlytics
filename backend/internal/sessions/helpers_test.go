@@ -14,6 +14,7 @@ type fakeService struct {
 	findCurrentFn        func(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error)
 	ensureForDayFn       func(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error)
 	updateSetLogFn       func(ctx context.Context, sessionID, setLogID, ownerUserID uuid.UUID, input UpdateSetLogRequest) (*SetLogResponse, error)
+	updateSetLogsFn      func(ctx context.Context, sessionID, ownerUserID uuid.UUID, input BatchUpdateSetLogsRequest) ([]SetLogResponse, error)
 	listCompletedDaysFn  func(ctx context.Context, programID, ownerUserID uuid.UUID) ([]CompletedDayResponse, error)
 }
 
@@ -38,6 +39,13 @@ func (f *fakeService) UpdateSetLog(ctx context.Context, sessionID, setLogID, own
 	return f.updateSetLogFn(ctx, sessionID, setLogID, ownerUserID, input)
 }
 
+func (f *fakeService) UpdateSetLogs(ctx context.Context, sessionID, ownerUserID uuid.UUID, input BatchUpdateSetLogsRequest) ([]SetLogResponse, error) {
+	if f.updateSetLogsFn == nil {
+		return nil, nil
+	}
+	return f.updateSetLogsFn(ctx, sessionID, ownerUserID, input)
+}
+
 func (f *fakeService) GetCompletedDays(ctx context.Context, programID, ownerUserID uuid.UUID) ([]CompletedDayResponse, error) {
 	if f.listCompletedDaysFn == nil {
 		return []CompletedDayResponse{}, nil
@@ -48,15 +56,17 @@ func (f *fakeService) GetCompletedDays(ctx context.Context, programID, ownerUser
 // ─── fakeRepository ──────────────────────────────────────────────────────────
 
 type fakeRepository struct {
-	getCurrentFn       func(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*generated.Session, error)
-	startFn            func(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*generated.Session, error)
-	updateSetLogFn     func(ctx context.Context, sessionID, setLogID, ownerUserID uuid.UUID, input UpdateSetLogRequest) (*generated.SetLog, error)
-	findCompletedFn    func(ctx context.Context, programID, ownerUserID uuid.UUID) ([]CompletedDayRow, error)
+	getCurrentFn        func(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*generated.Session, error)
+	startFn             func(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*generated.Session, error)
+	updateSetLogFn      func(ctx context.Context, sessionID, setLogID, ownerUserID uuid.UUID, input UpdateSetLogRequest) (*generated.SetLog, error)
+	updateSetLogsFn     func(ctx context.Context, sessionID, ownerUserID uuid.UUID, updates []BatchUpdateSetLogItem) ([]*generated.SetLog, error)
+	findCompletedFn     func(ctx context.Context, programID, ownerUserID uuid.UUID) ([]CompletedDayRow, error)
 
-	getCurrentCount    int
-	startCount         int
-	updateSetLogCount  int
-	findCompletedCount int
+	getCurrentCount     int
+	startCount          int
+	updateSetLogCount   int
+	updateSetLogsCount  int
+	findCompletedCount  int
 
 	lastInput UpdateSetLogRequest
 }
@@ -84,6 +94,14 @@ func (f *fakeRepository) UpdateSetLog(ctx context.Context, sessionID, setLogID, 
 		return nil, nil
 	}
 	return f.updateSetLogFn(ctx, sessionID, setLogID, ownerUserID, input)
+}
+
+func (f *fakeRepository) UpdateSetLogs(ctx context.Context, sessionID, ownerUserID uuid.UUID, updates []BatchUpdateSetLogItem) ([]*generated.SetLog, error) {
+	f.updateSetLogsCount++
+	if f.updateSetLogsFn == nil {
+		return nil, nil
+	}
+	return f.updateSetLogsFn(ctx, sessionID, ownerUserID, updates)
 }
 
 func (f *fakeRepository) FindCompletedDays(ctx context.Context, programID, ownerUserID uuid.UUID) ([]CompletedDayRow, error) {
