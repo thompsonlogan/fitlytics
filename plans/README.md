@@ -38,6 +38,18 @@ all content anchors match; the only shift is plan 005's `router.go` `NewHandler`
 callsite (now line 82, plan body says ~78) — immaterial, the executor
 re-verifies by content. Plans 004, 005, 006 are all executable now.
 
+**Merged 2026-06-13** — plans 004, 005, 006 executed in isolated worktrees,
+reviewed APPROVE, and merged into `set-video-upload` in order via `--no-ff`
+merge commits: 004 → `565ecee`, 005 → `804cc53`, 006 → `b1592dc` (HEAD). Only
+`day-board.tsx` conflicted (005's video gating vs 006's `useLogSetBatch`
+imports) — resolved as the union of both import sets. Post-merge verification
+on the integrated tree: `go build ./...` + `go test ./...` green; frontend
+`pnpm typecheck` clean, 58/58 vitest pass. **Deferred follow-up (not yet done):**
+005 and 006 each added a hand-written `fetch` (`useVideoConfig`,
+`useLogSetBatch`) because the typed client predates the new routes — one regen
+(`cd backend && make swagger`, then `cd frontend && pnpm api_generate` with the
+backend running) replaces both. Not committed/pushed beyond the local branch.
+
 ## Execution order & status
 
 | Plan | Title | Priority | Effort | Depends on | Status |
@@ -45,9 +57,9 @@ re-verifies by content. Plans 004, 005, 006 are all executable now.
 | 001  | Invalidate the session-video cache even when an upload fails | P1 | S | — | DONE (committed as `c1cff84`; criteria verified on HEAD at reconcile) |
 | 002  | Stop Finalize from failing uploads on transient storage errors | P1 | S | — | DONE (committed as `b9ae979`; criteria verified on HEAD at 2026-06-13 reconcile) |
 | 003  | Characterization tests for the videos repository | P1 | M | — | DONE (committed to `set-video-upload` as `ca63908`; criteria verified on HEAD at 2026-06-13 reconcile — 11/11 tests pass) |
-| 004  | Make the daily upload quota count replaced (soft-deleted) videos | P1 | S | 003 | TODO (unblocked — 003 committed; excerpts verified at `ca63908`) |
-| 005  | Video capabilities endpoint + graceful disabled-mode frontend | P2 | M | — | TODO |
-| 006  | Batch set-log updates — replace the per-set PATCH fan-out | P2 | M | — | TODO |
+| 004  | Make the daily upload quota count replaced (soft-deleted) videos | P1 | S | 003 | DONE (merged to `set-video-upload` as merge commit `565ecee`; executor commit `14e20e4`; reviewed APPROVE 2026-06-13) |
+| 005  | Video capabilities endpoint + graceful disabled-mode frontend | P2 | M | — | DONE (merged to `set-video-upload` as merge commit `804cc53`; executor commit `233028c`; reviewed APPROVE 2026-06-13) |
+| 006  | Batch set-log updates — replace the per-set PATCH fan-out | P2 | M | — | DONE (merged to `set-video-upload` as merge commit `b1592dc`; executor commit `e07eb17`; reviewed APPROVE 2026-06-13; included `helpers_test.go` fakes update for the extended interfaces) |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) | REJECTED (with one-line rationale)
 
