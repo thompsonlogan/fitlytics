@@ -55,6 +55,10 @@ function probeDuration(file: File): Promise<number | undefined> {
 
 type EnsureSetLog = (setIdx: number) => Promise<{ sessionId: string; setLogId: string } | undefined>
 
+// A file the user has picked but not yet uploaded. The object URL drives the
+// in-dialog preview and is revoked once the pick is uploaded or discarded.
+type StagedFile = { file: File; url: string; durationSec?: number }
+
 type VideoUploadDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -92,6 +96,14 @@ export function VideoUploadDialog({
   const [progress, setProgress] = useState(0)
   const [localError, setLocalError] = useState<string | null>(null)
   const [noteDrafts, setNoteDrafts] = useState<Record<number, string>>({})
+  // Files the user has picked but not yet uploaded, keyed by set index so a
+  // staged clip survives switching sets (mirrors noteDrafts). The bytes only
+  // leave the browser when the user confirms the upload.
+  const [stagedBySet, setStagedBySet] = useState<Record<number, StagedFile>>({})
+  // The last source whose <video> failed to decode. Compared against the
+  // current src (not a bare boolean) so it self-clears when the source changes
+  // — no effect needed to reset it.
+  const [erroredSrc, setErroredSrc] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const videoConfig = useVideoConfig()
@@ -109,13 +121,17 @@ export function VideoUploadDialog({
   const filmedCount = filmed.filter(Boolean).length
 
   const currentVideo = videoFor(setIdx)
+  const staged = stagedBySet[setIdx]
   const isUploading = uploadingSet === setIdx
   const isReady = currentVideo?.status === "ready"
 
   const noteValue = noteDrafts[setIdx] ?? currentVideo?.note ?? ""
 
-  async function beginUpload(file: File) {
+  // stageFile validates the pick and shows it for local preview. It does NOT
+  // upload — the bytes only leave the browser when the user confirms.
+  async function stageFile(file: File) {
     setLocalError(null)
+    setErroredSrc(null)
     const maxBytes = videoConfig.data?.max_bytes ?? MAX_VIDEO_BYTES
     if (!isAllowedVideoType(file.type, videoConfig.data?.allowed_types)) {
       setLocalError("Use an MP4, MOV or WebM video.")
@@ -126,24 +142,51 @@ export function VideoUploadDialog({
       return
     }
 
-    const resolved = await ensureSetLog(setIdx)
+    const durationSec = await probeDuration(file)
+    const url = URL.createObjectURL(file)
+    setStagedBySet((prev) => {
+      const existing = prev[setIdx]
+      if (existing) URL.revokeObjectURL(existing.url)
+      return { ...prev, [setIdx]: { file, url, durationSec } }
+    })
+  }
+
+  function discardStaged(idx: number) {
+    setStagedBySet((prev) => {
+      const existing = prev[idx]
+      if (!existing) return prev
+      URL.revokeObjectURL(existing.url)
+      const next = { ...prev }
+      delete next[idx]
+      return next
+    })
+  }
+
+  // confirmUpload runs the reserve → PUT → finalize lifecycle for the staged
+  // file, then clears the local preview so the server copy becomes the source.
+  async function confirmUpload() {
+    const idx = setIdx
+    const stagedFile = stagedBySet[idx]
+    if (!stagedFile) return
+
+    const resolved = await ensureSetLog(idx)
     if (!resolved) {
       toast.error("Couldn't prepare the set for upload.")
       return
     }
 
-    const durationSec = await probeDuration(file)
-    setUploadingSet(setIdx)
+    setUploadingSet(idx)
     setProgress(0)
     try {
       await upload.mutateAsync({
         sessionId: resolved.sessionId,
         setLogId: resolved.setLogId,
-        file,
-        durationSec,
-        note: noteDrafts[setIdx] || undefined,
+        file: stagedFile.file,
+        durationSec: stagedFile.durationSec,
+        note: noteDrafts[idx] || undefined,
         onProgress: (f) => setProgress(f),
       })
+      discardStaged(idx)
     } catch {
       toast.error("Upload failed. Check your connection and try again.")
     } finally {
@@ -153,14 +196,27 @@ export function VideoUploadDialog({
 
   const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
-    if (f) void beginUpload(f)
+    if (f) void stageFile(f)
     e.target.value = ""
   }
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setDragOver(false)
     const f = e.dataTransfer.files?.[0]
-    if (f) void beginUpload(f)
+    if (f) void stageFile(f)
+  }
+
+  // Closing the dialog drops any un-uploaded picks and frees their object URLs.
+  function handleOpenChange(next: boolean) {
+    if (!next) {
+      setStagedBySet((prev) => {
+        for (const s of Object.values(prev)) URL.revokeObjectURL(s.url)
+        return {}
+      })
+      setLocalError(null)
+      setErroredSrc(null)
+    }
+    onOpenChange(next)
   }
 
   async function handleRemove() {
@@ -180,7 +236,7 @@ export function VideoUploadDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <span className="inline-flex w-fit items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[0.625rem] font-semibold tracking-wider text-muted-foreground uppercase">
@@ -200,15 +256,66 @@ export function VideoUploadDialog({
 
         {/* media region */}
         <div>
-          {isReady && currentVideo?.playbackUrl ? (
+          {isUploading ? (
+            <div className="flex min-h-40 items-center">
+              <div className="flex w-full items-center gap-3 rounded-md border bg-background p-3.5">
+                <div className="flex size-13 shrink-0 items-center justify-center rounded bg-muted text-muted-foreground">
+                  <Film className="size-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline gap-2">
+                    <span className="truncate text-sm font-medium">Uploading…</span>
+                    <span className="ml-auto text-xs font-semibold tabular-nums">
+                      {Math.round(progress * 100)}%
+                    </span>
+                  </div>
+                  <Progress value={progress * 100} className="my-1.5" />
+                </div>
+              </div>
+            </div>
+          ) : staged ? (
             <div className="flex flex-col gap-2.5">
               <video
+                key={staged.url}
+                src={staged.url}
+                controls
+                playsInline
+                preload="metadata"
+                onError={() => setErroredSrc(staged.url)}
+                className="aspect-video max-h-72 w-full rounded-md border bg-black"
+              />
+              {erroredSrc === staged.url ? <FormatWarning staged /> : null}
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Film className="size-3.5" />
+                <span className="max-w-44 truncate font-medium text-foreground">
+                  {staged.file.name}
+                </span>
+                <span className="tabular-nums whitespace-nowrap">
+                  {fmtBytes(staged.file.size)} · {fmtTime(staged.durationSec)}
+                </span>
+                <span className="flex-1" />
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  className="inline-flex items-center gap-1 font-medium text-foreground hover:underline"
+                >
+                  <Repeat2 className="size-3" />
+                  Change
+                </button>
+              </div>
+            </div>
+          ) : isReady && currentVideo?.playbackUrl ? (
+            <div className="flex flex-col gap-2.5">
+              <video
+                key={currentVideo.playbackUrl}
                 src={currentVideo.playbackUrl}
                 controls
                 playsInline
                 preload="metadata"
+                onError={() => setErroredSrc(currentVideo.playbackUrl!)}
                 className="aspect-video max-h-72 w-full rounded-md border bg-black"
               />
+              {erroredSrc === currentVideo.playbackUrl ? <FormatWarning /> : null}
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <CircleCheck className="size-3.5 text-emerald-500" />
                 <span className="max-w-44 truncate font-medium text-foreground">
@@ -226,23 +333,6 @@ export function VideoUploadDialog({
                   <Repeat2 className="size-3" />
                   Replace
                 </button>
-              </div>
-            </div>
-          ) : isUploading ? (
-            <div className="flex min-h-40 items-center">
-              <div className="flex w-full items-center gap-3 rounded-md border bg-background p-3.5">
-                <div className="flex size-13 shrink-0 items-center justify-center rounded bg-muted text-muted-foreground">
-                  <Film className="size-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline gap-2">
-                    <span className="truncate text-sm font-medium">Uploading…</span>
-                    <span className="ml-auto text-xs font-semibold tabular-nums">
-                      {Math.round(progress * 100)}%
-                    </span>
-                  </div>
-                  <Progress value={progress * 100} className="my-1.5" />
-                </div>
               </div>
             </div>
           ) : (
@@ -327,12 +417,15 @@ export function VideoUploadDialog({
 
         {/* footer */}
         <DialogFooterRow
-          status={isReady ? "ready" : isUploading ? "uploading" : "empty"}
+          status={isUploading ? "uploading" : staged ? "staged" : isReady ? "ready" : "empty"}
           setNumber={setIdx + 1}
           onRemove={handleRemove}
-          onDone={() => onOpenChange(false)}
+          onDone={() => handleOpenChange(false)}
           onChooseFile={() => fileRef.current?.click()}
+          onUpload={() => void confirmUpload()}
+          onDiscard={() => discardStaged(setIdx)}
           removing={remove.isPending}
+          submitting={upload.isPending}
         />
 
         <input ref={fileRef} type="file" accept="video/*" hidden onChange={onPick} />
@@ -380,14 +473,20 @@ function DialogFooterRow({
   onRemove,
   onDone,
   onChooseFile,
+  onUpload,
+  onDiscard,
   removing,
+  submitting,
 }: {
-  status: "ready" | "uploading" | "empty"
+  status: "ready" | "uploading" | "staged" | "empty"
   setNumber: number
   onRemove: () => void
   onDone: () => void
   onChooseFile: () => void
+  onUpload: () => void
+  onDiscard: () => void
   removing: boolean
+  submitting: boolean
 }) {
   return (
     <div className="-mx-4 -mb-4 flex items-center gap-2 rounded-b-xl border-t bg-muted/50 px-4 py-3">
@@ -401,6 +500,11 @@ function DialogFooterRow({
           <>
             <span className="size-1.5 animate-pulse rounded-full bg-foreground" />
             Uploading…
+          </>
+        ) : status === "staged" ? (
+          <>
+            <span className="size-1.5 rounded-full bg-foreground" />
+            Ready to upload to <b className="font-semibold text-foreground">set {setNumber}</b>
           </>
         ) : (
           <>
@@ -425,6 +529,17 @@ function DialogFooterRow({
         <Button variant="outline" size="sm" disabled>
           Uploading…
         </Button>
+      ) : status === "staged" ? (
+        <>
+          <Button variant="ghost" size="sm" onClick={onDiscard} disabled={submitting}>
+            <Trash2 className="size-3.5" />
+            Discard
+          </Button>
+          <Button size="sm" onClick={onUpload} disabled={submitting}>
+            <UploadCloud className="size-3.5" />
+            Upload to set {setNumber}
+          </Button>
+        </>
       ) : (
         <Button size="sm" onClick={onChooseFile}>
           <UploadCloud className="size-3.5" />
@@ -432,5 +547,20 @@ function DialogFooterRow({
         </Button>
       )}
     </div>
+  )
+}
+
+// FormatWarning explains the common case where a browser can't decode an
+// uploaded clip — almost always an iPhone HEVC (H.265) .mov, which Chrome and
+// Firefox can't play even though the file is intact.
+function FormatWarning({ staged }: { staged?: boolean }) {
+  return (
+    <p className="text-xs text-muted-foreground" role="status">
+      This video can&rsquo;t be played in this browser &mdash; likely an iPhone HEVC
+      (H.265) .mov, which Chrome and Firefox can&rsquo;t decode.{" "}
+      {staged
+        ? "You can still upload it; it will play on devices that support the format, such as Safari or iOS."
+        : "The file is saved and will play in browsers that support the format, such as Safari or iOS."}
+    </p>
   )
 }

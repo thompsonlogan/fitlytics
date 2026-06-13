@@ -184,6 +184,14 @@ func readyRow(id uuid.UUID) *generated.SetVideo {
 	return &generated.SetVideo{ID: id, SetLogID: uuid.New(), UserID: uuid.New(), Status: "pending", StorageKey: "k.mp4"}
 }
 
+// sizedRow is readyRow plus a reserved SizeBytes, for exercising the finalize
+// integrity check that compares reserved vs stored size.
+func sizedRow(id uuid.UUID, size int64) *generated.SetVideo {
+	row := readyRow(id)
+	row.SizeBytes = &size
+	return row
+}
+
 func TestFinalize_MissingObjectMarksFailed(t *testing.T) {
 	id := uuid.New()
 	failed := false
@@ -249,10 +257,44 @@ func TestFinalize_OversizeObjectIsDeletedAndRejected(t *testing.T) {
 	}
 }
 
+func TestFinalize_SizeMismatchIsDeletedAndRejected(t *testing.T) {
+	id := uuid.New()
+	failed := false
+	markReadyCalled := false
+	repo := &fakeRepo{
+		// Reserved 1 MB, but only part of it landed.
+		getOwnedFn:   func(context.Context, uuid.UUID, uuid.UUID) (*generated.SetVideo, error) { return sizedRow(id, 1_000_000), nil },
+		markFailedFn: func(context.Context, uuid.UUID) error { failed = true; return nil },
+		markReadyFn: func(context.Context, uuid.UUID, int64) (*generated.SetVideo, error) {
+			markReadyCalled = true
+			return nil, nil
+		},
+	}
+	store := &fakeStore{headFn: func(context.Context, string) (storage.HeadResult, error) {
+		return storage.HeadResult{SizeBytes: 4096}, nil // truncated/partial upload
+	}}
+	svc := NewService(repo, store, testLimits(), silentLogger())
+
+	_, err := svc.Finalize(context.Background(), id, uuid.New())
+	if !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("want ErrInvalidInput, got %v", err)
+	}
+	if !failed {
+		t.Error("expected the mismatched video to be marked failed")
+	}
+	if markReadyCalled {
+		t.Error("a mismatched upload must not be marked ready")
+	}
+	if len(store.deleted) != 1 {
+		t.Errorf("expected mismatched object to be purged, deleted=%v", store.deleted)
+	}
+}
+
 func TestFinalize_HappyPathMarksReadyWithPlayback(t *testing.T) {
 	id := uuid.New()
 	repo := &fakeRepo{
-		getOwnedFn: func(context.Context, uuid.UUID, uuid.UUID) (*generated.SetVideo, error) { return readyRow(id), nil },
+		// Reserved size matches what landed, so the integrity check passes.
+		getOwnedFn: func(context.Context, uuid.UUID, uuid.UUID) (*generated.SetVideo, error) { return sizedRow(id, 4096), nil },
 		markReadyFn: func(_ context.Context, v uuid.UUID, size int64) (*generated.SetVideo, error) {
 			return &generated.SetVideo{ID: v, Status: "ready", StorageKey: "k.mp4", SizeBytes: &size}, nil
 		},

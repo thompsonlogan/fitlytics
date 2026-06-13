@@ -144,6 +144,24 @@ func (s *service) Finalize(ctx context.Context, videoID, ownerID uuid.UUID) (*Vi
 		return nil, fmt.Errorf("%w: uploaded file exceeds the size limit", ErrInvalidInput)
 	}
 
+	// Integrity check: the client uploads exactly the bytes it reserved, so the
+	// stored object must match the reserved size. A mismatch means the upload was
+	// truncated, interrupted, or silently re-encoded by the device (a known iOS
+	// behaviour) — the object is suspect, so purge it and reject rather than
+	// marking a broken clip ready. Skip when no size was reserved (defensive).
+	if row.SizeBytes != nil && *row.SizeBytes != head.SizeBytes {
+		s.log.Warn("video upload size mismatch; rejecting",
+			slog.String("key", row.StorageKey),
+			slog.Int64("reserved_bytes", *row.SizeBytes),
+			slog.Int64("stored_bytes", head.SizeBytes),
+		)
+		if derr := s.store.Delete(ctx, row.StorageKey); derr != nil {
+			s.log.Warn("failed to delete mismatched video object", slog.String("key", row.StorageKey), slog.Any("error", derr))
+		}
+		_ = s.repo.MarkFailed(ctx, videoID)
+		return nil, fmt.Errorf("%w: upload did not complete (size mismatch); please try again", ErrInvalidInput)
+	}
+
 	updated, err := s.repo.MarkReady(ctx, videoID, head.SizeBytes)
 	if err != nil {
 		return nil, fmt.Errorf("mark ready: %w", err)
