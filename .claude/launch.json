@@ -1,0 +1,20 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "fitlytics-dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["dev"],
+      "cwd": "frontend",
+      "port": 5173,
+      "autoPort": true
+    },
+    {
+      "name": "fitlytics-api",
+      "runtimeExecutable": "go",
+      "runtimeArgs": ["run", "./cmd/api"],
+      "cwd": "backend",
+      "port": 8080
+    }
+  ]
+}
