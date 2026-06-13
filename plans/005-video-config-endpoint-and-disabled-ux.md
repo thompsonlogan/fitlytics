@@ -11,6 +11,11 @@
 > work on branch `set-video-upload` (HEAD was `eb95537`; the videos code exists
 > only in the working tree). Verify the "Current state" excerpts below match
 > the live files. If `backend/internal/videos/handler.go` does not exist, STOP.
+>
+> **Additional Context**: You should not edit any of the generated files. You can review
+> information in the repos README.md for information on how to run all the services and
+> and database which should give you everything you need to regenerate the code while
+> working through the changes in this plan.
 
 ## Status
 
@@ -48,8 +53,9 @@ func NewHandler(service Service, enabled bool, log *slog.Logger) *Handler {
 }
 ```
 
-  Routes registered at lines 28–34 (`Register`); every route calls `h.guard(c)`
-  which writes 503 when disabled.
+Routes registered at lines 28–34 (`Register`); every route calls `h.guard(c)`
+which writes 503 when disabled.
+
 - `backend/internal/videos/service.go:30-34` — the allowed-type map the new
   endpoint must expose (package-level, accessible from the handler):
 
@@ -62,7 +68,7 @@ var allowedContentTypes = map[string]string{
 ```
 
 - `backend/internal/videos/service.go:37-41` — `Limits{MaxBytes, MaxPerUser,
-  MaxPerDay}`.
+MaxPerDay}`.
 - `backend/internal/server/router.go:75-82` — wiring; `deps.VideoLimits` is
   always populated (even when `deps.VideoStore` is nil — see
   `backend/cmd/api/main.go`, the `VideoLimits:` field is set unconditionally):
@@ -78,7 +84,7 @@ var allowedContentTypes = map[string]string{
 
 - `backend/internal/videos/handler_test.go` — handler tests construct via
   `NewHandler(&fakeService{}, true, silentLogger())` (and `NewHandler(nil,
-  false, silentLogger())` at line 68). All callsites must be updated when the
+false, silentLogger())` at line 68). All callsites must be updated when the
   constructor grows a `Limits` parameter. Swagger doc-comment convention: see
   the `@Summary/@Tags/@Success/@Router` blocks on the existing handlers
   (e.g. `handler.go:45-62`).
@@ -126,17 +132,18 @@ export function isAllowedVideoType(type: string): boolean {
 
 ## Commands you will need
 
-| Purpose            | Command                                   | Expected on success |
-|--------------------|-------------------------------------------|---------------------|
-| Backend build      | `cd backend && go build ./...`            | exit 0              |
-| Backend tests      | `cd backend && go test ./...`             | all pass            |
-| Frontend typecheck | `cd frontend && pnpm typecheck`           | exit 0              |
-| Frontend tests     | `cd frontend && pnpm test`                | all pass            |
-| Frontend lint      | `cd frontend && pnpm lint`                | exit 0              |
+| Purpose            | Command                         | Expected on success |
+| ------------------ | ------------------------------- | ------------------- |
+| Backend build      | `cd backend && go build ./...`  | exit 0              |
+| Backend tests      | `cd backend && go test ./...`   | all pass            |
+| Frontend typecheck | `cd frontend && pnpm typecheck` | exit 0              |
+| Frontend tests     | `cd frontend && pnpm test`      | all pass            |
+| Frontend lint      | `cd frontend && pnpm lint`      | exit 0              |
 
 ## Scope
 
 **In scope** (the only files you should modify/create):
+
 - `backend/internal/videos/dto.go`
 - `backend/internal/videos/handler.go`
 - `backend/internal/videos/handler_test.go`
@@ -148,10 +155,11 @@ export function isAllowedVideoType(type: string): boolean {
 - `frontend/src/components/workout/video-upload-dialog.tsx`
 
 **Out of scope** (do NOT touch):
+
 - `frontend/src/services/generated/**` — generated; regenerating the typed
   client is a follow-up that needs a running backend.
 - `backend/internal/videos/service.go` / `repository.go` — server-side
-  enforcement is already correct; this plan only *exposes* config.
+  enforcement is already correct; this plan only _exposes_ config.
 - `backend/cmd/api/main.go` — `VideoLimits` is already always populated.
 
 ## Git workflow
@@ -198,15 +206,13 @@ func (h *Handler) Config(c *gin.Context) {
 }
 ```
 
-   Give it the standard swagger block (`@Summary Get video upload capabilities`,
-   `@Tags Videos`, `@Produce json`, `@Success 200 {object} VideoConfigResponse`,
-   `@Security BearerAuth`, `@Router /api/videos/config [get]`) matching the
-   style of `handler.go:95-105`.
-3. Update the callsite in `backend/internal/server/router.go:78` to
-   `videos.NewHandler(videosService, videosEnabled, deps.VideoLimits, deps.Log)`.
-4. Update every `NewHandler(` call in `backend/internal/videos/handler_test.go`
-   (`grep -n "NewHandler(" backend/internal/videos/`) to pass a `Limits` value —
-   use the existing `testLimits()` helper from `service_test.go:20` (same package).
+Give it the standard swagger block (`@Summary Get video upload capabilities`,
+`@Tags Videos`, `@Produce json`, `@Success 200 {object} VideoConfigResponse`,
+`@Security BearerAuth`, `@Router /api/videos/config [get]`) matching the
+style of `handler.go:95-105`. 3. Update the callsite in `backend/internal/server/router.go:78` to
+`videos.NewHandler(videosService, videosEnabled, deps.VideoLimits, deps.Log)`. 4. Update every `NewHandler(` call in `backend/internal/videos/handler_test.go`
+(`grep -n "NewHandler(" backend/internal/videos/`) to pass a `Limits` value —
+use the existing `testLimits()` helper from `service_test.go:20` (same package).
 
 **Verify**: `cd backend && go build ./...` → exit 0.
 
@@ -366,7 +372,7 @@ Stop and report back (do not improvise) if:
   `VideosApi` method. The plain fetch is correct but lives outside the typed
   client's auth configuration, so it must be kept in sync with `main.tsx` until then.
 - If `allowedContentTypes` in `service.go` gains a type, the endpoint picks it
-  up automatically; the *frontend fallback list* in `use-set-videos.ts` should
+  up automatically; the _frontend fallback list_ in `use-set-videos.ts` should
   be updated in the same change.
 - Reviewer should scrutinize: `Config` must not call `h.guard` (a 503 here
   would recreate the original bug), and the `videosEnabled !== false` optimism

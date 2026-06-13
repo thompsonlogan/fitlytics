@@ -11,6 +11,11 @@
 > work on branch `set-video-upload` (HEAD was `eb95537`; the videos code exists
 > only in the working tree). Verify the "Current state" excerpts below match
 > the live files. If `backend/internal/videos/repository.go` does not exist, STOP.
+>
+> **Additional Context**: You should not edit any of the generated files. You can review
+> information in the repos README.md for information on how to run all the services and
+> and database which should give you everything you need to regenerate the code while
+> working through the changes in this plan.
 
 ## Status
 
@@ -29,9 +34,9 @@ But the rolling-24h count uses GORM's default soft-delete scope, and every
 re-upload to the same set **soft-deletes the previous row** before inserting
 the new one. So a user who repeatedly replaces the video on a single set keeps
 the visible count at ~1 and can upload an unbounded number of 500 MB files per
-day. Counting *all* rows created in the window — deleted or not — makes the
+day. Counting _all_ rows created in the window — deleted or not — makes the
 quota mean what the docs say. (The per-user total quota is intentionally
-different: it bounds *accumulated active* videos, so it correctly excludes
+different: it bounds _accumulated active_ videos, so it correctly excludes
 soft-deleted rows and must not change.)
 
 ## Current state
@@ -78,7 +83,7 @@ soft-deleted rows and must not change.)
 ## Commands you will need
 
 | Purpose   | Command (run in `backend/`)  | Expected on success |
-|-----------|------------------------------|---------------------|
+| --------- | ---------------------------- | ------------------- |
 | Build     | `go build ./...`             | exit 0              |
 | Tests     | `go test ./internal/videos/` | all pass            |
 | All tests | `go test ./...`              | all pass            |
@@ -86,10 +91,12 @@ soft-deleted rows and must not change.)
 ## Scope
 
 **In scope** (the only files you should modify):
+
 - `backend/internal/videos/repository.go`
 - `backend/internal/videos/repository_test.go`
 
 **Out of scope** (do NOT touch, even though they look related):
+
 - The per-user total count (`repository.go:72`) — excluding soft-deleted rows
   there is correct and documented ("active videos").
 - Row locking / `FOR UPDATE` on the quota counts — the check-then-insert race
@@ -135,10 +142,10 @@ In `backend/internal/videos/repository_test.go`:
    `user_id = .* AND created_at >` and uses a negative pattern or simply an
    exact-enough regex that would not match if `deleted_at` were present
    (e.g. anchor the WHERE clause: `WHERE "set_videos"\."user_id" = \$1 AND
-   "set_videos"\."created_at" > \$2$` adjusted to the actual emitted SQL — run
+"set_videos"\."created_at" > \$2$` adjusted to the actual emitted SQL — run
    the test once to see the emitted statement in the mismatch error, then pin it).
 2. The happy-path tests from plan 003 expect two count queries; only the
-   *second* one changes shape. Adjust their regexes the same way.
+   _second_ one changes shape. Adjust their regexes the same way.
 3. Confirm the per-user count regex still requires `deleted_at` (unchanged —
    this is the guard that step 1 didn't over-reach).
 
@@ -180,7 +187,7 @@ Stop and report back (do not improvise) if:
   so two concurrent uploads can both pass a nearly-full quota. Severity is low
   (single-user app, caps are soft limits) and the per-set unique index
   `set_videos_setlog_uq` bounds same-set races — revisit with `SELECT ...
-  FOR UPDATE` or an advisory lock if this ever serves multiple users at scale.
+FOR UPDATE` or an advisory lock if this ever serves multiple users at scale.
   Related: a concurrent same-set duplicate insert currently surfaces as a 500
   (unique violation) rather than 409; `apierr.Conflict` exists unused in
   `backend/internal/apierr/problem.go:65` if someone wants to map it.

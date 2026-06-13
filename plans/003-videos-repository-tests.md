@@ -11,6 +11,11 @@
 > work on branch `set-video-upload` (HEAD was `eb95537`; the videos code exists
 > only in the working tree). Verify the "Current state" excerpts below match
 > the live files. If `backend/internal/videos/repository.go` does not exist, STOP.
+>
+> **Additional Context**: You should not edit any of the generated files. You can review
+> information in the repos README.md for information on how to run all the services and
+> and database which should give you everything you need to regenerate the code while
+> working through the changes in this plan.
 
 ## Status
 
@@ -79,8 +84,9 @@ func uuidArg(id uuid.UUID) driver.Value {
 }
 ```
 
-  These helpers are unexported in package `sessions` — copy them into the new
-  test file (package `videos`); do not export or import them across packages.
+These helpers are unexported in package `sessions` — copy them into the new
+test file (package `videos`); do not export or import them across packages.
+
 - The `set_videos` model is `backend/internal/models/generated/set_videos.gen.go`
   (GORM soft delete via `DeletedAt gorm.DeletedAt`). Columns: `id`,
   `set_log_id`, `user_id`, `status`, `storage_key`, `content_type`,
@@ -97,7 +103,7 @@ func uuidArg(id uuid.UUID) driver.Value {
 ## Commands you will need
 
 | Purpose   | Command (run in `backend/`)  | Expected on success |
-|-----------|------------------------------|---------------------|
+| --------- | ---------------------------- | ------------------- |
 | Build     | `go build ./...`             | exit 0              |
 | Tests     | `go test ./internal/videos/` | all pass            |
 | All tests | `go test ./...`              | all pass            |
@@ -105,13 +111,15 @@ func uuidArg(id uuid.UUID) driver.Value {
 ## Scope
 
 **In scope** (the only file you should create/modify):
+
 - `backend/internal/videos/repository_test.go` (create)
 
 **Out of scope** (do NOT touch):
+
 - `backend/internal/videos/repository.go` — this plan **characterizes** current
   behavior, including the quirk that quota counts exclude soft-deleted rows
   (plan 004 changes that deliberately, afterwards). If a test reveals what
-  looks like a bug, encode the *current* behavior and note it in your report.
+  looks like a bug, encode the _current_ behavior and note it in your report.
 - `backend/internal/sessions/repository_test.go` — copy from it, never edit it.
 
 ## Git workflow
@@ -187,7 +195,7 @@ straightforward: put `deleted_at` in the expected-query regex).
    probes succeed, sessions probe returns empty rows; assert
    `errors.Is(err, gorm.ErrRecordNotFound)`.
 3. `TestRepositoryListBySession_ProbesOwnershipThenJoins` — sessions probe
-   returns a row; then one `ExpectQuery(`SELECT .*"set_videos".* JOIN`)`
+   returns a row; then one `ExpectQuery(`SELECT ._"set_videos"._ JOIN`)`
    returning two rows; assert 2 results in order and expectations met.
 4. `TestRepositoryListBySession_UnownedSessionShortCircuits` — sessions probe
    returns empty rows; assert `gorm.ErrRecordNotFound` and that NO join query

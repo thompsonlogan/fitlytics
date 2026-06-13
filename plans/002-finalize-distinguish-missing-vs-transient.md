@@ -11,6 +11,11 @@
 > work on branch `set-video-upload` (HEAD was `eb95537`; the videos code exists
 > only in the working tree). Verify the "Current state" excerpts below match
 > the live files. If `backend/internal/videos/` does not exist, STOP.
+>
+> **Additional Context**: You should not edit any of the generated files. You can review
+> information in the repos README.md for information on how to run all the services and
+> and database which should give you everything you need to regenerate the code while
+> working through the changes in this plan.
 
 ## Status
 
@@ -90,22 +95,24 @@ func (s *R2Store) Head(ctx context.Context, key string) (HeadResult, error) {
 
 ## Commands you will need
 
-| Purpose   | Command (run in `backend/`)     | Expected on success |
-|-----------|---------------------------------|---------------------|
-| Build     | `go build ./...`                | exit 0              |
-| Tests     | `go test ./internal/videos/ ./internal/storage/` | all pass |
-| All tests | `go test ./...`                 | all pass            |
-| Tidy      | `go mod tidy`                   | no diff to go.mod   |
+| Purpose   | Command (run in `backend/`)                      | Expected on success |
+| --------- | ------------------------------------------------ | ------------------- |
+| Build     | `go build ./...`                                 | exit 0              |
+| Tests     | `go test ./internal/videos/ ./internal/storage/` | all pass            |
+| All tests | `go test ./...`                                  | all pass            |
+| Tidy      | `go mod tidy`                                    | no diff to go.mod   |
 
 ## Scope
 
 **In scope** (the only files you should modify):
+
 - `backend/internal/storage/store.go`
 - `backend/internal/storage/r2.go`
 - `backend/internal/videos/service.go`
 - `backend/internal/videos/service_test.go`
 
 **Out of scope** (do NOT touch, even though they look related):
+
 - `backend/internal/videos/handler.go` — the existing sentinel→status mapping
   already does the right thing once the service stops mis-classifying.
 - `backend/internal/videos/repository.go` — `MarkFailed` itself is fine.
@@ -234,7 +241,7 @@ Stop and report back (do not improvise) if:
 - The live `Finalize` no longer matches the excerpt.
 - `errors.As(err, &notFound)` with `*types.NotFound` does not compile against
   the vendored SDK version — report the SDK version (`grep aws-sdk-go-v2
-  backend/go.mod`) instead of guessing at alternative type names.
+backend/go.mod`) instead of guessing at alternative type names.
 - `go mod tidy` wants to change anything beyond promoting `smithy-go`.
 
 ## Maintenance notes
@@ -242,7 +249,7 @@ Stop and report back (do not improvise) if:
 - The frontend currently shows a generic "Upload failed" toast for both 400
   and 500 finalize failures. A follow-up could retry finalize automatically on
   5xx — deferred because it needs UX decisions (this plan only makes that
-  retry *possible* by leaving the row `pending`).
+  retry _possible_ by leaving the row `pending`).
 - A row left `pending` after a transient failure is recoverable: re-uploading
   the same set replaces it (see `repository.go` CreateUpload), and a future
   janitor for stale pending rows is noted in plans/README.md as rejected-for-now.

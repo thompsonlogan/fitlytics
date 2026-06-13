@@ -12,6 +12,11 @@
 > code exists only in the working tree). Verify the "Current state" excerpts
 > below match the live files. If `day-board.tsx` has no `Promise.all(` fan-out,
 > the problem may already be fixed — STOP and report.
+>
+> **Additional Context**: You should not edit any of the generated files. You can review
+> information in the repos README.md for information on how to run all the services and
+> and database which should give you everything you need to regenerate the code while
+> working through the changes in this plan.
 
 ## Status
 
@@ -79,22 +84,19 @@ type UpdateSetLogRequest struct {
 
 ```ts
 // blurLoad (~line 303):
-      const actualLoadKg = Number(LB_TO_KG(lb).toFixed(2))
-      await Promise.all(
-        logs.map((log) => logSet.mutateAsync({ setLogId: log.id, body: { actualLoadKg } }))
-      )
+const actualLoadKg = Number(LB_TO_KG(lb).toFixed(2))
+await Promise.all(logs.map((log) => logSet.mutateAsync({ setLogId: log.id, body: { actualLoadKg } })))
 ```
 
 ```ts
 // cycleSet debounce flush (~line 390):
-        // Completing/skipping a block fans the state out to every set in it.
-        await Promise.all(
-          logs.map((log) => logSet.mutateAsync({ setLogId: log.id, body: { state: desired } }))
-        )
+// Completing/skipping a block fans the state out to every set in it.
+await Promise.all(logs.map((log) => logSet.mutateAsync({ setLogId: log.id, body: { state: desired } })))
 ```
 
-  Single-set writes that must NOT change: `blurRpe` writes only the last set
-  of the block (one request — leave it on `useLogSet`).
+Single-set writes that must NOT change: `blurRpe` writes only the last set
+of the block (one request — leave it on `useLogSet`).
+
 - The generated API client (`frontend/src/services/generated/`) does not know
   the new batch route and must not be hand-edited or regenerated in this plan.
   Use a plain `fetch` (auth is cookie-based: `credentials: "include"`, base url
@@ -107,17 +109,18 @@ type UpdateSetLogRequest struct {
 
 ## Commands you will need
 
-| Purpose            | Command                                   | Expected on success |
-|--------------------|-------------------------------------------|---------------------|
-| Backend build      | `cd backend && go build ./...`            | exit 0              |
-| Backend tests      | `cd backend && go test ./...`             | all pass            |
-| Frontend typecheck | `cd frontend && pnpm typecheck`           | exit 0              |
-| Frontend tests     | `cd frontend && pnpm test`                | all pass            |
-| Frontend lint      | `cd frontend && pnpm lint`                | exit 0              |
+| Purpose            | Command                         | Expected on success |
+| ------------------ | ------------------------------- | ------------------- |
+| Backend build      | `cd backend && go build ./...`  | exit 0              |
+| Backend tests      | `cd backend && go test ./...`   | all pass            |
+| Frontend typecheck | `cd frontend && pnpm typecheck` | exit 0              |
+| Frontend tests     | `cd frontend && pnpm test`      | all pass            |
+| Frontend lint      | `cd frontend && pnpm lint`      | exit 0              |
 
 ## Scope
 
 **In scope** (the only files you should modify):
+
 - `backend/internal/sessions/dto.go`
 - `backend/internal/sessions/handler.go`
 - `backend/internal/sessions/service.go`
@@ -127,6 +130,7 @@ type UpdateSetLogRequest struct {
 - `frontend/src/components/workout/day-board.tsx`
 
 **Out of scope** (do NOT touch):
+
 - The single-set PATCH route/flow — `blurRpe` and any other one-set write keep
   using it; clients of the old route must keep working.
 - `frontend/src/services/generated/**` — generated.
@@ -181,20 +185,21 @@ In `backend/internal/sessions/repository.go`:
 UpdateSetLogs(ctx context.Context, sessionID, ownerUserID uuid.UUID, updates []BatchUpdateSetLogItem) ([]*generated.SetLog, error)
 ```
 
-   Inside one `r.db.WithContext(ctx).Transaction`:
-   - Probe session ownership ONCE (`sessions` by id + user_id → `First()`;
-     a miss propagates `gorm.ErrRecordNotFound` like the existing code).
-   - Load the session's exercise ids once (`session_exercises` by session_id,
-     `Select(se.ID)`), build a set for membership checks.
-   - For each item: `First()` the set_log by id; if its
-     `SessionExerciseID` is not in the membership set, return
-     `gorm.ErrRecordNotFound` (aborts and rolls back everything); build the
-     same `[]field.AssignExpr` as `UpdateSetLog` does (reuse by extracting that
-     assign-building too if convenient, or duplicate the four `if` blocks —
-     prefer extraction only if it stays in this file); `UpdateSimple`; reload
-     the row into the result slice (the existing single-row code reloads via
-     `First()` after update — match it).
-   - After the loop, call `recomputeSessionState` once.
+Inside one `r.db.WithContext(ctx).Transaction`:
+
+- Probe session ownership ONCE (`sessions` by id + user_id → `First()`;
+  a miss propagates `gorm.ErrRecordNotFound` like the existing code).
+- Load the session's exercise ids once (`session_exercises` by session_id,
+  `Select(se.ID)`), build a set for membership checks.
+- For each item: `First()` the set_log by id; if its
+  `SessionExerciseID` is not in the membership set, return
+  `gorm.ErrRecordNotFound` (aborts and rolls back everything); build the
+  same `[]field.AssignExpr` as `UpdateSetLog` does (reuse by extracting that
+  assign-building too if convenient, or duplicate the four `if` blocks —
+  prefer extraction only if it stays in this file); `UpdateSimple`; reload
+  the row into the result slice (the existing single-row code reloads via
+  `First()` after update — match it).
+- After the loop, call `recomputeSessionState` once.
 
 **Verify**: `cd backend && go build ./... && go test ./internal/sessions/` → pass.
 
@@ -209,18 +214,17 @@ UpdateSetLogs(ctx context.Context, sessionID, ownerUserID uuid.UUID, updates []B
 func (s *service) UpdateSetLogs(ctx context.Context, sessionID, ownerUserID uuid.UUID, input BatchUpdateSetLogsRequest) ([]SetLogResponse, error)
 ```
 
-   — validate every item first (fail fast before any DB work), then call the
-   repo, map each row with `mapSetLog`, propagate `ErrNotFound` on
-   `gorm.ErrRecordNotFound` exactly as `UpdateSetLog` does. Add the method to
-   the `Service` interface (`service.go:19` area).
-2. `backend/internal/sessions/handler.go`: register
-   `rg.PATCH("/sessions/:sessionId/set-logs", h.UpdateSetLogs)` next to the
-   existing single-set route, and implement the handler following
-   `UpdateSetLog` (lines 145–170): parse `sessionId`, bind
-   `BatchUpdateSetLogsRequest` (gin's `binding:"min=1,max=50"` rejects empty
-   and oversized batches as 400), call the service, return
-   `200` with the `[]SetLogResponse`. Copy the swagger block style from
-   `UpdateSetLog` (`@Router /api/sessions/{sessionId}/set-logs [patch]`).
+— validate every item first (fail fast before any DB work), then call the
+repo, map each row with `mapSetLog`, propagate `ErrNotFound` on
+`gorm.ErrRecordNotFound` exactly as `UpdateSetLog` does. Add the method to
+the `Service` interface (`service.go:19` area). 2. `backend/internal/sessions/handler.go`: register
+`rg.PATCH("/sessions/:sessionId/set-logs", h.UpdateSetLogs)` next to the
+existing single-set route, and implement the handler following
+`UpdateSetLog` (lines 145–170): parse `sessionId`, bind
+`BatchUpdateSetLogsRequest` (gin's `binding:"min=1,max=50"` rejects empty
+and oversized batches as 400), call the service, return
+`200` with the `[]SetLogResponse`. Copy the swagger block style from
+`UpdateSetLog` (`@Router /api/sessions/{sessionId}/set-logs [patch]`).
 
 **Verify**: `cd backend && go build ./... && go test ./...` → pass.
 
@@ -275,10 +279,11 @@ const raw: unknown[] = await res.json()
 return raw.map(SetLogResponseFromJSON)
 ```
 
-  (import `SetLogResponseFromJSON` from `@/services/generated`; comment that
-  this hand-rolled call replaces the generated client until the client is
-  regenerated against the new swagger — same situation as `useVideoConfig` if
-  plan 005 landed.)
+(import `SetLogResponseFromJSON` from `@/services/generated`; comment that
+this hand-rolled call replaces the generated client until the client is
+regenerated against the new swagger — same situation as `useVideoConfig` if
+plan 005 landed.)
+
 - `onSuccess`: same structure as `useLogSet`'s (snapshot pending count, splice
   EVERY returned log into the cached session's `setLogs` by id, then the same
   crossed-zero check to invalidate day completions). Factor the splice so one

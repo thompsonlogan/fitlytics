@@ -15,7 +15,7 @@ your row when done.
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| 001  | Invalidate the session-video cache even when an upload fails | P1 | S | — | TODO |
+| 001  | Invalidate the session-video cache even when an upload fails | P1 | S | — | DONE (2026-06-12, executed in worktree `agent-a93fc5eb1b21a238c`, reviewed + criteria re-verified; awaiting user merge) |
 | 002  | Stop Finalize from failing uploads on transient storage errors | P1 | S | — | TODO |
 | 003  | Characterization tests for the videos repository | P1 | M | — | TODO |
 | 004  | Make the daily upload quota count replaced (soft-deleted) videos | P1 | S | 003 | TODO |
@@ -38,6 +38,23 @@ Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) | REJE
   regeneration — after both land, one follow-up regen
   (`cd backend && make swagger`, then `cd frontend && pnpm api_generate` with
   the backend running) replaces both.
+
+## Execution environment notes (learned during 001)
+
+- **Agent worktrees branch from `origin/master`, not the current branch**
+  (`worktree.baseRef` defaults to `fresh`). An executor worktree will NOT
+  contain the `set-video-upload` code; reviewers must `git reset --hard
+  <branch HEAD>` the worktree (or set `worktree.baseRef: head`) before the
+  executor starts, or the plan's drift-check STOP will fire.
+- **Windows MAX_PATH breaks vitest under `.claude/worktrees/`**: pnpm's
+  virtual-store paths exceed 260 chars (`ERR_PACKAGE_IMPORT_NOT_DEFINED` for
+  `#module-evaluator` at startup). Fix: `pnpm install --node-linker=hoisted`
+  inside the worktree's `frontend/`. `--virtual-store-dir` to a short path
+  does NOT work (breaks cross-package ESM resolution).
+- **`pnpm lint` does not exit 0 at baseline**: commit `2556364` carries two
+  pre-existing errors in `frontend/src/components/workout/set-state-cell.tsx`
+  and `frontend/src/routes/today.tsx`. Plans' "lint exits 0" criteria should
+  be read as "no NEW lint errors" until those are fixed.
 
 ## Findings considered and rejected
 

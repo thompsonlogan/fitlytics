@@ -12,6 +12,11 @@
 > exists only in the working tree). Verify the "Current state" excerpts below
 > match the live files before proceeding. If `frontend/src/hooks/use-set-videos.ts`
 > does not exist, the feature branch is not present — STOP.
+>
+> **Additional Context**: You should not edit any of the generated files. You can review
+> information in the repos README.md for information on how to run all the services and
+> and database which should give you everything you need to regenerate the code while
+> working through the changes in this plan.
 
 ## Status
 
@@ -31,7 +36,7 @@ uploaded a single byte. If the subsequent direct PUT to storage or the finalize
 call then fails, the frontend's React Query cache is never invalidated (it only
 invalidates `onSuccess`), so the UI keeps showing the old clip as present and
 playable even though it no longer exists server-side. The user believes their
-old video is safe; it is gone. Invalidating on settle (success *or* failure)
+old video is safe; it is gone. Invalidating on settle (success _or_ failure)
 makes the UI reconcile to server truth in every outcome.
 
 ## Current state
@@ -80,7 +85,7 @@ export function useUploadSetVideo() {
 ## Commands you will need
 
 | Purpose   | Command (run in `frontend/`) | Expected on success |
-|-----------|------------------------------|---------------------|
+| --------- | ---------------------------- | ------------------- |
 | Typecheck | `pnpm typecheck`             | exit 0, no errors   |
 | Tests     | `pnpm test`                  | all pass            |
 | Lint      | `pnpm lint`                  | exit 0              |
@@ -88,10 +93,12 @@ export function useUploadSetVideo() {
 ## Scope
 
 **In scope** (the only files you should modify):
+
 - `frontend/src/hooks/use-set-videos.ts`
 - `frontend/src/hooks/use-set-videos.test.ts`
 
 **Out of scope** (do NOT touch, even though they look related):
+
 - `backend/internal/videos/service.go` — the eager purge order is intentional.
 - `frontend/src/components/workout/video-upload-dialog.tsx` — its generic
   error toast is fine; the cache fix makes the displayed state correct.
@@ -119,7 +126,7 @@ Query's `onSettled` signature is `(data, error, variables) => void`:
     },
 ```
 
-Add a one-line comment above it explaining the *constraint* (not the change),
+Add a one-line comment above it explaining the _constraint_ (not the change),
 e.g.: reserving an upload replaces the previous video server-side before the
 bytes move, so the list must be refetched even when the upload fails.
 
@@ -138,7 +145,7 @@ is invalidated. Pattern:
   `frontend/src/services/data.ts` for the `ServiceApis` shape — only
   `videosApi` is consumed by this hook, so cast a partial:
   `{ apis: { videosApi: fakeVideosApi } as unknown as ServiceApis }`).
-- Make the reserve call fail *before* any XHR happens so no network mocking is
+- Make the reserve call fail _before_ any XHR happens so no network mocking is
   needed: have `apiSessionsSessionIdSetLogsSetLogIdVideosPost` resolve to `{}`
   (no `upload`/`video`), which makes the mutation throw `"upload was not reserved"`.
 - Wrapper:
