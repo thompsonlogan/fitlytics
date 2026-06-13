@@ -16,12 +16,22 @@ your row when done.
 no drift; 001's done criteria re-confirmed on HEAD (55/55 frontend tests,
 typecheck clean, `onSettled` in place). Plans 002–006 are executable as-is.
 
+**Reconciled 2026-06-13 at `b9ae979`** (after 002 landed as `b9ae979`): 002's
+done criteria re-verified on HEAD (sentinel `ErrNotFound` in `store.go:15`,
+`errors.Is(err, storage.ErrNotFound)` branch in `service.go:130`, R2 404
+mapping in `r2.go`, `TestFinalize_TransientHeadErrorLeavesPending` present) —
+marked DONE-committed below. Drift-checked the still-open plans 003–006 against
+the live files: no excerpt drift. Confirmed 002's `service.go` edits did not
+shift plan 005's referenced regions (`allowedContentTypes` still at :30,
+`Limits` at :37). Plans 003 and 005 and 006 are executable now; 004 still waits
+on 003.
+
 ## Execution order & status
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
 | 001  | Invalidate the session-video cache even when an upload fails | P1 | S | — | DONE (committed as `c1cff84`; criteria verified on HEAD at reconcile) |
-| 002  | Stop Finalize from failing uploads on transient storage errors | P1 | S | — | DONE (executed 2026-06-13 in worktree `agent-ab93e873696497122`; criteria verified — see note below; awaiting user merge) |
+| 002  | Stop Finalize from failing uploads on transient storage errors | P1 | S | — | DONE (committed as `b9ae979`; criteria verified on HEAD at 2026-06-13 reconcile) |
 | 003  | Characterization tests for the videos repository | P1 | M | — | TODO |
 | 004  | Make the daily upload quota count replaced (soft-deleted) videos | P1 | S | 003 | TODO |
 | 005  | Video capabilities endpoint + graceful disabled-mode frontend | P2 | M | — | TODO |
