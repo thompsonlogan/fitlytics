@@ -7,11 +7,12 @@
 > in `plans/README.md` — unless a reviewer dispatched you and told you they
 > maintain the index.
 >
-> **Drift check (run first)**: Reconciled 2026-06-12 against branch
-> `set-video-upload` at commit `311b632` — all "Current state" excerpts
-> verified, no drift. Re-verify the excerpts below still match the live files
-> before proceeding. If `backend/internal/videos/repository.go` does not
-> exist, STOP.
+> **Drift check (run first)**: Reconciled 2026-06-13 against branch
+> `set-video-upload` at commit `ca63908` — dependency 003 is now committed
+> (`repository_test.go` present), the `CreateUpload` excerpt (`repository.go:64-115`)
+> matches byte-for-byte, and `Unscoped()` is still absent (this plan adds it).
+> Re-verify the excerpts below still match the live files before proceeding.
+> If `backend/internal/videos/repository.go` does not exist, STOP.
 >
 > **Additional Context**: You should not edit any of the generated files. You can review
 > information in the repos README.md for information on how to run all the services and

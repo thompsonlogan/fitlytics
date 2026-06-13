@@ -7,12 +7,14 @@
 > in `plans/README.md` — unless a reviewer dispatched you and told you they
 > maintain the index.
 >
-> **Drift check (run first)**: Reconciled 2026-06-12 against branch
-> `set-video-upload` at commit `311b632` — all "Current state" excerpts
-> verified, no drift. Note: plan 001 executed; the frontend test file is now
-> `use-set-videos.test.tsx`. Re-verify the excerpts below still match the live
-> files before proceeding. If `backend/internal/videos/handler.go` does not
-> exist, STOP.
+> **Drift check (run first)**: Reconciled 2026-06-13 against branch
+> `set-video-upload` at commit `ca63908` — content anchors verified: `NewHandler`
+> (handler.go:24), `allowedContentTypes` (service.go:30), `Limits` (service.go:37),
+> frontend constants (use-set-videos.ts:12-16), test file is `use-set-videos.test.tsx`.
+> One immaterial shift: the `NewHandler` callsite in `router.go` is now at line 82
+> (step 3 says ~78) — match by content, not line number. Re-verify the excerpts
+> below still match the live files before proceeding. If
+> `backend/internal/videos/handler.go` does not exist, STOP.
 >
 > **Additional Context**: You should not edit any of the generated files. You can review
 > information in the repos README.md for information on how to run all the services and

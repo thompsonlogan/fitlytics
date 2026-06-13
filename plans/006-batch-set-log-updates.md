@@ -7,12 +7,13 @@
 > in `plans/README.md` — unless a reviewer dispatched you and told you they
 > maintain the index.
 >
-> **Drift check (run first)**: Reconciled 2026-06-12 against branch
-> `set-video-upload` at commit `311b632` — all "Current state" excerpts
-> verified, no drift (`Promise.all` fan-outs live at `day-board.tsx:303` and
-> `:393`). Re-verify the excerpts below still match the live files before
-> proceeding. If `day-board.tsx` has no `Promise.all(` fan-out, the problem
-> may already be fixed — STOP and report.
+> **Drift check (run first)**: Reconciled 2026-06-13 against branch
+> `set-video-upload` at commit `ca63908` — no drift: `Promise.all` fan-outs
+> still live at `day-board.tsx:303` and `:393`, the single-set route is at
+> `sessions/handler.go:27`, the recompute block at `repository.go:302`, and
+> `useLogSet`/`countPending` at `use-session.ts:107`/`:91`. Re-verify the
+> excerpts below still match the live files before proceeding. If `day-board.tsx`
+> has no `Promise.all(` fan-out, the problem may already be fixed — STOP and report.
 >
 > **Additional Context**: You should not edit any of the generated files. You can review
 > information in the repos README.md for information on how to run all the services and

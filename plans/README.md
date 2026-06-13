@@ -26,14 +26,26 @@ shift plan 005's referenced regions (`allowedContentTypes` still at :30,
 `Limits` at :37). Plans 003 and 005 and 006 are executable now; 004 still waits
 on 003.
 
+**Reconciled 2026-06-13 at `ca63908`** (after 003 landed as `ca63908` —
+`test: characterization tests for videos repository`): 003's worktree work is
+now committed on `set-video-upload`, so the prior "NOT yet merged" status is
+superseded → marked DONE-committed below. 003's done criteria re-verified on
+HEAD: `internal/videos/repository_test.go` has 11 `func Test` + 11
+`ExpectationsWereMet`, and `go test ./internal/videos/` is green. **004 is now
+unblocked** — its target excerpt (`repository.go:64-115`) matches byte-for-byte
+and `Unscoped()` is still absent (correctly un-done). Drift-checked 005 and 006:
+all content anchors match; the only shift is plan 005's `router.go` `NewHandler`
+callsite (now line 82, plan body says ~78) — immaterial, the executor
+re-verifies by content. Plans 004, 005, 006 are all executable now.
+
 ## Execution order & status
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
 | 001  | Invalidate the session-video cache even when an upload fails | P1 | S | — | DONE (committed as `c1cff84`; criteria verified on HEAD at reconcile) |
 | 002  | Stop Finalize from failing uploads on transient storage errors | P1 | S | — | DONE (committed as `b9ae979`; criteria verified on HEAD at 2026-06-13 reconcile) |
-| 003  | Characterization tests for the videos repository | P1 | M | — | TODO |
-| 004  | Make the daily upload quota count replaced (soft-deleted) videos | P1 | S | 003 | TODO |
+| 003  | Characterization tests for the videos repository | P1 | M | — | DONE (committed to `set-video-upload` as `ca63908`; criteria verified on HEAD at 2026-06-13 reconcile — 11/11 tests pass) |
+| 004  | Make the daily upload quota count replaced (soft-deleted) videos | P1 | S | 003 | TODO (unblocked — 003 committed; excerpts verified at `ca63908`) |
 | 005  | Video capabilities endpoint + graceful disabled-mode frontend | P2 | M | — | TODO |
 | 006  | Batch set-log updates — replace the per-set PATCH fan-out | P2 | M | — | TODO |
 
