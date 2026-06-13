@@ -114,7 +114,9 @@ export function useUploadSetVideo() {
 
       return videosApi.apiVideosVideoIdFinalizePost({ videoId: created.video.id })
     },
-    onSuccess: (_data, vars) => {
+    // Reserving an upload replaces the previous video server-side before the
+    // bytes move, so the list must be refetched even when the upload fails.
+    onSettled: (_data, _error, vars) => {
       queryClient.invalidateQueries({ queryKey: sessionVideosQueryKey(vars.sessionId) })
     },
   })
