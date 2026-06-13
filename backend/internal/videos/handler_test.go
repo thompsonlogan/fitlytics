@@ -3,6 +3,7 @@ package videos
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -59,13 +60,67 @@ func newCtx(w *httptest.ResponseRecorder, method, body string, params gin.Params
 	return c
 }
 
+func unmarshalBody(w *httptest.ResponseRecorder, v any) error {
+	return json.Unmarshal(w.Body.Bytes(), v)
+}
+
+// ─── Config ─────────────────────────────────────────────────────────────────
+
+func TestHandlerConfig_DisabledReturns200WithEnabledFalse(t *testing.T) {
+	w := httptest.NewRecorder()
+	c := newCtx(w, http.MethodGet, "", nil)
+
+	NewHandler(nil, false, testLimits(), silentLogger()).Config(c)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d", w.Code)
+	}
+	var resp VideoConfigResponse
+	if err := unmarshalBody(w, &resp); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if resp.Enabled {
+		t.Fatal("want enabled=false")
+	}
+}
+
+func TestHandlerConfig_EnabledReturnsLimitsAndSortedTypes(t *testing.T) {
+	w := httptest.NewRecorder()
+	c := newCtx(w, http.MethodGet, "", nil)
+
+	NewHandler(&fakeService{}, true, testLimits(), silentLogger()).Config(c)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d", w.Code)
+	}
+	var resp VideoConfigResponse
+	if err := unmarshalBody(w, &resp); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if !resp.Enabled {
+		t.Fatal("want enabled=true")
+	}
+	if resp.MaxBytes != testLimits().MaxBytes {
+		t.Fatalf("want MaxBytes=%d, got %d", testLimits().MaxBytes, resp.MaxBytes)
+	}
+	want := []string{"video/mp4", "video/quicktime", "video/webm"}
+	if len(resp.AllowedTypes) != len(want) {
+		t.Fatalf("want %d types, got %d", len(want), len(resp.AllowedTypes))
+	}
+	for i, w := range want {
+		if resp.AllowedTypes[i] != w {
+			t.Fatalf("AllowedTypes[%d]: want %q, got %q", i, w, resp.AllowedTypes[i])
+		}
+	}
+}
+
 // ─── disabled feature ───────────────────────────────────────────────────────
 
 func TestHandler_DisabledReturns503(t *testing.T) {
 	w := httptest.NewRecorder()
 	c := newCtx(w, http.MethodGet, "", gin.Params{{Key: "sessionId", Value: uuid.NewString()}})
 
-	NewHandler(nil, false, silentLogger()).ListForSession(c)
+	NewHandler(nil, false, testLimits(), silentLogger()).ListForSession(c)
 
 	if w.Code != http.StatusServiceUnavailable {
 		t.Fatalf("want 503, got %d", w.Code)
@@ -81,7 +136,7 @@ func TestHandlerCreateUpload_InvalidSessionID(t *testing.T) {
 		{Key: "setLogId", Value: uuid.NewString()},
 	})
 
-	NewHandler(&fakeService{}, true, silentLogger()).CreateUpload(c)
+	NewHandler(&fakeService{}, true, testLimits(), silentLogger()).CreateUpload(c)
 
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("want 400, got %d", w.Code)
@@ -98,7 +153,7 @@ func TestHandlerCreateUpload_QuotaReturns429(t *testing.T) {
 		{Key: "setLogId", Value: uuid.NewString()},
 	})
 
-	NewHandler(svc, true, silentLogger()).CreateUpload(c)
+	NewHandler(svc, true, testLimits(), silentLogger()).CreateUpload(c)
 
 	if w.Code != http.StatusTooManyRequests {
 		t.Fatalf("want 429, got %d", w.Code)
@@ -115,7 +170,7 @@ func TestHandlerCreateUpload_InvalidInputReturns400(t *testing.T) {
 		{Key: "setLogId", Value: uuid.NewString()},
 	})
 
-	NewHandler(svc, true, silentLogger()).CreateUpload(c)
+	NewHandler(svc, true, testLimits(), silentLogger()).CreateUpload(c)
 
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("want 400, got %d", w.Code)
@@ -132,7 +187,7 @@ func TestHandlerCreateUpload_Success201(t *testing.T) {
 		{Key: "setLogId", Value: uuid.NewString()},
 	})
 
-	NewHandler(svc, true, silentLogger()).CreateUpload(c)
+	NewHandler(svc, true, testLimits(), silentLogger()).CreateUpload(c)
 
 	if w.Code != http.StatusCreated {
 		t.Fatalf("want 201, got %d", w.Code)
@@ -148,7 +203,7 @@ func TestHandlerFinalize_NotFound404(t *testing.T) {
 	w := httptest.NewRecorder()
 	c := newCtx(w, http.MethodPost, "", gin.Params{{Key: "videoId", Value: uuid.NewString()}})
 
-	NewHandler(svc, true, silentLogger()).Finalize(c)
+	NewHandler(svc, true, testLimits(), silentLogger()).Finalize(c)
 
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("want 404, got %d", w.Code)
@@ -160,7 +215,7 @@ func TestHandlerDelete_Success204(t *testing.T) {
 	w := httptest.NewRecorder()
 	c := newCtx(w, http.MethodDelete, "", gin.Params{{Key: "videoId", Value: uuid.NewString()}})
 
-	NewHandler(svc, true, silentLogger()).Delete(c)
+	NewHandler(svc, true, testLimits(), silentLogger()).Delete(c)
 
 	// c.Status sets the code without flushing when the handler is invoked
 	// directly (the engine flushes in the normal request path), so assert the
