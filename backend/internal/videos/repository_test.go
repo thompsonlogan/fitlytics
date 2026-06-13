@@ -87,8 +87,9 @@ func TestRepositoryCreateUpload_HappyPathNoExisting(t *testing.T) {
 		WithArgs(uuidArg(ownerID)).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
 
-	// Count #2: trailing 24h — distinguished by the created_at arg.
-	mock.ExpectQuery(`SELECT count\(\*\) FROM "set_videos".*deleted_at`).
+	// Count #2: trailing 24h — Unscoped, so deleted_at must NOT appear.
+	// Anchored to $ so any appended deleted_at clause breaks the match.
+	mock.ExpectQuery(`SELECT count\(\*\) FROM "set_videos" WHERE "set_videos"\."user_id" = \$1 AND "set_videos"\."created_at" > \$2$`).
 		WithArgs(uuidArg(ownerID), sqlmock.AnyArg()).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
 
@@ -141,8 +142,9 @@ func TestRepositoryCreateUpload_ReplacesExistingAndReturnsOldKey(t *testing.T) {
 		WithArgs(uuidArg(ownerID)).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
 
-	// Count #2: trailing 24h.
-	mock.ExpectQuery(`SELECT count\(\*\) FROM "set_videos".*deleted_at`).
+	// Count #2: trailing 24h — Unscoped, so deleted_at must NOT appear.
+	// Anchored to $ so any appended deleted_at clause breaks the match.
+	mock.ExpectQuery(`SELECT count\(\*\) FROM "set_videos" WHERE "set_videos"\."user_id" = \$1 AND "set_videos"\."created_at" > \$2$`).
 		WithArgs(uuidArg(ownerID), sqlmock.AnyArg()).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
 
@@ -231,8 +233,9 @@ func TestRepositoryCreateUpload_PerDayQuotaRollsBack(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
 
 	// Count #2: trailing 24h → hits per-day cap.
-	// Baseline characterization: query includes deleted_at (soft-delete scope).
-	mock.ExpectQuery(`SELECT count\(\*\) FROM "set_videos".*deleted_at`).
+	// Unscoped — deleted_at must NOT appear. Anchored to $ so any appended
+	// deleted_at clause breaks the match.
+	mock.ExpectQuery(`SELECT count\(\*\) FROM "set_videos" WHERE "set_videos"\."user_id" = \$1 AND "set_videos"\."created_at" > \$2$`).
 		WithArgs(uuidArg(ownerID), sqlmock.AnyArg()).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(maxPerDay))
 

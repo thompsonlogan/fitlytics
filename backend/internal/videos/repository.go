@@ -77,9 +77,11 @@ func (r *repository) CreateUpload(ctx context.Context, ownerID uuid.UUID, row *g
 			return ErrQuotaExceeded
 		}
 
-		// Quota: videos created in the trailing 24h.
+		// Quota: videos created in the trailing 24h. Unscoped on purpose —
+		// re-uploading soft-deletes the replaced row, and the daily cap bounds
+		// upload bandwidth, so replaced uploads must still count.
 		since := time.Now().Add(-24 * time.Hour)
-		recent, err := sv.WithContext(ctx).
+		recent, err := sv.WithContext(ctx).Unscoped().
 			Where(sv.UserID.Eq(ownerID), sv.CreatedAt.Gt(since)).Count()
 		if err != nil {
 			return fmt.Errorf("count recent videos: %w", err)
