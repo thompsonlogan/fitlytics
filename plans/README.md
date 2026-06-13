@@ -21,7 +21,7 @@ typecheck clean, `onSettled` in place). Plans 002–006 are executable as-is.
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
 | 001  | Invalidate the session-video cache even when an upload fails | P1 | S | — | DONE (committed as `c1cff84`; criteria verified on HEAD at reconcile) |
-| 002  | Stop Finalize from failing uploads on transient storage errors | P1 | S | — | TODO |
+| 002  | Stop Finalize from failing uploads on transient storage errors | P1 | S | — | DONE (executed 2026-06-13 in worktree `agent-ab93e873696497122`; criteria verified — see note below; awaiting user merge) |
 | 003  | Characterization tests for the videos repository | P1 | M | — | TODO |
 | 004  | Make the daily upload quota count replaced (soft-deleted) videos | P1 | S | 003 | TODO |
 | 005  | Video capabilities endpoint + graceful disabled-mode frontend | P2 | M | — | TODO |
@@ -60,6 +60,12 @@ Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) | REJE
   pre-existing errors in `frontend/src/components/workout/set-state-cell.tsx`
   and `frontend/src/routes/today.tsx`. Plans' "lint exits 0" criteria should
   be read as "no NEW lint errors" until those are fixed.
+- **`go build ./...` / `go test ./...` cannot pass in a fresh worktree** (learned
+  during 002): `cmd/api/main.go` imports `backend/docs` (generated swagger), which
+  is git-ignored and therefore absent from any worktree that hasn't run
+  `make swagger`. Backend plans' full-build criteria should be read as
+  `go build ./internal/...` + `go test ./internal/...` inside a worktree; the
+  full `./...` build only holds in the main tree where `docs/` exists.
 
 ## Findings considered and rejected
 

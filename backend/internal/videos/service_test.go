@@ -3,6 +3,7 @@ package videos
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"testing"
@@ -191,7 +192,7 @@ func TestFinalize_MissingObjectMarksFailed(t *testing.T) {
 		markFailedFn: func(context.Context, uuid.UUID) error { failed = true; return nil },
 	}
 	store := &fakeStore{headFn: func(context.Context, string) (storage.HeadResult, error) {
-		return storage.HeadResult{}, errors.New("404")
+		return storage.HeadResult{}, fmt.Errorf("head object: %w", storage.ErrNotFound)
 	}}
 	svc := NewService(repo, store, testLimits(), silentLogger())
 
@@ -201,6 +202,30 @@ func TestFinalize_MissingObjectMarksFailed(t *testing.T) {
 	}
 	if !failed {
 		t.Error("expected the video to be marked failed")
+	}
+}
+
+func TestFinalize_TransientHeadErrorLeavesPending(t *testing.T) {
+	id := uuid.New()
+	markFailedCalled := false
+	repo := &fakeRepo{
+		getOwnedFn:   func(context.Context, uuid.UUID, uuid.UUID) (*generated.SetVideo, error) { return readyRow(id), nil },
+		markFailedFn: func(context.Context, uuid.UUID) error { markFailedCalled = true; return nil },
+	}
+	store := &fakeStore{headFn: func(context.Context, string) (storage.HeadResult, error) {
+		return storage.HeadResult{}, errors.New("connection reset")
+	}}
+	svc := NewService(repo, store, testLimits(), silentLogger())
+
+	_, err := svc.Finalize(context.Background(), id, uuid.New())
+	if err == nil {
+		t.Fatal("expected an error, got nil")
+	}
+	if errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("transient error should not be ErrInvalidInput, got %v", err)
+	}
+	if markFailedCalled {
+		t.Error("expected the video to NOT be marked failed on a transient error")
 	}
 }
 

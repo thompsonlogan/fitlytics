@@ -6,8 +6,13 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"time"
 )
+
+// ErrNotFound is returned by Head when the object does not exist (as opposed
+// to a transient store failure). Callers branch on it with errors.Is.
+var ErrNotFound = errors.New("storage: object not found")
 
 // PresignedUpload describes a single, short-lived direct-to-store upload. The
 // browser performs one HTTP request to URL using Method and MUST send exactly
@@ -34,7 +39,7 @@ type ObjectStore interface {
 	PresignPut(ctx context.Context, key, contentType string, size int64, ttl time.Duration) (PresignedUpload, error)
 	// PresignGet returns a short-lived read URL for key, used for playback.
 	PresignGet(ctx context.Context, key string, ttl time.Duration) (string, error)
-	// Head returns the stored object's metadata, or an error if it is absent.
+	// Head returns the stored object's metadata. Returns an error wrapping ErrNotFound when the object does not exist; any other error is a store failure and may be transient.
 	Head(ctx context.Context, key string) (HeadResult, error)
 	// Delete removes the object. Deleting a missing key is not an error.
 	Delete(ctx context.Context, key string) error

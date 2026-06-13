@@ -127,9 +127,14 @@ func (s *service) Finalize(ctx context.Context, videoID, ownerID uuid.UUID) (*Vi
 
 	head, err := s.store.Head(ctx, row.StorageKey)
 	if err != nil {
-		// No object landed — mark failed so the slot frees up and reject.
-		_ = s.repo.MarkFailed(ctx, videoID)
-		return nil, fmt.Errorf("%w: upload not found in storage", ErrInvalidInput)
+		if errors.Is(err, storage.ErrNotFound) {
+			// No object landed — mark failed so the slot frees up and reject.
+			_ = s.repo.MarkFailed(ctx, videoID)
+			return nil, fmt.Errorf("%w: upload not found in storage", ErrInvalidInput)
+		}
+		// Transient store failure: leave the row pending so the client can
+		// retry finalize without re-uploading.
+		return nil, fmt.Errorf("head upload: %w", err)
 	}
 	if head.SizeBytes > s.limits.MaxBytes {
 		if derr := s.store.Delete(ctx, row.StorageKey); derr != nil {

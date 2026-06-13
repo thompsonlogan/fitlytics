@@ -9,6 +9,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	smithy "github.com/aws/smithy-go"
 )
 
 // R2Config holds the connection settings for a Cloudflare R2 bucket. R2 speaks
@@ -99,6 +101,19 @@ func (s *R2Store) Head(ctx context.Context, key string) (HeadResult, error) {
 		Key:    aws.String(key),
 	})
 	if err != nil {
+		var notFound *types.NotFound
+		if errors.As(err, &notFound) {
+			return HeadResult{}, fmt.Errorf("head object %q: %w", key, ErrNotFound)
+		}
+		// Some S3-compatible stores surface HeadObject 404s only as a generic
+		// API error with code NotFound/NoSuchKey.
+		var apiErr smithy.APIError
+		if errors.As(err, &apiErr) {
+			code := apiErr.ErrorCode()
+			if code == "NotFound" || code == "NoSuchKey" {
+				return HeadResult{}, fmt.Errorf("head object %q: %w", key, ErrNotFound)
+			}
+		}
 		return HeadResult{}, fmt.Errorf("head object: %w", err)
 	}
 	res := HeadResult{}
