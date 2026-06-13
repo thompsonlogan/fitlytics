@@ -23,6 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 
-# Claude Code
-.claude/settings.local.json
-.claude/worktrees/
+# Claude Code / agent tooling
+.claude/
+.agent/
+skills-lock.json
