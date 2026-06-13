@@ -25,6 +25,7 @@ func (h *Handler) Register(rg *gin.RouterGroup) {
 	rg.GET("/programs/:id/days/:dayId/sessions/current", h.GetCurrentSession)
 	rg.POST("/programs/:id/days/:dayId/sessions", h.StartSession)
 	rg.PATCH("/sessions/:sessionId/set-logs/:setLogId", h.UpdateSetLog)
+	rg.PATCH("/sessions/:sessionId/set-logs", h.UpdateSetLogs)
 	rg.GET("/programs/:id/day-completions", h.GetCompletedDays)
 }
 
@@ -175,6 +176,60 @@ func (h *Handler) UpdateSetLog(c *gin.Context) {
 		h.log.Error("update set log failed",
 			slog.String("session_id", sessionID.String()),
 			slog.String("set_log_id", setLogID.String()),
+			slog.String("user_id", principal.User.ID.String()),
+			slog.Any("error", err),
+		)
+		apierr.InternalServerError(c, "internal server error")
+		return
+	}
+
+	c.JSON(http.StatusOK, updated)
+}
+
+// UpdateSetLogs writes the user's actuals to several set_logs in one atomic
+// operation — all rows update or none do.
+//
+// @Summary      Batch-update actuals on multiple set logs
+// @Description  Atomically applies partial updates to multiple set_logs within one session. All updates are applied in a single transaction — any ownership or validation failure rolls back the entire batch. Capped at 50 items per request.
+// @Tags         Sessions
+// @Accept       json
+// @Produce      json
+// @Param        sessionId  path      string                     true  "Session UUID"  Format(uuid)
+// @Param        body       body      BatchUpdateSetLogsRequest  true  "Batch updates"
+// @Success      200  {array}   SetLogResponse
+// @Failure      400  {object}  apierr.ProblemDetails  "invalid input"
+// @Failure      401  {object}  apierr.ProblemDetails  "missing or invalid auth token"
+// @Failure      404  {object}  apierr.ProblemDetails  "session or set log not found"
+// @Failure      500  {object}  apierr.ProblemDetails  "internal server error"
+// @Security     BearerAuth
+// @Router       /api/sessions/{sessionId}/set-logs [patch]
+func (h *Handler) UpdateSetLogs(c *gin.Context) {
+	sessionID, err := uuid.Parse(c.Param("sessionId"))
+	if err != nil {
+		apierr.BadRequest(c, "invalid session id")
+		return
+	}
+
+	var body BatchUpdateSetLogsRequest
+	if err := c.ShouldBindJSON(&body); err != nil {
+		apierr.BadRequest(c, "invalid request body")
+		return
+	}
+
+	principal := auth.MustPrincipal(c)
+
+	updated, err := h.service.UpdateSetLogs(c.Request.Context(), sessionID, principal.User.ID, body)
+	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			apierr.NotFound(c, "session or set log not found")
+			return
+		}
+		if errors.Is(err, ErrInvalidInput) {
+			apierr.BadRequest(c, err.Error())
+			return
+		}
+		h.log.Error("batch update set logs failed",
+			slog.String("session_id", sessionID.String()),
 			slog.String("user_id", principal.User.ID.String()),
 			slog.Any("error", err),
 		)

@@ -58,6 +58,18 @@ type UpdateSetLogRequest struct {
 	State        *string  `json:"state,omitempty" example:"completed"`
 } // @name UpdateSetLogRequest
 
+// BatchUpdateSetLogItem is one set_log's updates within a batch write.
+type BatchUpdateSetLogItem struct {
+	SetLogID uuid.UUID `json:"set_log_id" binding:"required"`
+	UpdateSetLogRequest
+} // @name BatchUpdateSetLogItem
+
+// BatchUpdateSetLogsRequest applies updates to several of one session's
+// set_logs atomically — all rows update or none do.
+type BatchUpdateSetLogsRequest struct {
+	Updates []BatchUpdateSetLogItem `json:"updates" binding:"required,min=1,max=50"`
+} // @name BatchUpdateSetLogsRequest
+
 type CompletedDayResponse struct {
 	WeekSequence int32 `json:"week_sequence" example:"4"`
 	DaySequence  int32 `json:"day_sequence" example:"1"`

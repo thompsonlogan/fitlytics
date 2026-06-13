@@ -17,6 +17,7 @@ type Service interface {
 	GetCurrentSession(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error)
 	StartSession(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error)
 	UpdateSetLog(ctx context.Context, sessionID, setLogID, ownerUserID uuid.UUID, input UpdateSetLogRequest) (*SetLogResponse, error)
+	UpdateSetLogs(ctx context.Context, sessionID, ownerUserID uuid.UUID, input BatchUpdateSetLogsRequest) ([]SetLogResponse, error)
 	GetCompletedDays(ctx context.Context, programID, ownerUserID uuid.UUID) ([]CompletedDayResponse, error)
 }
 
@@ -59,28 +60,35 @@ func (s *service) StartSession(ctx context.Context, programID, programDayID, own
 	return mapSession(row), nil
 }
 
-func (s *service) UpdateSetLog(ctx context.Context, sessionID, setLogID, ownerUserID uuid.UUID, input UpdateSetLogRequest) (*SetLogResponse, error) {
+func validateSetLogUpdate(input UpdateSetLogRequest) error {
 	if input.RepsActual != nil {
 		if *input.RepsActual < minReps || *input.RepsActual > maxReps {
-			return nil, fmt.Errorf("%w: reps_actual out of range", ErrInvalidInput)
+			return fmt.Errorf("%w: reps_actual out of range", ErrInvalidInput)
 		}
 	}
 	if input.ActualLoadKg != nil {
 		if *input.ActualLoadKg < minLoadKg || *input.ActualLoadKg > maxLoadKg {
-			return nil, fmt.Errorf("%w: actual_load_kg out of range", ErrInvalidInput)
+			return fmt.Errorf("%w: actual_load_kg out of range", ErrInvalidInput)
 		}
 	}
 	if input.ActualRpe != nil {
 		if *input.ActualRpe < minRpe || *input.ActualRpe > maxRpe {
-			return nil, fmt.Errorf("%w: actual_rpe out of range", ErrInvalidInput)
+			return fmt.Errorf("%w: actual_rpe out of range", ErrInvalidInput)
 		}
 	}
 	if input.State != nil {
 		switch *input.State {
 		case "pending", "completed", "skipped":
 		default:
-			return nil, fmt.Errorf("%w: state must be one of pending, completed, skipped", ErrInvalidInput)
+			return fmt.Errorf("%w: state must be one of pending, completed, skipped", ErrInvalidInput)
 		}
+	}
+	return nil
+}
+
+func (s *service) UpdateSetLog(ctx context.Context, sessionID, setLogID, ownerUserID uuid.UUID, input UpdateSetLogRequest) (*SetLogResponse, error) {
+	if err := validateSetLogUpdate(input); err != nil {
+		return nil, err
 	}
 
 	row, err := s.repo.UpdateSetLog(ctx, sessionID, setLogID, ownerUserID, input)
@@ -93,6 +101,29 @@ func (s *service) UpdateSetLog(ctx context.Context, sessionID, setLogID, ownerUs
 
 	resp := mapSetLog(*row)
 	return &resp, nil
+}
+
+func (s *service) UpdateSetLogs(ctx context.Context, sessionID, ownerUserID uuid.UUID, input BatchUpdateSetLogsRequest) ([]SetLogResponse, error) {
+	// Validate all items first — fail fast before any DB work.
+	for _, item := range input.Updates {
+		if err := validateSetLogUpdate(item.UpdateSetLogRequest); err != nil {
+			return nil, err
+		}
+	}
+
+	rows, err := s.repo.UpdateSetLogs(ctx, sessionID, ownerUserID, input.Updates)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("batch update set logs: %w", err)
+	}
+
+	out := make([]SetLogResponse, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, mapSetLog(*row))
+	}
+	return out, nil
 }
 
 func (s *service) GetCompletedDays(ctx context.Context, programID, ownerUserID uuid.UUID) ([]CompletedDayResponse, error) {

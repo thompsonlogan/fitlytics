@@ -8,7 +8,7 @@ import { CYCLE_NEXT, type SetState } from "@/components/workout/set-state-cell"
 import { WorkoutTableSkeleton } from "@/components/workout/workout-table-skeleton"
 import { RestDayCard, WorkoutTable } from "@/components/workout/workout-table"
 import { VideoUploadDialog } from "@/components/workout/video-upload-dialog"
-import { useCurrentSession, useLogSet, useStartSession } from "@/hooks/use-session"
+import { useCurrentSession, useLogSet, useLogSetBatch, useStartSession } from "@/hooks/use-session"
 import { useSessionVideos, useVideoConfig } from "@/hooks/use-set-videos"
 import { type ProgramDay } from "@/lib/program-data"
 import { LB_TO_KG } from "@/lib/program-mapper"
@@ -128,6 +128,7 @@ export function DayBoard({ day, programId, programDayId, initialCompleted = {} }
   const sessionQuery = useCurrentSession(programId, programDayId)
   const startSession = useStartSession(programId, programDayId)
   const logSet = useLogSet(programId, programDayId)
+  const logSetBatch = useLogSetBatch(programId, programDayId)
 
   const session = sessionQuery.data
 
@@ -304,9 +305,9 @@ export function DayBoard({ day, programId, programDayId, initialCompleted = {} }
       }
       // Fan the load out to every set in the block.
       const actualLoadKg = Number(LB_TO_KG(lb).toFixed(2))
-      await Promise.all(
-        logs.map((log) => logSet.mutateAsync({ setLogId: log.id, body: { actualLoadKg } }))
-      )
+      await logSetBatch.mutateAsync({
+        updates: logs.map((log) => ({ setLogId: log.id, body: { actualLoadKg } })),
+      })
       clearEdit("load", key)
     } catch (err) {
       const apiMsg = await readApiErrorMessage(err)
@@ -394,9 +395,9 @@ export function DayBoard({ day, programId, programDayId, initialCompleted = {} }
         const logs = findBlockLogs(key, s)
         if (logs.length === 0) return
         // Completing/skipping a block fans the state out to every set in it.
-        await Promise.all(
-          logs.map((log) => logSet.mutateAsync({ setLogId: log.id, body: { state: desired } }))
-        )
+        await logSetBatch.mutateAsync({
+          updates: logs.map((log) => ({ setLogId: log.id, body: { state: desired } })),
+        })
         // onSuccess merged the updated logs into the cache — drop the local
         // override so the merged map pulls from the session again.
         setStateLocal((prev) => {
