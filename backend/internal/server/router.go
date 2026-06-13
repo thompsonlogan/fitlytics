@@ -79,7 +79,7 @@ func NewRouter(deps Dependencies, isProduction bool) *gin.Engine {
 	if videosEnabled {
 		videosService = videos.NewService(videos.NewRepository(deps.DB), deps.VideoStore, deps.VideoLimits, deps.Log)
 	}
-	videosHandler := videos.NewHandler(videosService, videosEnabled, deps.Log)
+	videosHandler := videos.NewHandler(videosService, videosEnabled, deps.VideoLimits, deps.Log)
 
 	// Authenticated routes — every handler below can call auth.MustPrincipal.
 	api := r.Group("/api")

@@ -9,7 +9,7 @@ import { WorkoutTableSkeleton } from "@/components/workout/workout-table-skeleto
 import { RestDayCard, WorkoutTable } from "@/components/workout/workout-table"
 import { VideoUploadDialog } from "@/components/workout/video-upload-dialog"
 import { useCurrentSession, useLogSet, useStartSession } from "@/hooks/use-session"
-import { useSessionVideos } from "@/hooks/use-set-videos"
+import { useSessionVideos, useVideoConfig } from "@/hooks/use-set-videos"
 import { type ProgramDay } from "@/lib/program-data"
 import { LB_TO_KG } from "@/lib/program-mapper"
 import {
@@ -135,9 +135,13 @@ export function DayBoard({ day, programId, programDayId, initialCompleted = {} }
   // up a block's set logs by the same row key the workout table already uses.
   const blockLogsByKey = useMemo(() => buildBlockIndex(session), [session])
 
+  const videoConfig = useVideoConfig()
+  // Optimistic while loading/error — hide only on explicit enabled:false from server.
+  const videosEnabled = videoConfig.data?.enabled !== false
+
   // Set videos for this session, indexed by set_log id so each block row can
   // resolve its sets' clips.
-  const videosQuery = useSessionVideos(session?.id)
+  const videosQuery = useSessionVideos(videosEnabled ? session?.id : undefined)
   const videosBySetLogId = useMemo(() => {
     const m = new Map<string, VideoResponse>()
     for (const v of videosQuery.data ?? []) {
@@ -443,6 +447,7 @@ export function DayBoard({ day, programId, programDayId, initialCompleted = {} }
           persistedRpe={persistedRpe}
           cellErrors={cellErrors}
           videoInfo={videoInfo}
+          videosEnabled={videosEnabled}
           onCycleSet={cycleSet}
           onEditLoad={editLoad}
           onEditRpe={editRpe}
@@ -455,7 +460,7 @@ export function DayBoard({ day, programId, programDayId, initialCompleted = {} }
         <SidePanel day={day} completed={completed} />
       </div>
 
-      {videoDialog
+      {videosEnabled && videoDialog
         ? (() => {
             const [exIdx, blIdx] = videoDialog.rowKey.split("-").map(Number)
             const exercise = day.exercises?.[exIdx]

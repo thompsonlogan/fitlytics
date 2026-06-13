@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"sort"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -15,17 +16,19 @@ import (
 type Handler struct {
 	service Service
 	enabled bool
+	limits  Limits
 	log     *slog.Logger
 }
 
 // NewHandler builds the videos handler. When enabled is false (R2 not
 // configured) service may be nil and every route responds 503, so the frontend
 // can distinguish "not configured" from "not found".
-func NewHandler(service Service, enabled bool, log *slog.Logger) *Handler {
-	return &Handler{service: service, enabled: enabled, log: log}
+func NewHandler(service Service, enabled bool, limits Limits, log *slog.Logger) *Handler {
+	return &Handler{service: service, enabled: enabled, limits: limits, log: log}
 }
 
 func (h *Handler) Register(rg *gin.RouterGroup) {
+	rg.GET("/videos/config", h.Config)
 	rg.POST("/sessions/:sessionId/set-logs/:setLogId/videos", h.CreateUpload)
 	rg.GET("/sessions/:sessionId/videos", h.ListForSession)
 	rg.POST("/videos/:videoId/finalize", h.Finalize)
@@ -40,6 +43,29 @@ func (h *Handler) guard(c *gin.Context) bool {
 		return false
 	}
 	return true
+}
+
+// Config returns the server's video-upload capabilities and constraints.
+// It intentionally does NOT call h.guard — returning enabled:false is its
+// entire purpose when the feature is disabled.
+//
+// @Summary      Get video upload capabilities
+// @Tags         Videos
+// @Produce      json
+// @Success      200  {object}  VideoConfigResponse
+// @Security     BearerAuth
+// @Router       /api/videos/config [get]
+func (h *Handler) Config(c *gin.Context) {
+	types := make([]string, 0, len(allowedContentTypes))
+	for t := range allowedContentTypes {
+		types = append(types, t)
+	}
+	sort.Strings(types)
+	c.JSON(http.StatusOK, VideoConfigResponse{
+		Enabled:      h.enabled,
+		MaxBytes:     h.limits.MaxBytes,
+		AllowedTypes: types,
+	})
 }
 
 // CreateUpload reserves a direct-to-storage upload for a set's video.

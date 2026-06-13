@@ -20,6 +20,7 @@ import {
   useDeleteSetVideo,
   useUpdateVideoNote,
   useUploadSetVideo,
+  useVideoConfig,
 } from "@/hooks/use-set-videos"
 import { type SetLogResponse, type VideoResponse } from "@/services/generated"
 
@@ -93,6 +94,7 @@ export function VideoUploadDialog({
   const [noteDrafts, setNoteDrafts] = useState<Record<number, string>>({})
   const fileRef = useRef<HTMLInputElement>(null)
 
+  const videoConfig = useVideoConfig()
   const upload = useUploadSetVideo()
   const remove = useDeleteSetVideo()
   const updateNote = useUpdateVideoNote()
@@ -114,12 +116,13 @@ export function VideoUploadDialog({
 
   async function beginUpload(file: File) {
     setLocalError(null)
-    if (!isAllowedVideoType(file.type)) {
+    const maxBytes = videoConfig.data?.max_bytes ?? MAX_VIDEO_BYTES
+    if (!isAllowedVideoType(file.type, videoConfig.data?.allowed_types)) {
       setLocalError("Use an MP4, MOV or WebM video.")
       return
     }
-    if (file.size > MAX_VIDEO_BYTES) {
-      setLocalError("That file is over the 500 MB limit.")
+    if (file.size > maxBytes) {
+      setLocalError(`That file is over the ${fmtBytes(maxBytes)} limit.`)
       return
     }
 
@@ -263,7 +266,12 @@ export function VideoUploadDialog({
               <span className="text-[0.8125rem]">
                 or <u className="underline-offset-2">browse files</u> to upload
               </span>
-              <span className="mt-1 text-[0.6875rem] opacity-80">MP4, MOV or WebM · up to 500 MB</span>
+              <span className="mt-1 text-[0.6875rem] opacity-80">
+                {videoConfig.data?.allowed_types
+                  ? videoConfig.data.allowed_types.map((t) => t.split("/")[1]?.toUpperCase()).join(", ")
+                  : "MP4, MOV or WebM"}{" "}
+                · up to {fmtBytes(videoConfig.data?.max_bytes ?? MAX_VIDEO_BYTES)}
+              </span>
             </button>
           )}
           {localError ? (

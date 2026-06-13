@@ -46,3 +46,11 @@ type CreateVideoUploadResponse struct {
 type UpdateVideoRequest struct {
 	Note *string `json:"note,omitempty"`
 } // @name UpdateVideoRequest
+
+// VideoConfigResponse tells the client whether uploads are available and the
+// server-enforced constraints, so the UI never hardcodes them.
+type VideoConfigResponse struct {
+	Enabled      bool     `json:"enabled"`
+	MaxBytes     int64    `json:"max_bytes" example:"524288000"`
+	AllowedTypes []string `json:"allowed_types" example:"video/mp4,video/quicktime,video/webm"`
+} // @name VideoConfigResponse

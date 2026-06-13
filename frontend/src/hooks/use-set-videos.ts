@@ -7,13 +7,39 @@ import {
   type VideoResponse,
 } from "@/services/generated"
 
-// Accepted upload MIME types + the client-side size cap. The server enforces
-// these too (and binds them into the presigned URL); this is a fast-fail for UX.
+// Fallbacks for before/without the server config — the server enforces the
+// real limits regardless.
 export const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/quicktime", "video/webm"] as const
-export const MAX_VIDEO_BYTES = 500 * 1024 * 1024 // 500 MB — matches the backend default
+export const MAX_VIDEO_BYTES = 500 * 1024 * 1024
 
-export function isAllowedVideoType(type: string): boolean {
-  return (ALLOWED_VIDEO_TYPES as readonly string[]).includes(type)
+export function isAllowedVideoType(type: string, allowed?: string[]): boolean {
+  return (allowed ?? (ALLOWED_VIDEO_TYPES as readonly string[])).includes(type)
+}
+
+export type VideoConfig = {
+  enabled: boolean
+  max_bytes: number
+  allowed_types: string[]
+}
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ""
+
+// useVideoConfig loads the server's video-upload capabilities once per app
+// session. Plain fetch (not the generated client) because the typed client is
+// only regenerated against a running backend; keep auth identical to main.tsx
+// (cookie credentials).
+export function useVideoConfig() {
+  return useQuery({
+    queryKey: ["video-config"],
+    staleTime: Infinity,
+    queryFn: async (): Promise<VideoConfig> => {
+      const res = await fetch(`${API_BASE_URL}/api/videos/config`, {
+        credentials: "include",
+      })
+      if (!res.ok) throw new Error(`video config failed: ${res.status}`)
+      return res.json()
+    },
+  })
 }
 
 // sessionVideosQueryKey scopes the per-session video list. Exported so callers
