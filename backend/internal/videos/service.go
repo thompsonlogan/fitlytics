@@ -153,6 +153,24 @@ func (s *service) Finalize(ctx context.Context, videoID, ownerID uuid.UUID) (*Vi
 		return nil, fmt.Errorf("%w: upload did not complete (size mismatch); please try again", ErrInvalidInput)
 	}
 
+	// Reject if the object that actually landed isn't the content-type we
+	// reserved the slot for. Mirrors the size-mismatch handling above: the
+	// upload is repudiated, the object purged, and the slot freed. Skip the
+	// check when either side is unknown (older rows, or a store that doesn't
+	// return a content-type) to avoid false rejections.
+	if row.ContentType != nil && head.ContentType != "" && head.ContentType != *row.ContentType {
+		s.log.Warn("video upload content-type mismatch; rejecting",
+			slog.String("key", row.StorageKey),
+			slog.String("reserved_type", *row.ContentType),
+			slog.String("stored_type", head.ContentType),
+		)
+		if derr := s.store.Delete(ctx, row.StorageKey); derr != nil {
+			s.log.Warn("failed to delete mismatched-type video object", slog.String("key", row.StorageKey), slog.Any("error", derr))
+		}
+		_ = s.repo.MarkFailed(ctx, videoID)
+		return nil, fmt.Errorf("%w: uploaded file type does not match the reserved type", ErrInvalidInput)
+	}
+
 	updated, err := s.repo.MarkReady(ctx, videoID, head.SizeBytes)
 	if err != nil {
 		return nil, fmt.Errorf("mark ready: %w", err)

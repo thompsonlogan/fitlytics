@@ -192,6 +192,14 @@ func sizedRow(id uuid.UUID, size int64) *generated.SetVideo {
 	return row
 }
 
+// typedRow is sizedRow plus a reserved ContentType, for exercising the finalize
+// integrity check that compares reserved vs stored content-type.
+func typedRow(id uuid.UUID, size int64, ct string) *generated.SetVideo {
+	row := sizedRow(id, size)
+	row.ContentType = &ct
+	return row
+}
+
 func TestFinalize_MissingObjectMarksFailed(t *testing.T) {
 	id := uuid.New()
 	failed := false
@@ -287,6 +295,61 @@ func TestFinalize_SizeMismatchIsDeletedAndRejected(t *testing.T) {
 	}
 	if len(store.deleted) != 1 {
 		t.Errorf("expected mismatched object to be purged, deleted=%v", store.deleted)
+	}
+}
+
+func TestFinalize_ContentTypeMismatchIsDeletedAndRejected(t *testing.T) {
+	id := uuid.New()
+	failed := false
+	markReadyCalled := false
+	repo := &fakeRepo{
+		// Reserved an mp4, but a different type landed at the slot.
+		getOwnedFn:   func(context.Context, uuid.UUID, uuid.UUID) (*generated.SetVideo, error) { return typedRow(id, 4096, "video/mp4"), nil },
+		markFailedFn: func(context.Context, uuid.UUID) error { failed = true; return nil },
+		markReadyFn: func(context.Context, uuid.UUID, int64) (*generated.SetVideo, error) {
+			markReadyCalled = true
+			return nil, nil
+		},
+	}
+	store := &fakeStore{headFn: func(context.Context, string) (storage.HeadResult, error) {
+		return storage.HeadResult{SizeBytes: 4096, ContentType: "text/html"}, nil
+	}}
+	svc := NewService(repo, store, testLimits(), silentLogger())
+
+	_, err := svc.Finalize(context.Background(), id, uuid.New())
+	if !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("want ErrInvalidInput, got %v", err)
+	}
+	if !failed {
+		t.Error("expected the mismatched-type video to be marked failed")
+	}
+	if markReadyCalled {
+		t.Error("a content-type mismatch must not be marked ready")
+	}
+	if len(store.deleted) != 1 {
+		t.Errorf("expected mismatched-type object to be purged, deleted=%v", store.deleted)
+	}
+}
+
+func TestFinalize_MatchingContentTypePasses(t *testing.T) {
+	id := uuid.New()
+	repo := &fakeRepo{
+		getOwnedFn: func(context.Context, uuid.UUID, uuid.UUID) (*generated.SetVideo, error) { return typedRow(id, 4096, "video/mp4"), nil },
+		markReadyFn: func(_ context.Context, v uuid.UUID, size int64) (*generated.SetVideo, error) {
+			return &generated.SetVideo{ID: v, Status: "ready", StorageKey: "k.mp4", SizeBytes: &size}, nil
+		},
+	}
+	store := &fakeStore{headFn: func(context.Context, string) (storage.HeadResult, error) {
+		return storage.HeadResult{SizeBytes: 4096, ContentType: "video/mp4"}, nil
+	}}
+	svc := NewService(repo, store, testLimits(), silentLogger())
+
+	out, err := svc.Finalize(context.Background(), id, uuid.New())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if out.Status != "ready" {
+		t.Fatalf("expected ready video, got %+v", out)
 	}
 }
 
