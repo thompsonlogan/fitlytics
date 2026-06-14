@@ -1,5 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
+export * from './BatchUpdateSetLogItem';
+export * from './BatchUpdateSetLogsRequest';
 export * from './CompletedDayResponse';
 export * from './CreateVideoUploadRequest';
 export * from './CreateVideoUploadResponse';

@@ -15,6 +15,7 @@
 
 import * as runtime from '../runtime';
 import type {
+  BatchUpdateSetLogsRequest,
   CompletedDayResponse,
   ProblemDetails,
   SessionResponse,
@@ -22,6 +23,8 @@ import type {
   UpdateSetLogRequest,
 } from '../models/index';
 import {
+    BatchUpdateSetLogsRequestFromJSON,
+    BatchUpdateSetLogsRequestToJSON,
     CompletedDayResponseFromJSON,
     CompletedDayResponseToJSON,
     ProblemDetailsFromJSON,
@@ -46,6 +49,11 @@ export interface ApiProgramsIdDaysDayIdSessionsCurrentGetRequest {
 export interface ApiProgramsIdDaysDayIdSessionsPostRequest {
     id: string;
     dayId: string;
+}
+
+export interface ApiSessionsSessionIdSetLogsPatchRequest {
+    sessionId: string;
+    body: BatchUpdateSetLogsRequest;
 }
 
 export interface ApiSessionsSessionIdSetLogsSetLogIdPatchRequest {
@@ -187,6 +195,55 @@ export class SessionsApi extends runtime.BaseAPI {
      */
     async apiProgramsIdDaysDayIdSessionsPost(requestParameters: ApiProgramsIdDaysDayIdSessionsPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SessionResponse> {
         const response = await this.apiProgramsIdDaysDayIdSessionsPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Atomically applies partial updates to multiple set_logs within one session. All updates are applied in a single transaction — any ownership or validation failure rolls back the entire batch. Capped at 50 items per request.
+     * Batch-update actuals on multiple set logs
+     */
+    async apiSessionsSessionIdSetLogsPatchRaw(requestParameters: ApiSessionsSessionIdSetLogsPatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<SetLogResponse>>> {
+        if (requestParameters['sessionId'] == null) {
+            throw new runtime.RequiredError(
+                'sessionId',
+                'Required parameter "sessionId" was null or undefined when calling apiSessionsSessionIdSetLogsPatch().'
+            );
+        }
+
+        if (requestParameters['body'] == null) {
+            throw new runtime.RequiredError(
+                'body',
+                'Required parameter "body" was null or undefined when calling apiSessionsSessionIdSetLogsPatch().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["Authorization"] = await this.configuration.apiKey("Authorization"); // BearerAuth authentication
+        }
+
+        const response = await this.request({
+            path: `/api/sessions/{sessionId}/set-logs`.replace(`{${"sessionId"}}`, encodeURIComponent(String(requestParameters['sessionId']))),
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+            body: BatchUpdateSetLogsRequestToJSON(requestParameters['body']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(SetLogResponseFromJSON));
+    }
+
+    /**
+     * Atomically applies partial updates to multiple set_logs within one session. All updates are applied in a single transaction — any ownership or validation failure rolls back the entire batch. Capped at 50 items per request.
+     * Batch-update actuals on multiple set logs
+     */
+    async apiSessionsSessionIdSetLogsPatch(requestParameters: ApiSessionsSessionIdSetLogsPatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<SetLogResponse>> {
+        const response = await this.apiSessionsSessionIdSetLogsPatchRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
