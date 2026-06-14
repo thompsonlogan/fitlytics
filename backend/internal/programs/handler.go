@@ -80,7 +80,7 @@ func (h *Handler) GetProgramById(c *gin.Context) {
 
 	program, err := h.service.GetProgramById(c.Request.Context(), programID, principal.User.ID)
 	if err != nil {
-		if errors.Is(err, ErrNotFound) {
+		if errors.Is(err, apierr.ErrNotFound) {
 			apierr.NotFound(c, "program not found")
 			return
 		}

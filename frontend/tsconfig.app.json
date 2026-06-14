@@ -18,9 +18,12 @@
 
     /* Linting */
     "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
+    // noUnusedLocals / noUnusedParameters / erasableSyntaxOnly are intentionally
+    // omitted: the vendored OpenAPI client in src/services/generated/** (regenerated
+    // by `pnpm api_generate`, not hand-editable) trips all three, and because the app
+    // imports its types those files are part of the type-check program regardless of
+    // `exclude`. Unused vars in hand-written code are still caught by ESLint's
+    // @typescript-eslint/no-unused-vars rule (see eslint.config.js).
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "baseUrl": ".",

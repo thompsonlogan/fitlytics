@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/thompsonlogan/fitlytics/backend/internal/apierr"
 	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 	"github.com/thompsonlogan/fitlytics/backend/internal/storage"
 )
@@ -94,7 +95,7 @@ func TestCreateUpload_RejectsUnsupportedContentType(t *testing.T) {
 	svc := NewService(&fakeRepo{}, &fakeStore{}, testLimits(), silentLogger())
 	_, err := svc.CreateUpload(context.Background(), uuid.New(), uuid.New(), uuid.New(),
 		CreateVideoUploadRequest{Filename: "x.gif", ContentType: "image/gif", SizeBytes: 10})
-	if !errors.Is(err, ErrInvalidInput) {
+	if !errors.Is(err, apierr.ErrInvalidInput) {
 		t.Fatalf("want ErrInvalidInput, got %v", err)
 	}
 }
@@ -103,7 +104,7 @@ func TestCreateUpload_RejectsOversize(t *testing.T) {
 	svc := NewService(&fakeRepo{}, &fakeStore{}, testLimits(), silentLogger())
 	_, err := svc.CreateUpload(context.Background(), uuid.New(), uuid.New(), uuid.New(),
 		CreateVideoUploadRequest{Filename: "x.mp4", ContentType: "video/mp4", SizeBytes: 600 * 1024 * 1024})
-	if !errors.Is(err, ErrInvalidInput) {
+	if !errors.Is(err, apierr.ErrInvalidInput) {
 		t.Fatalf("want ErrInvalidInput, got %v", err)
 	}
 }
@@ -112,7 +113,7 @@ func TestCreateUpload_RejectsNonPositiveSize(t *testing.T) {
 	svc := NewService(&fakeRepo{}, &fakeStore{}, testLimits(), silentLogger())
 	_, err := svc.CreateUpload(context.Background(), uuid.New(), uuid.New(), uuid.New(),
 		CreateVideoUploadRequest{Filename: "x.mp4", ContentType: "video/mp4", SizeBytes: 0})
-	if !errors.Is(err, ErrInvalidInput) {
+	if !errors.Is(err, apierr.ErrInvalidInput) {
 		t.Fatalf("want ErrInvalidInput, got %v", err)
 	}
 }
@@ -126,7 +127,7 @@ func TestCreateUpload_UnownedSetLogIsNotFound(t *testing.T) {
 	svc := NewService(repo, &fakeStore{}, testLimits(), silentLogger())
 	_, err := svc.CreateUpload(context.Background(), uuid.New(), uuid.New(), uuid.New(),
 		CreateVideoUploadRequest{Filename: "x.mp4", ContentType: "video/mp4", SizeBytes: 10})
-	if !errors.Is(err, ErrNotFound) {
+	if !errors.Is(err, apierr.ErrNotFound) {
 		t.Fatalf("want ErrNotFound, got %v", err)
 	}
 }
@@ -192,6 +193,14 @@ func sizedRow(id uuid.UUID, size int64) *generated.SetVideo {
 	return row
 }
 
+// typedRow is sizedRow plus a reserved ContentType, for exercising the finalize
+// integrity check that compares reserved vs stored content-type.
+func typedRow(id uuid.UUID, size int64, ct string) *generated.SetVideo {
+	row := sizedRow(id, size)
+	row.ContentType = &ct
+	return row
+}
+
 func TestFinalize_MissingObjectMarksFailed(t *testing.T) {
 	id := uuid.New()
 	failed := false
@@ -205,7 +214,7 @@ func TestFinalize_MissingObjectMarksFailed(t *testing.T) {
 	svc := NewService(repo, store, testLimits(), silentLogger())
 
 	_, err := svc.Finalize(context.Background(), id, uuid.New())
-	if !errors.Is(err, ErrInvalidInput) {
+	if !errors.Is(err, apierr.ErrInvalidInput) {
 		t.Fatalf("want ErrInvalidInput, got %v", err)
 	}
 	if !failed {
@@ -229,7 +238,7 @@ func TestFinalize_TransientHeadErrorLeavesPending(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected an error, got nil")
 	}
-	if errors.Is(err, ErrInvalidInput) {
+	if errors.Is(err, apierr.ErrInvalidInput) {
 		t.Fatalf("transient error should not be ErrInvalidInput, got %v", err)
 	}
 	if markFailedCalled {
@@ -249,7 +258,7 @@ func TestFinalize_OversizeObjectIsDeletedAndRejected(t *testing.T) {
 	svc := NewService(repo, store, testLimits(), silentLogger())
 
 	_, err := svc.Finalize(context.Background(), id, uuid.New())
-	if !errors.Is(err, ErrInvalidInput) {
+	if !errors.Is(err, apierr.ErrInvalidInput) {
 		t.Fatalf("want ErrInvalidInput, got %v", err)
 	}
 	if len(store.deleted) != 1 {
@@ -263,7 +272,9 @@ func TestFinalize_SizeMismatchIsDeletedAndRejected(t *testing.T) {
 	markReadyCalled := false
 	repo := &fakeRepo{
 		// Reserved 1 MB, but only part of it landed.
-		getOwnedFn:   func(context.Context, uuid.UUID, uuid.UUID) (*generated.SetVideo, error) { return sizedRow(id, 1_000_000), nil },
+		getOwnedFn: func(context.Context, uuid.UUID, uuid.UUID) (*generated.SetVideo, error) {
+			return sizedRow(id, 1_000_000), nil
+		},
 		markFailedFn: func(context.Context, uuid.UUID) error { failed = true; return nil },
 		markReadyFn: func(context.Context, uuid.UUID, int64) (*generated.SetVideo, error) {
 			markReadyCalled = true
@@ -276,7 +287,7 @@ func TestFinalize_SizeMismatchIsDeletedAndRejected(t *testing.T) {
 	svc := NewService(repo, store, testLimits(), silentLogger())
 
 	_, err := svc.Finalize(context.Background(), id, uuid.New())
-	if !errors.Is(err, ErrInvalidInput) {
+	if !errors.Is(err, apierr.ErrInvalidInput) {
 		t.Fatalf("want ErrInvalidInput, got %v", err)
 	}
 	if !failed {
@@ -290,11 +301,72 @@ func TestFinalize_SizeMismatchIsDeletedAndRejected(t *testing.T) {
 	}
 }
 
+func TestFinalize_ContentTypeMismatchIsDeletedAndRejected(t *testing.T) {
+	id := uuid.New()
+	failed := false
+	markReadyCalled := false
+	repo := &fakeRepo{
+		// Reserved an mp4, but a different type landed at the slot.
+		getOwnedFn: func(context.Context, uuid.UUID, uuid.UUID) (*generated.SetVideo, error) {
+			return typedRow(id, 4096, "video/mp4"), nil
+		},
+		markFailedFn: func(context.Context, uuid.UUID) error { failed = true; return nil },
+		markReadyFn: func(context.Context, uuid.UUID, int64) (*generated.SetVideo, error) {
+			markReadyCalled = true
+			return nil, nil
+		},
+	}
+	store := &fakeStore{headFn: func(context.Context, string) (storage.HeadResult, error) {
+		return storage.HeadResult{SizeBytes: 4096, ContentType: "text/html"}, nil
+	}}
+	svc := NewService(repo, store, testLimits(), silentLogger())
+
+	_, err := svc.Finalize(context.Background(), id, uuid.New())
+	if !errors.Is(err, apierr.ErrInvalidInput) {
+		t.Fatalf("want ErrInvalidInput, got %v", err)
+	}
+	if !failed {
+		t.Error("expected the mismatched-type video to be marked failed")
+	}
+	if markReadyCalled {
+		t.Error("a content-type mismatch must not be marked ready")
+	}
+	if len(store.deleted) != 1 {
+		t.Errorf("expected mismatched-type object to be purged, deleted=%v", store.deleted)
+	}
+}
+
+func TestFinalize_MatchingContentTypePasses(t *testing.T) {
+	id := uuid.New()
+	repo := &fakeRepo{
+		getOwnedFn: func(context.Context, uuid.UUID, uuid.UUID) (*generated.SetVideo, error) {
+			return typedRow(id, 4096, "video/mp4"), nil
+		},
+		markReadyFn: func(_ context.Context, v uuid.UUID, size int64) (*generated.SetVideo, error) {
+			return &generated.SetVideo{ID: v, Status: "ready", StorageKey: "k.mp4", SizeBytes: &size}, nil
+		},
+	}
+	store := &fakeStore{headFn: func(context.Context, string) (storage.HeadResult, error) {
+		return storage.HeadResult{SizeBytes: 4096, ContentType: "video/mp4"}, nil
+	}}
+	svc := NewService(repo, store, testLimits(), silentLogger())
+
+	out, err := svc.Finalize(context.Background(), id, uuid.New())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if out.Status != "ready" {
+		t.Fatalf("expected ready video, got %+v", out)
+	}
+}
+
 func TestFinalize_HappyPathMarksReadyWithPlayback(t *testing.T) {
 	id := uuid.New()
 	repo := &fakeRepo{
 		// Reserved size matches what landed, so the integrity check passes.
-		getOwnedFn: func(context.Context, uuid.UUID, uuid.UUID) (*generated.SetVideo, error) { return sizedRow(id, 4096), nil },
+		getOwnedFn: func(context.Context, uuid.UUID, uuid.UUID) (*generated.SetVideo, error) {
+			return sizedRow(id, 4096), nil
+		},
 		markReadyFn: func(_ context.Context, v uuid.UUID, size int64) (*generated.SetVideo, error) {
 			return &generated.SetVideo{ID: v, Status: "ready", StorageKey: "k.mp4", SizeBytes: &size}, nil
 		},
@@ -375,7 +447,7 @@ func TestDelete_NotFound(t *testing.T) {
 	}}
 	svc := NewService(repo, &fakeStore{}, testLimits(), silentLogger())
 
-	if err := svc.Delete(context.Background(), uuid.New(), uuid.New()); !errors.Is(err, ErrNotFound) {
+	if err := svc.Delete(context.Background(), uuid.New(), uuid.New()); !errors.Is(err, apierr.ErrNotFound) {
 		t.Fatalf("want ErrNotFound, got %v", err)
 	}
 }

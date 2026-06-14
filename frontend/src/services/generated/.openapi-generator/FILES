@@ -4,6 +4,8 @@ apis/SessionsApi.ts
 apis/VideosApi.ts
 apis/index.ts
 index.ts
+models/BatchUpdateSetLogItem.ts
+models/BatchUpdateSetLogsRequest.ts
 models/CompletedDayResponse.ts
 models/CreateVideoUploadRequest.ts
 models/CreateVideoUploadResponse.ts

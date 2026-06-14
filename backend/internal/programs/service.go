@@ -7,9 +7,9 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-)
 
-var ErrNotFound = errors.New("program not found")
+	"github.com/thompsonlogan/fitlytics/backend/internal/apierr"
+)
 
 type Service interface {
 	GetProgramById(ctx context.Context, programID, ownerUserID uuid.UUID) (*ProgramResponse, error)
@@ -28,7 +28,7 @@ func (s *service) GetProgramById(ctx context.Context, programID, ownerUserID uui
 	program, err := s.repo.GetProgramById(ctx, programID, ownerUserID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrNotFound
+			return nil, apierr.ErrNotFound
 		}
 		return nil, fmt.Errorf("load program: %w", err)
 	}

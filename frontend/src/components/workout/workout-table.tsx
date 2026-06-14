@@ -10,7 +10,8 @@ import { Footprints, HeartPulse, MoreHorizontal, Moon, Plus } from "lucide-react
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { SetStateCell, type SetState } from "@/components/workout/set-state-cell"
+import { SetStateCell } from "@/components/workout/set-state-cell"
+import { type SetState } from "@/components/workout/set-state"
 import { VideoCell } from "@/components/workout/video-cell"
 import {
   Table,

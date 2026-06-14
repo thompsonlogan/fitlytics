@@ -61,7 +61,7 @@ func (h *Handler) GetCurrentSession(c *gin.Context) {
 
 	session, err := h.service.GetCurrentSession(c.Request.Context(), programDayID, principal.User.ID)
 	if err != nil {
-		if errors.Is(err, ErrNotFound) {
+		if errors.Is(err, apierr.ErrNotFound) {
 			apierr.NotFound(c, "no current session")
 			return
 		}
@@ -109,7 +109,7 @@ func (h *Handler) StartSession(c *gin.Context) {
 
 	session, err := h.service.StartSession(c.Request.Context(), programID, programDayID, principal.User.ID)
 	if err != nil {
-		if errors.Is(err, ErrNotFound) {
+		if errors.Is(err, apierr.ErrNotFound) {
 			apierr.NotFound(c, "program day not found")
 			return
 		}
@@ -165,11 +165,11 @@ func (h *Handler) UpdateSetLog(c *gin.Context) {
 
 	updated, err := h.service.UpdateSetLog(c.Request.Context(), sessionID, setLogID, principal.User.ID, body)
 	if err != nil {
-		if errors.Is(err, ErrNotFound) {
+		if errors.Is(err, apierr.ErrNotFound) {
 			apierr.NotFound(c, "set log not found")
 			return
 		}
-		if errors.Is(err, ErrInvalidInput) {
+		if errors.Is(err, apierr.ErrInvalidInput) {
 			apierr.BadRequest(c, err.Error())
 			return
 		}
@@ -220,11 +220,11 @@ func (h *Handler) UpdateSetLogs(c *gin.Context) {
 
 	updated, err := h.service.UpdateSetLogs(c.Request.Context(), sessionID, principal.User.ID, body)
 	if err != nil {
-		if errors.Is(err, ErrNotFound) {
+		if errors.Is(err, apierr.ErrNotFound) {
 			apierr.NotFound(c, "session or set log not found")
 			return
 		}
-		if errors.Is(err, ErrInvalidInput) {
+		if errors.Is(err, apierr.ErrInvalidInput) {
 			apierr.BadRequest(c, err.Error())
 			return
 		}

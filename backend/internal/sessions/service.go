@@ -7,11 +7,9 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+
+	"github.com/thompsonlogan/fitlytics/backend/internal/apierr"
 )
-
-var ErrNotFound = errors.New("session not found")
-
-var ErrInvalidInput = errors.New("invalid input")
 
 type Service interface {
 	GetCurrentSession(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error)
@@ -42,7 +40,7 @@ func (s *service) GetCurrentSession(ctx context.Context, programDayID, ownerUser
 	row, err := s.repo.GetCurrentSessionByDay(ctx, programDayID, ownerUserID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrNotFound
+			return nil, apierr.ErrNotFound
 		}
 		return nil, fmt.Errorf("find current session: %w", err)
 	}
@@ -53,7 +51,7 @@ func (s *service) StartSession(ctx context.Context, programID, programDayID, own
 	row, err := s.repo.StartSessionForDay(ctx, programID, programDayID, ownerUserID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrNotFound
+			return nil, apierr.ErrNotFound
 		}
 		return nil, fmt.Errorf("ensure session: %w", err)
 	}
@@ -63,24 +61,24 @@ func (s *service) StartSession(ctx context.Context, programID, programDayID, own
 func validateSetLogUpdate(input UpdateSetLogRequest) error {
 	if input.RepsActual != nil {
 		if *input.RepsActual < minReps || *input.RepsActual > maxReps {
-			return fmt.Errorf("%w: reps_actual out of range", ErrInvalidInput)
+			return fmt.Errorf("%w: reps_actual out of range", apierr.ErrInvalidInput)
 		}
 	}
 	if input.ActualLoadKg != nil {
 		if *input.ActualLoadKg < minLoadKg || *input.ActualLoadKg > maxLoadKg {
-			return fmt.Errorf("%w: actual_load_kg out of range", ErrInvalidInput)
+			return fmt.Errorf("%w: actual_load_kg out of range", apierr.ErrInvalidInput)
 		}
 	}
 	if input.ActualRpe != nil {
 		if *input.ActualRpe < minRpe || *input.ActualRpe > maxRpe {
-			return fmt.Errorf("%w: actual_rpe out of range", ErrInvalidInput)
+			return fmt.Errorf("%w: actual_rpe out of range", apierr.ErrInvalidInput)
 		}
 	}
 	if input.State != nil {
 		switch *input.State {
 		case "pending", "completed", "skipped":
 		default:
-			return fmt.Errorf("%w: state must be one of pending, completed, skipped", ErrInvalidInput)
+			return fmt.Errorf("%w: state must be one of pending, completed, skipped", apierr.ErrInvalidInput)
 		}
 	}
 	return nil
@@ -94,7 +92,7 @@ func (s *service) UpdateSetLog(ctx context.Context, sessionID, setLogID, ownerUs
 	row, err := s.repo.UpdateSetLog(ctx, sessionID, setLogID, ownerUserID, input)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrNotFound
+			return nil, apierr.ErrNotFound
 		}
 		return nil, fmt.Errorf("update set log: %w", err)
 	}
@@ -114,7 +112,7 @@ func (s *service) UpdateSetLogs(ctx context.Context, sessionID, ownerUserID uuid
 	rows, err := s.repo.UpdateSetLogs(ctx, sessionID, ownerUserID, input.Updates)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrNotFound
+			return nil, apierr.ErrNotFound
 		}
 		return nil, fmt.Errorf("batch update set logs: %w", err)
 	}

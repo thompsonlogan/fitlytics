@@ -59,10 +59,14 @@ func Respond(c *gin.Context, status int, detail string) {
 // Convenience wrappers for common status codes. These read better at the call
 // site than spelling out the status constant every time.
 
-func BadRequest(c *gin.Context, detail string)          { Respond(c, http.StatusBadRequest, detail) }
-func Unauthorized(c *gin.Context, detail string)        { Abort(c, http.StatusUnauthorized, detail) }
-func NotFound(c *gin.Context, detail string)            { Respond(c, http.StatusNotFound, detail) }
-func Conflict(c *gin.Context, detail string)            { Respond(c, http.StatusConflict, detail) }
-func TooManyRequests(c *gin.Context, detail string)     { Respond(c, http.StatusTooManyRequests, detail) }
-func ServiceUnavailable(c *gin.Context, detail string)  { Respond(c, http.StatusServiceUnavailable, detail) }
-func InternalServerError(c *gin.Context, detail string) { Respond(c, http.StatusInternalServerError, detail) }
+func BadRequest(c *gin.Context, detail string)      { Respond(c, http.StatusBadRequest, detail) }
+func Unauthorized(c *gin.Context, detail string)    { Abort(c, http.StatusUnauthorized, detail) }
+func NotFound(c *gin.Context, detail string)        { Respond(c, http.StatusNotFound, detail) }
+func Conflict(c *gin.Context, detail string)        { Respond(c, http.StatusConflict, detail) }
+func TooManyRequests(c *gin.Context, detail string) { Respond(c, http.StatusTooManyRequests, detail) }
+func ServiceUnavailable(c *gin.Context, detail string) {
+	Respond(c, http.StatusServiceUnavailable, detail)
+}
+func InternalServerError(c *gin.Context, detail string) {
+	Respond(c, http.StatusInternalServerError, detail)
+}

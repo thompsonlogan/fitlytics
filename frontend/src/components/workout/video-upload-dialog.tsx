@@ -112,7 +112,7 @@ export function VideoUploadDialog({
 
   const videoFor = (i: number): VideoResponse | undefined => {
     const log = blockLogs[i]
-    return log ? videosBySetLogId.get(log.id) : undefined
+    return log ? videosBySetLogId.get(log.id!) : undefined
   }
 
   const filmed = Array.from({ length: block.sets }, (_, i) => videoFor(i)?.status === "ready")

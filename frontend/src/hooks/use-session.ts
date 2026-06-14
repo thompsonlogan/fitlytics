@@ -4,7 +4,6 @@ import { dayCompletionsQueryKey } from "@/hooks/use-day-completions"
 import { useServices } from "@/services/context"
 import {
   ResponseError,
-  SetLogResponseFromJSON,
   type SessionResponse,
   type SetLogResponse,
   type UpdateSetLogRequest,
@@ -89,7 +88,7 @@ export type UseLogSetVars = {
 // count crosses the 0 boundary in either direction. Counts only the
 // active (non-deleted) logs the cache holds; missing fields default to
 // "pending" to match the backend's not-null default.
-function countPending(session: SessionResponse | null | undefined): number {
+export function countPending(session: SessionResponse | null | undefined): number {
   if (!session?.exercises) return 0
   let n = 0
   for (const ex of session.exercises) {
@@ -171,20 +170,15 @@ export type UseLogSetBatchVars = {
   updates: { setLogId: string; body: UpdateSetLogRequest }[]
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ""
-
 // useLogSetBatch is the block-level actuals mutation. It sends all set_log
 // updates for a block in a single PATCH request — all-or-nothing semantics,
 // one recompute on the backend. The cache merge is the same as useLogSet but
 // applies all returned logs at once.
-//
-// NOTE: This hand-rolls a fetch rather than using the generated client because
-// the batch route was added after the last api_generate run. Swap to the
-// generated method after the next `make swagger && pnpm api_generate`.
 export function useLogSetBatch(
   programId: string | undefined,
   programDayId: string | undefined
 ) {
+  const { sessionsApi } = useServices()
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -198,23 +192,18 @@ export function useLogSetBatch(
       if (!cached?.id) {
         throw new Error("no session — call startSession first")
       }
-      const res = await fetch(`${API_BASE_URL}/api/sessions/${cached.id}/set-logs`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      return sessionsApi.apiSessionsSessionIdSetLogsPatch({
+        sessionId: cached.id,
+        body: {
           updates: vars.updates.map((u) => ({
-            set_log_id: u.setLogId,
-            reps_actual: u.body.repsActual,
-            actual_load_kg: u.body.actualLoadKg,
-            actual_rpe: u.body.actualRpe,
+            setLogId: u.setLogId,
+            repsActual: u.body.repsActual,
+            actualLoadKg: u.body.actualLoadKg,
+            actualRpe: u.body.actualRpe,
             state: u.body.state,
           })),
-        }),
+        },
       })
-      if (!res.ok) throw new Error(`batch set-log update failed: ${res.status}`)
-      const raw: unknown[] = await res.json()
-      return raw.map(SetLogResponseFromJSON)
     },
     onSuccess: (updatedLogs, vars) => {
       if (!programId || !programDayId) return
@@ -226,7 +215,7 @@ export function useLogSetBatch(
       // Build a Map of updated logs for O(1) lookup during cache splice.
       const updatesById = new Map<string, SetLogResponse>()
       for (const log of updatedLogs) {
-        updatesById.set(log.id, log)
+        updatesById.set(log.id!, log)
       }
 
       queryClient.setQueryData<SessionResponse | null>(cacheKey, (prev) => {
@@ -235,7 +224,7 @@ export function useLogSetBatch(
           ...prev,
           exercises: prev.exercises?.map((e) => ({
             ...e,
-            setLogs: e.setLogs?.map((l) => updatesById.get(l.id) ?? l),
+            setLogs: e.setLogs?.map((l) => updatesById.get(l.id!) ?? l),
           })),
         }
       })

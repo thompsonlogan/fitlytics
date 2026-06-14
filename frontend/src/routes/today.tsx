@@ -3,7 +3,7 @@ import { useMemo, useState } from "react"
 import { RotateCw } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { AppHeader, type Section } from "@/components/workout/app-header"
+import { AppHeader } from "@/components/workout/app-header"
 import { DayBoard, DayBoardSkeleton } from "@/components/workout/day-board"
 import { Footer } from "@/components/workout/footer"
 import { SubBar } from "@/components/workout/sub-bar"
@@ -19,7 +19,6 @@ import { computeTodayPosition, type ProgramDay } from "@/lib/program-data"
 const PLACEHOLDER_DAY: ProgramDay = { id: "", name: "Loading…", tag: "—" }
 
 export function TodayPage() {
-  const [section, setSection] = useState<Section>("today")
   const { data: program, isLoading, isError, refetch } = useWorkoutProgram()
   const { data: dayCompletions } = useDayCompletions(program?.id)
   const { user, signOut } = useAuth()
@@ -29,7 +28,7 @@ export function TodayPage() {
   const todayPos = useMemo(
     () =>
       program?.startDate ? computeTodayPosition(program.startDate, weekCount) : null,
-    [program?.startDate, weekCount]
+    [program, weekCount]
   )
 
   // User selection is stored as an override. null = "follow today", which
@@ -68,7 +67,7 @@ export function TodayPage() {
         className="grid min-h-svh bg-background text-foreground"
         style={{ gridTemplateRows: "auto minmax(0,1fr) auto" }}
       >
-        <AppHeader section={section} onSectionChange={setSection} onLogout={signOut} user={user} />
+        <AppHeader onLogout={signOut} user={user} />
         <main className="grid place-items-center px-6 py-8">
           <div className="flex max-w-sm flex-col items-center gap-3 text-center">
             <p className="text-sm text-muted-foreground">
@@ -90,7 +89,7 @@ export function TodayPage() {
       className="grid min-h-svh bg-background text-foreground"
       style={{ gridTemplateRows: "auto auto minmax(0,1fr) auto" }}
     >
-      <AppHeader section={section} onSectionChange={setSection} onLogout={signOut} user={user} />
+      <AppHeader onLogout={signOut} user={user} />
       <SubBar
         programName={program?.name ?? "Loading…"}
         weekCount={Math.max(1, weekCount)}

@@ -11,26 +11,26 @@ import (
 )
 
 type Config struct {
-	Env         		string
-	HTTPPort    		string
-	DatabaseURL 		string
-	LogLevel    		string
+	Env         string
+	HTTPPort    string
+	DatabaseURL string
+	LogLevel    string
 
-	WorkOSAPIKey   		string
-	WorkOSClientID 		string
+	WorkOSAPIKey   string
+	WorkOSClientID string
 	// JWKSURL and JWTIssuer are derived from WorkOSClientID unless explicitly overridden.
-	JWKSURL   			string
-	JWTIssuer 			string
-	WorkOSRedirectURI 	string
-	AppURL 				string
-	AuthBypassUserID 	string
-	R2Endpoint        	string
-	R2Bucket          	string
-	R2AccessKeyID     	string
-	R2SecretAccessKey 	string
-	MaxVideoBytes    	int64
-	MaxVideosPerUser 	int
-	MaxVideosPerDay  	int
+	JWKSURL           string
+	JWTIssuer         string
+	WorkOSRedirectURI string
+	AppURL            string
+	AuthBypassUserID  string
+	R2Endpoint        string
+	R2Bucket          string
+	R2AccessKeyID     string
+	R2SecretAccessKey string
+	MaxVideoBytes     int64
+	MaxVideosPerUser  int
+	MaxVideosPerDay   int
 }
 
 func (c Config) IsProduction() bool { return c.Env == "production" }

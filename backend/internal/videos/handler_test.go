@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/thompsonlogan/fitlytics/backend/internal/apierr"
 	"github.com/thompsonlogan/fitlytics/backend/internal/auth"
 	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
@@ -94,7 +95,7 @@ func TestHandlerCreateUpload_QuotaReturns429(t *testing.T) {
 
 func TestHandlerCreateUpload_InvalidInputReturns400(t *testing.T) {
 	svc := &fakeService{createFn: func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, CreateVideoUploadRequest) (*CreateVideoUploadResponse, error) {
-		return nil, ErrInvalidInput
+		return nil, apierr.ErrInvalidInput
 	}}
 	w := httptest.NewRecorder()
 	c := newCtx(w, http.MethodPost, `{"filename":"a.mp4","content_type":"video/mp4","size_bytes":1}`, gin.Params{
@@ -130,7 +131,7 @@ func TestHandlerCreateUpload_Success201(t *testing.T) {
 
 func TestHandlerFinalize_NotFound404(t *testing.T) {
 	svc := &fakeService{finalizeFn: func(context.Context, uuid.UUID, uuid.UUID) (*VideoResponse, error) {
-		return nil, ErrNotFound
+		return nil, apierr.ErrNotFound
 	}}
 	w := httptest.NewRecorder()
 	c := newCtx(w, http.MethodPost, "", gin.Params{{Key: "videoId", Value: uuid.NewString()}})

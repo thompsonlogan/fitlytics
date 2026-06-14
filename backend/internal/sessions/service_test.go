@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/thompsonlogan/fitlytics/backend/internal/apierr"
 	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
 
@@ -47,7 +48,7 @@ func TestServiceGetCurrentSession_NotFoundMapsToErrNotFound(t *testing.T) {
 	if resp != nil {
 		t.Errorf("response should be nil on not-found, got %+v", resp)
 	}
-	if !errors.Is(err, ErrNotFound) {
+	if !errors.Is(err, apierr.ErrNotFound) {
 		t.Errorf("error: want ErrNotFound, got %v", err)
 	}
 }
@@ -67,7 +68,7 @@ func TestServiceGetCurrentSession_RepoErrorIsWrapped(t *testing.T) {
 	if !errors.Is(err, boom) {
 		t.Errorf("error should wrap underlying repo error; got %v", err)
 	}
-	if errors.Is(err, ErrNotFound) {
+	if errors.Is(err, apierr.ErrNotFound) {
 		t.Error("generic repo error was incorrectly mapped to ErrNotFound")
 	}
 }
@@ -108,7 +109,7 @@ func TestServiceStartSession_NotFoundMapsToErrNotFound(t *testing.T) {
 	if resp != nil {
 		t.Errorf("response should be nil on not-found, got %+v", resp)
 	}
-	if !errors.Is(err, ErrNotFound) {
+	if !errors.Is(err, apierr.ErrNotFound) {
 		t.Errorf("error: want ErrNotFound, got %v", err)
 	}
 }
@@ -155,7 +156,7 @@ func TestServiceUpdateSetLog_RejectsOutOfRangeValues(t *testing.T) {
 			if resp != nil {
 				t.Errorf("response should be nil on invalid input, got %+v", resp)
 			}
-			if !errors.Is(err, ErrInvalidInput) {
+			if !errors.Is(err, apierr.ErrInvalidInput) {
 				t.Errorf("error: want ErrInvalidInput, got %v", err)
 			}
 			// Validation must short-circuit before touching the repository.
@@ -252,7 +253,7 @@ func TestServiceUpdateSetLog_NotFoundMapsToErrNotFound(t *testing.T) {
 	if resp != nil {
 		t.Errorf("response should be nil on not-found, got %+v", resp)
 	}
-	if !errors.Is(err, ErrNotFound) {
+	if !errors.Is(err, apierr.ErrNotFound) {
 		t.Errorf("error: want ErrNotFound, got %v", err)
 	}
 }
@@ -273,7 +274,7 @@ func TestServiceUpdateSetLog_RepoErrorIsWrapped(t *testing.T) {
 	if !errors.Is(err, boom) {
 		t.Errorf("error should wrap underlying repo error; got %v", err)
 	}
-	if errors.Is(err, ErrNotFound) {
+	if errors.Is(err, apierr.ErrNotFound) {
 		t.Error("generic repo error was incorrectly mapped to ErrNotFound")
 	}
 }

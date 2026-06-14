@@ -7,9 +7,10 @@ function block(sets: number, reps = "3", intensity = "100lb") {
   return { id: "pst", sets, reps, intensity, cap: 100 as const, used: 100 as const, rpe: 8 }
 }
 
-const REST_DAY: ProgramDay = { name: "Rest", tag: "OFF", off: true }
+const REST_DAY: ProgramDay = { id: "rest", name: "Rest", tag: "OFF", off: true }
 
 const TWO_EXERCISE_DAY: ProgramDay = {
+  id: "d1",
   name: "Day 1",
   tag: "Day 1",
   exercises: [
@@ -26,7 +27,7 @@ describe("flattenRows", () => {
   })
 
   it("returns an empty array when exercises is missing", () => {
-    expect(flattenRows({ name: "Day", tag: "Day" })).toEqual([])
+    expect(flattenRows({ id: "d", name: "Day", tag: "Day" })).toEqual([])
   })
 
   it("expands each set block into a row and tags the first block per exercise", () => {
@@ -68,7 +69,7 @@ describe("totalSets", () => {
   })
 
   it("returns 0 when the day has no exercises", () => {
-    expect(totalSets({ name: "x", tag: "x" })).toBe(0)
+    expect(totalSets({ id: "x", name: "x", tag: "x" })).toBe(0)
   })
 })
 
@@ -89,6 +90,7 @@ describe("estimateDuration", () => {
 
   it("ignores rest math for single-set exercises (no inter-set gaps)", () => {
     const day: ProgramDay = {
+      id: "x",
       name: "x",
       tag: "x",
       exercises: [{ name: "Squat", rest: 5, blocks: [block(1)] }],

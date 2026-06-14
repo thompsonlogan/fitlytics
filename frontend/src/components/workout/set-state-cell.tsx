@@ -1,17 +1,7 @@
 import { Check, X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-
-// SetState mirrors the backend set_log_state enum. "pending" is the default
-// after a session is created; the user cycles into "completed" or "skipped"
-// by clicking the cell.
-export type SetState = "pending" | "completed" | "skipped"
-
-export const CYCLE_NEXT: Record<SetState, SetState> = {
-  pending: "completed",
-  completed: "skipped",
-  skipped: "pending",
-}
+import { type SetState } from "@/components/workout/set-state"
 
 type SetStateCellProps = {
   state: SetState

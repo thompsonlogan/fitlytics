@@ -522,37 +522,28 @@ func TestRepositoryUpdateSetLogs_AppliesAllInOneTransaction(t *testing.T) {
 		WithArgs(uuidArg(sessionID)).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(seID))
 
-	// First item: First set_log, UPDATE, reload.
-	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE .*"set_logs"\."id" = \$1.* LIMIT`).
-		WithArgs(uuidArg(logID1), 1).
+	// Prefetch both set logs in one query.
+	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE .*"set_logs"\."id" IN`).
+		WithArgs(uuidArg(logID1), uuidArg(logID2)).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "session_exercise_id", "sequence", "set_type", "state",
-		}).AddRow(logID1, seID, 1, "working", "pending"))
+		}).AddRow(logID1, seID, 1, "working", "pending").
+			AddRow(logID2, seID, 2, "working", "pending"))
+
+	// Two UPDATEs, one per item.
+	mock.ExpectExec(`UPDATE "set_logs" SET`).
+		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	mock.ExpectExec(`UPDATE "set_logs" SET`).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
-	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE .*"set_logs"\."id" = \$1.* LIMIT`).
-		WithArgs(uuidArg(logID1), 1).
+	// Reload both in one query.
+	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE .*"set_logs"\."id" IN`).
+		WithArgs(uuidArg(logID1), uuidArg(logID2)).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "session_exercise_id", "sequence", "set_type", "state",
-		}).AddRow(logID1, seID, 1, "working", "completed"))
-
-	// Second item: First set_log, UPDATE, reload.
-	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE .*"set_logs"\."id" = \$1.* LIMIT`).
-		WithArgs(uuidArg(logID2), 1).
-		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "session_exercise_id", "sequence", "set_type", "state",
-		}).AddRow(logID2, seID, 2, "working", "pending"))
-
-	mock.ExpectExec(`UPDATE "set_logs" SET`).
-		WillReturnResult(sqlmock.NewResult(0, 1))
-
-	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE .*"set_logs"\."id" = \$1.* LIMIT`).
-		WithArgs(uuidArg(logID2), 1).
-		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "session_exercise_id", "sequence", "set_type", "state",
-		}).AddRow(logID2, seID, 2, "working", "completed"))
+		}).AddRow(logID1, seID, 1, "working", "completed").
+			AddRow(logID2, seID, 2, "working", "completed"))
 
 	// Recompute (once): session exercises, set_log states, UPDATE session.
 	mock.ExpectQuery(`SELECT "session_exercises"\."id" FROM "session_exercises"`).
@@ -594,8 +585,8 @@ func TestRepositoryUpdateSetLogs_ForeignSetLogRollsBackAll(t *testing.T) {
 
 	ownerID := uuid.New()
 	sessionID := uuid.New()
-	seID := uuid.New()         // belongs to this session
-	foreignSeID := uuid.New()  // belongs to a different session
+	seID := uuid.New()        // belongs to this session
+	foreignSeID := uuid.New() // belongs to a different session
 	logID1 := uuid.New()
 	logID2 := uuid.New()
 	now := time.Now()
@@ -614,29 +605,66 @@ func TestRepositoryUpdateSetLogs_ForeignSetLogRollsBackAll(t *testing.T) {
 		WithArgs(uuidArg(sessionID)).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(seID))
 
-	// First item succeeds the membership check.
-	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE .*"set_logs"\."id" = \$1.* LIMIT`).
-		WithArgs(uuidArg(logID1), 1).
+	// Prefetch both set logs in one query; logID2 belongs to a foreign exercise.
+	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE .*"set_logs"\."id" IN`).
+		WithArgs(uuidArg(logID1), uuidArg(logID2)).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "session_exercise_id", "sequence", "set_type", "state",
+		}).AddRow(logID1, seID, 1, "working", "pending").
+			AddRow(logID2, foreignSeID, 1, "working", "pending"))
+
+	// Validation rejects logID2 before any write — no UPDATEs, no reload.
+	mock.ExpectRollback()
+
+	updates := []BatchUpdateSetLogItem{
+		{SetLogID: logID1, UpdateSetLogRequest: UpdateSetLogRequest{State: ptr("completed")}},
+		{SetLogID: logID2, UpdateSetLogRequest: UpdateSetLogRequest{State: ptr("completed")}},
+	}
+	_, err := NewRepository(db).UpdateSetLogs(context.Background(), sessionID, ownerID, updates)
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		t.Fatalf("want ErrRecordNotFound, got %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
+// TestRepositoryUpdateSetLogs_MissingSetLogRollsBackAll covers the other
+// validation branch: a requested set log id that doesn't exist at all. The
+// prefetch returns fewer rows than requested, so validation rejects the batch
+// before any UPDATE runs and the transaction rolls back.
+func TestRepositoryUpdateSetLogs_MissingSetLogRollsBackAll(t *testing.T) {
+	db, mock := newMockDB(t)
+
+	ownerID := uuid.New()
+	sessionID := uuid.New()
+	seID := uuid.New()
+	logID1 := uuid.New()
+	logID2 := uuid.New() // never returned by the prefetch — does not exist
+	now := time.Now()
+
+	mock.ExpectBegin()
+
+	// Session ownership probe.
+	mock.ExpectQuery(`SELECT \* FROM "sessions" WHERE .* LIMIT`).
+		WithArgs(uuidArg(sessionID), uuidArg(ownerID), 1).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "user_id", "state", "created_at", "updated_at",
+		}).AddRow(sessionID, ownerID, "in_progress", now, now))
+
+	// Load session exercise ids.
+	mock.ExpectQuery(`SELECT "session_exercises"\."id" FROM "session_exercises"`).
+		WithArgs(uuidArg(sessionID)).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(seID))
+
+	// Prefetch both ids but only logID1 exists; logID2 is absent.
+	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE .*"set_logs"\."id" IN`).
+		WithArgs(uuidArg(logID1), uuidArg(logID2)).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "session_exercise_id", "sequence", "set_type", "state",
 		}).AddRow(logID1, seID, 1, "working", "pending"))
 
-	mock.ExpectExec(`UPDATE "set_logs" SET`).
-		WillReturnResult(sqlmock.NewResult(0, 1))
-
-	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE .*"set_logs"\."id" = \$1.* LIMIT`).
-		WithArgs(uuidArg(logID1), 1).
-		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "session_exercise_id", "sequence", "set_type", "state",
-		}).AddRow(logID1, seID, 1, "working", "completed"))
-
-	// Second item's set_log belongs to a different session_exercise — membership fails.
-	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE .*"set_logs"\."id" = \$1.* LIMIT`).
-		WithArgs(uuidArg(logID2), 1).
-		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "session_exercise_id", "sequence", "set_type", "state",
-		}).AddRow(logID2, foreignSeID, 1, "working", "pending"))
-
+	// Validation rejects logID2 before any write — no UPDATEs, no reload.
 	mock.ExpectRollback()
 
 	updates := []BatchUpdateSetLogItem{

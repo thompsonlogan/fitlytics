@@ -4,7 +4,7 @@ import { toast } from "sonner"
 import { Card, CardHeader } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SidePanel } from "@/components/workout/side-panel"
-import { CYCLE_NEXT, type SetState } from "@/components/workout/set-state-cell"
+import { CYCLE_NEXT, type SetState } from "@/components/workout/set-state"
 import { WorkoutTableSkeleton } from "@/components/workout/workout-table-skeleton"
 import { RestDayCard, WorkoutTable } from "@/components/workout/workout-table"
 import { VideoUploadDialog } from "@/components/workout/video-upload-dialog"
@@ -154,7 +154,7 @@ export function DayBoard({ day, programId, programDayId, initialCompleted = {} }
       let filmedCount = 0
       let firstFilmedSet: number | null = null
       logs.forEach((log, i) => {
-        if (videosBySetLogId.get(log.id)?.status === "ready") {
+        if (videosBySetLogId.get(log.id!)?.status === "ready") {
           filmedCount++
           if (firstFilmedSet === null) firstFilmedSet = i
         }
@@ -238,7 +238,7 @@ export function DayBoard({ day, programId, programDayId, initialCompleted = {} }
     if (!s?.id) return undefined
     const log = findBlockLogs(rowKey, s)[setIdx]
     if (!log) return undefined
-    return { sessionId: s.id, setLogId: log.id }
+    return { sessionId: s.id, setLogId: log.id! }
   }
 
   const clearEdit = (which: "load" | "rpe", key: string) => {
@@ -302,7 +302,7 @@ export function DayBoard({ day, programId, programDayId, initialCompleted = {} }
       // Fan the load out to every set in the block.
       const actualLoadKg = Number(LB_TO_KG(lb).toFixed(2))
       await logSetBatch.mutateAsync({
-        updates: logs.map((log) => ({ setLogId: log.id, body: { actualLoadKg } })),
+        updates: logs.map((log) => ({ setLogId: log.id!, body: { actualLoadKg } })),
       })
       clearEdit("load", key)
     } catch (err) {
@@ -340,7 +340,7 @@ export function DayBoard({ day, programId, programDayId, initialCompleted = {} }
         return
       }
       await logSet.mutateAsync({
-        setLogId: last.id,
+        setLogId: last.id!,
         body: { actualRpe: rpe },
       })
       clearEdit("rpe", key)
@@ -392,7 +392,7 @@ export function DayBoard({ day, programId, programDayId, initialCompleted = {} }
         if (logs.length === 0) return
         // Completing/skipping a block fans the state out to every set in it.
         await logSetBatch.mutateAsync({
-          updates: logs.map((log) => ({ setLogId: log.id, body: { state: desired } })),
+          updates: logs.map((log) => ({ setLogId: log.id!, body: { state: desired } })),
         })
         // onSuccess merged the updated logs into the cache — drop the local
         // override so the merged map pulls from the session again.

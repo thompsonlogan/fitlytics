@@ -3,14 +3,13 @@ import {
   createRootRouteWithContext,
   createRoute,
   createRouter,
+  lazyRouteComponent,
   Outlet,
   redirect,
 } from "@tanstack/react-router"
 
 import { NotFoundPage } from "@/components/not-found/not-found-page"
 import { fetchMe, ME_KEY } from "@/hooks/use-auth"
-import { LandingPage } from "@/routes/landing"
-import { TodayPage } from "@/routes/today"
 import type { ServiceApis } from "@/services/data"
 
 // There's no local login screen — authentication is handled entirely by WorkOS.
@@ -36,7 +35,7 @@ const rootRoute = createRootRouteWithContext<RouterContext>()({
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
-  component: LandingPage,
+  component: lazyRouteComponent(() => import("@/routes/landing"), "LandingPage"),
 })
 
 const todayRoute = createRoute({
@@ -54,10 +53,32 @@ const todayRoute = createRoute({
       throw redirect({ href: WORKOS_LOGIN })
     }
   },
-  component: TodayPage,
+  component: lazyRouteComponent(() => import("@/routes/today"), "TodayPage"),
 })
 
-const routeTree = rootRoute.addChildren([indexRoute, todayRoute])
+const programRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/program",
+  component: NotFoundPage,
+})
+const historyRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/history",
+  component: NotFoundPage,
+})
+const analyticsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/analytics",
+  component: NotFoundPage,
+})
+
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  todayRoute,
+  programRoute,
+  historyRoute,
+  analyticsRoute,
+])
 
 export const router = createRouter({
   routeTree,

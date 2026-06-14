@@ -66,7 +66,7 @@ func TestHandler_GetProgramById_InvalidUUIDReturns400(t *testing.T) {
 func TestHandler_GetProgramById_ServiceNotFoundReturns404(t *testing.T) {
 	svc := &fakeService{
 		getProgramByIdFn: func(_ context.Context, _, _ uuid.UUID) (*ProgramResponse, error) {
-			return nil, ErrNotFound
+			return nil, apierr.ErrNotFound
 		},
 	}
 	c, w := newTestContext(t, uuid.New(), uuid.NewString())

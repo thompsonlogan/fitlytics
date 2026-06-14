@@ -17,8 +17,10 @@ import {
   User,
 } from "lucide-react"
 
+import { Link, useLocation } from "@tanstack/react-router"
+
 import { useTheme } from "@/components/theme-provider"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,31 +35,28 @@ import { Separator } from "@/components/ui/separator"
 import type { MeResponse } from "@/services/generated"
 import { cn } from "@/lib/utils"
 
-export type Section = "today" | "program" | "history" | "analytics"
-
 type NavItem = {
-  id: Section
   label: string
+  to: "/today" | "/program" | "/history" | "/analytics"
   Icon: typeof CalendarCheck2
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { id: "today", label: "Today", Icon: CalendarCheck2 },
-  { id: "program", label: "Programs", Icon: ClipboardList },
-  { id: "history", label: "History", Icon: History },
-  { id: "analytics", label: "Analytics", Icon: ChartLine },
+  { label: "Today", to: "/today", Icon: CalendarCheck2 },
+  { label: "Programs", to: "/program", Icon: ClipboardList },
+  { label: "History", to: "/history", Icon: History },
+  { label: "Analytics", to: "/analytics", Icon: ChartLine },
 ]
 
 type AppHeaderProps = {
-  section: Section
-  onSectionChange: (next: Section) => void
   onLogout: () => void
   user: MeResponse | null
 }
 
-export function AppHeader({ section, onSectionChange, onLogout, user }: AppHeaderProps) {
+export function AppHeader({ onLogout, user }: AppHeaderProps) {
   const { theme, setTheme } = useTheme()
   const isDark = theme === "dark"
+  const pathname = useLocation({ select: (l) => l.pathname })
 
   const displayName = user?.displayName?.trim() || user?.email || "Account"
   const email = user?.email ?? ""
@@ -74,21 +73,23 @@ export function AppHeader({ section, onSectionChange, onLogout, user }: AppHeade
       <Separator orientation="vertical" className="h-6" />
 
       <nav className="flex items-center gap-0.5">
-        {NAV_ITEMS.map(({ id, label, Icon }) => (
-          <Button
-            key={id}
-            variant={section === id ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => onSectionChange(id)}
-            className={cn(
-              "h-7 gap-1.5 px-2.5 text-[0.8125rem] font-medium",
-              section === id ? "text-foreground" : "text-muted-foreground"
-            )}
-          >
-            <Icon className="size-3.5" strokeWidth={1.75} />
-            <span>{label}</span>
-          </Button>
-        ))}
+        {NAV_ITEMS.map(({ label, to, Icon }) => {
+          const active = pathname === to
+          return (
+            <Link
+              key={to}
+              to={to}
+              className={cn(
+                buttonVariants({ variant: active ? "secondary" : "ghost", size: "sm" }),
+                "h-7 gap-1.5 px-2.5 text-[0.8125rem] font-medium",
+                active ? "text-foreground" : "text-muted-foreground"
+              )}
+            >
+              <Icon className="size-3.5" strokeWidth={1.75} />
+              <span>{label}</span>
+            </Link>
+          )
+        })}
       </nav>
 
       <div className="flex-1" />
