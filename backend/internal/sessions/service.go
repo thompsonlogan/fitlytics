@@ -7,11 +7,13 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+
+	"github.com/thompsonlogan/fitlytics/backend/internal/apierr"
 )
 
-var ErrNotFound = errors.New("session not found")
+var ErrNotFound = apierr.ErrNotFound
 
-var ErrInvalidInput = errors.New("invalid input")
+var ErrInvalidInput = apierr.ErrInvalidInput
 
 type Service interface {
 	GetCurrentSession(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error)

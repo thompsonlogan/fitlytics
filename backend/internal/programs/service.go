@@ -7,9 +7,11 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+
+	"github.com/thompsonlogan/fitlytics/backend/internal/apierr"
 )
 
-var ErrNotFound = errors.New("program not found")
+var ErrNotFound = apierr.ErrNotFound
 
 type Service interface {
 	GetProgramById(ctx context.Context, programID, ownerUserID uuid.UUID) (*ProgramResponse, error)

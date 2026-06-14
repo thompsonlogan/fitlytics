@@ -10,13 +10,14 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/thompsonlogan/fitlytics/backend/internal/apierr"
 	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 	"github.com/thompsonlogan/fitlytics/backend/internal/storage"
 )
 
 var (
-	ErrNotFound     = errors.New("video not found")
-	ErrInvalidInput = errors.New("invalid input")
+	ErrNotFound     = apierr.ErrNotFound
+	ErrInvalidInput = apierr.ErrInvalidInput
 )
 
 const (

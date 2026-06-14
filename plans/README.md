@@ -15,12 +15,12 @@ session. Everything needed is inlined in each plan file.
 | 001 | CI pipeline (GitHub Actions) | P1 | S | 011, 012 | DONE — **merged with 011+012 into commit `4b5ccda` on `improve-1`** (merge-as-a-set satisfied). Reconcile-verified 2026-06-14 on HEAD `4b5ccda`: `.github/workflows/ci.yml` present and correct; frontend gate green (see 011/012); backend untouched since the integration-verified state. |
 | 002 | Backend auth test coverage (verifier, session, principal) | P1 | M | — | DONE — **MERGED to `improve-1` in commit `e9c99c3`**. Reconcile-verified 2026-06-14 on HEAD `e5c94f3`: `session_test.go`, `principal_test.go`, `verifier_test.go` all present; `go test ./internal/auth/...` → `ok`. (Was executed in worktree `advisor/002-backend-auth-tests`; that branch is now superseded by the merge.) |
 | 003 | Re-verify content-type on video finalize | P2 | S | — | DONE — **MERGED to `improve-1` in commit `e5c94f3`**. Reconcile-verified 2026-06-14 on HEAD `e5c94f3`: content-type guard present at `videos/service.go:161` (mirrors size-mismatch path); `go test ./internal/videos/...` → `ok`. (Was executed in worktree `worktree-agent-a2b8fb8fd96d57b81`; that branch is now superseded by the merge.) |
-| 004 | Fix N+1 in batch set-log update | P2 | M | — | DONE (in worktree, awaiting merge) — executed 2026-06-14 against base `e85dd74`, commit `93eaa08` on branch `worktree-agent-a756b1d37d22d92dd`. Reviewer-verified: `go vet ./internal/sessions/...` exit 0; both `UpdateSetLogs` tests pass; all real test packages (auth/programs/sessions/users/videos) `ok`. `UpdateSetLogs` now does 1 prefetch `IN` + N updates + 1 reload `IN` (no per-item `First`). Scope clean (only `repository.go` + `repository_test.go`). Note: `go test ./...` shows `cmd/api [setup failed]` — pre-existing fresh-worktree artifact (git-ignored generated `backend/docs` absent), not introduced by this plan. |
-| 005 | Frontend critical-hook tests | P2 | M | — | DONE (in worktree, awaiting merge) — executed 2026-06-14 against base `ddcad41`, commit `248aef8` on branch `worktree-agent-a15cfda74960b92a6`. Reviewer-verified independently: `pnpm typecheck` (`tsc -b`) exit 0; `pnpm test` 75/75 pass (10 files), of which 30 are the new hook tests. Scope clean — 3 new `*.test.tsx` + the single `export countPending` one-liner in `use-session.ts`, nothing else. Tests are substantive (real assertions; boundary test exercises the 1→0 crossing, not 2→1). |
-| 006 | Wire dead nav buttons to routes (branded 404) | P2 | S | — | DONE — **applied to `improve-1`** (executed 2026-06-14 in worktree, base `c64a4ed`; reviewed, then the diff was applied to the branch and committed). Reviewer-verified independently in the worktree: `pnpm typecheck` (`tsc -b`) exit 0; `pnpm lint` exit 0; `pnpm test` 75/75 pass (10 files); `pnpm build` exit 0 (the 500 kB chunk warning is pre-existing — it's plan 008's subject, not introduced here). Scope clean — only `router.tsx` + `app-header.tsx` + `today.tsx`. `grep "onSectionChange\|type Section"` → no matches. Nav items are now `Link`s to `/program`,`/history`,`/analytics` (all registered, rendering `NotFoundPage`); `Section`/`onSectionChange` removed. `useLocation({ select })` typechecked (plan's fallback not needed). |
-| 007 | Consolidate sentinel errors into `apierr` | P3 | S | — | TODO — reconcile 2026-06-14: `videos/service.go` changed (plan 003's content-type guard at line 161), but 007's in-scope excerpt (sentinel defs at `service.go:18-19`) is unchanged. Finding still valid; drift benign. |
-| 008 | Code-split the landing route | P3 | S | — | TODO |
-| 009 | Replace hand-rolled batch fetch with generated client | P3 | S | — | TODO |
+| 004 | Fix N+1 in batch set-log update | P2 | M | — | DONE — **MERGED to `improve-1` in commit `ddcad41`**. Reconcile-verified 2026-06-14 on HEAD `f81e070`: `go test ./internal/sessions/...` → `ok`; `UpdateSetLogs` batches reads (1 prefetch `IN` + N updates + 1 reload `IN`). (Was executed in worktree `worktree-agent-a756b1d37d22d92dd`; now superseded by the merge.) |
+| 005 | Frontend critical-hook tests | P2 | M | — | DONE — **MERGED to `improve-1` in commit `c64a4ed`**. Reconcile-verified 2026-06-14 on HEAD `f81e070`: 3 hook test files present (`use-auth`/`use-day-completions`/`use-session`.test.tsx); `countPending` exported from `use-session.ts:92`. (Was executed in worktree `worktree-agent-a15cfda74960b92a6`; now superseded by the merge.) |
+| 006 | Wire dead nav buttons to routes (branded 404) | P2 | S | — | DONE — **MERGED to `improve-1` in commit `f81e070`**. Reconcile-verified 2026-06-14 on HEAD `f81e070`: `app-header.tsx` nav items are `Link`s (line 79–90); `/program`,`/history`,`/analytics` routes registered → `NotFoundPage` (`router.tsx:63-65`); no `Section`/`onSectionChange` remaining. |
+| 007 | Consolidate sentinel errors into `apierr` | P3 | S | — | DONE — **committed to `improve-1`** 2026-06-14 (executed on base `f81e070`). Reviewer-verified: 4 in-scope files only; `apierr/errors.go` defines both shared sentinels; three service.go files repoint to thin aliases; `go build`/`go vet` (internal) exit 0; `go test` ok across programs/sessions/videos/auth/users; grep confirms no remaining `errors.New` sentinel in any service.go. (Originally executed in worktree `agent-a0f3618a3981e4020`, commit `fa1c3bf`, then applied to the branch.) |
+| 008 | Code-split the landing route | P3 | S | — | TODO — reconcile 2026-06-14: `router.tsx` changed (006 added 3 routes), but `LandingPage`/`TodayPage` are still statically imported (`router.tsx:12-13,39,57`). Finding valid; drift baseline re-based to `f81e070`. |
+| 009 | Replace hand-rolled batch fetch with generated client | P3 | S | — | TODO — still needs running backend + Docker (own STOP condition); in-scope files untouched. |
 | 010 | Fix stale README dev-proxy note | P3 | S | — | TODO — reconcile 2026-06-14: re-based to `4b5ccda`. Stale note still at `README.md:106`; finding still valid. |
 | 011 | Fix 3 pre-existing frontend failures (lint x2 + test x1) | P1 | S | — | DONE — merged into `4b5ccda` on `improve-1`. Reconcile-verified 2026-06-14 on HEAD `4b5ccda`: `pnpm lint` exit 0, `pnpm test` 57/57 pass. `pnpm build` criterion struck (build breakage was pre-existing, tracked as 012). |
 | 012 | Fix `pnpm build` (`tsc -b`) — 143 pre-existing type errors + no-op typecheck | P1 | M | — | DONE — merged into `4b5ccda` on `improve-1`. Reconcile-verified 2026-06-14 on HEAD `4b5ccda`: `pnpm typecheck` (`tsc -b`) → 0 errors. |
@@ -162,3 +162,29 @@ into the branch**.
 
 **Executable right now (no external deps):** 004, 005, 006, 007, 008, 010.
 009 still needs a running backend + Docker (its own STOP condition).
+
+## Reconcile report — 2026-06-14 (HEAD `f81e070`, branch `improve-1`)
+
+Branch advanced `e5c94f3` → `f81e070`. Three previously-in-worktree plans have now
+been **merged into the branch**:
+
+**DONE — now merged & verified on HEAD:**
+- **004** — N+1 fix merged in `ddcad41`; `go test ./internal/sessions/...` → ok.
+- **005** — hook tests merged in `c64a4ed`; all 3 `*.test.tsx` present; `countPending`
+  exported (`use-session.ts:92`).
+- **006** — nav routing merged in `f81e070`; `app-header.tsx` uses `Link`s, `/program`
+  `/history` `/analytics` registered → `NotFoundPage`, no `Section` plumbing left.
+- **001, 002, 003, 011, 012** — unchanged since prior reconcile; remain verified.
+
+**TODO — drift-checked, all still executable:**
+- **008** — `router.tsx` changed (006's new routes), but the `LandingPage`/`TodayPage`
+  static imports it targets are unchanged. Finding valid; drift baseline + plan note
+  re-based to `f81e070`.
+- **007, 009, 010** — no in-scope files changed `e5c94f3..HEAD`. No drift; left at
+  recorded `Planned at`.
+
+**Rejected this pass:** none.
+
+**Executable right now (no external deps):** 007, 008, 010.
+009 still needs a running backend + Docker (its own STOP condition). All P1/P2 plans
+(001–006, 011, 012) are now DONE and merged onto `improve-1`.
