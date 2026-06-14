@@ -57,7 +57,14 @@ const todayRoute = createRoute({
   component: TodayPage,
 })
 
-const routeTree = rootRoute.addChildren([indexRoute, todayRoute])
+// Features promised in the nav/marketing but not built yet. Each renders the
+// branded 404 so the nav buttons lead somewhere honest; swap the component when
+// the real page lands.
+const programRoute = createRoute({ getParentRoute: () => rootRoute, path: "/program", component: NotFoundPage })
+const historyRoute = createRoute({ getParentRoute: () => rootRoute, path: "/history", component: NotFoundPage })
+const analyticsRoute = createRoute({ getParentRoute: () => rootRoute, path: "/analytics", component: NotFoundPage })
+
+const routeTree = rootRoute.addChildren([indexRoute, todayRoute, programRoute, historyRoute, analyticsRoute])
 
 export const router = createRouter({
   routeTree,
