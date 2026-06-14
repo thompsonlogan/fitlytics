@@ -165,12 +165,21 @@ giving the `Verifier` a JWKS that returns that key's **public** half.
 
 Primary approach (white-box, `package auth`):
 1. Generate a key once per test: `rsa.GenerateKey(rand.Reader, 2048)`.
-2. Implement a tiny fake of the `keyfunc.Keyfunc` interface whose `Keyfunc` method
-   returns the `*rsa.PublicKey`:
+2. Implement a fake of the `keyfunc.Keyfunc` interface. **Note**: that interface
+   (from `github.com/MicahParks/keyfunc/v3`, verified at v3.8.0) has FOUR methods —
+   `Keyfunc(*jwt.Token)(any,error)`, `KeyfuncCtx(context.Context) jwt.Keyfunc`,
+   `Storage() jwkset.Storage`, and `VerificationKeySet(context.Context)(jwt.VerificationKeySet,error)`.
+   `Verify` only ever calls `Keyfunc`, so **embed the interface** to satisfy the
+   type without stubbing the other three, then override just `Keyfunc`:
    ```go
-   type fakeKeyfunc struct{ pub *rsa.PublicKey }
+   type fakeKeyfunc struct {
+       keyfunc.Keyfunc // embedded (nil) — satisfies the 4-method interface; unused methods are never called by Verify
+       pub *rsa.PublicKey
+   }
    func (f fakeKeyfunc) Keyfunc(_ *jwt.Token) (any, error) { return f.pub, nil }
    ```
+   This needs only the `github.com/MicahParks/keyfunc/v3` and
+   `github.com/golang-jwt/jwt/v5` imports (both already in `go.mod`) — no `jwkset` import.
 3. Construct the verifier directly: `v := &Verifier{jwks: fakeKeyfunc{pub: &key.PublicKey}, issuer: ""}`.
 4. Build tokens with `jwt.NewWithClaims(jwt.SigningMethodRS256, claims)` then
    `.SignedString(key)`, where `claims` is an `auth.Claims` with
@@ -187,11 +196,11 @@ Cover:
 6. (If issuer-checking is easy to add) construct `&Verifier{..., issuer:"https://issuer"}`
    and assert a token with the wrong `Issuer` → `ErrInvalidToken`.
 
-**Escape hatch**: if `keyfunc.Keyfunc` (from `github.com/MicahParks/keyfunc/v3`) has
-methods beyond `Keyfunc(*jwt.Token)(any,error)` such that `fakeKeyfunc` won't satisfy
-the interface, **STOP and report** — note the actual interface signature. Do **not**
-modify `verifier.go` to add a test seam without checking back first; and do **not**
-fetch a real JWKS over the network in a test.
+**Escape hatch**: the embedded-interface fake above handles the multi-method
+interface. If for any reason it still won't compile against the interface (e.g. the
+embedded-interface approach is rejected by the toolchain), **STOP and report** the
+exact compiler error. Do **not** modify `verifier.go` to add a test seam without
+checking back first; and do **not** fetch a real JWKS over the network in a test.
 
 **Verify**: `cd backend && go test ./internal/auth/ -run Verif -v` → all pass.
 
