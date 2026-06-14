@@ -5,9 +5,15 @@
 > "STOP conditions" section occurs, stop and report — do not improvise. When done,
 > update the status row for this plan in `plans/README.md`.
 >
-> **Drift check (run first)**: `git diff --stat cb2af4b..HEAD -- frontend/src/router.tsx`
+> **Drift check (run first)**: `git diff --stat f81e070..HEAD -- frontend/src/router.tsx`
 > If it changed, compare the "Current state" excerpt against the live code before
 > proceeding; on a mismatch, treat it as a STOP condition.
+>
+> **Reconcile note (2026-06-14)**: plan 006 has since landed and added `/program`,
+> `/history`, `/analytics` routes plus a `NotFoundPage` import to `router.tsx`. The
+> `LandingPage`/`TodayPage` static imports and their `component:` references (lines
+> 12-13, 39, 57 on `f81e070`) are **unchanged** — this plan still applies verbatim;
+> just leave 006's new routes alone.
 
 ## Status
 
@@ -17,7 +23,7 @@
 - **Depends on**: none (touches `router.tsx`; if doing plan 006 first, rebase the
   route additions — both edit `router.tsx`)
 - **Category**: perf
-- **Planned at**: commit `cb2af4b`, 2026-06-14
+- **Planned at**: commit `cb2af4b`, 2026-06-14 (drift baseline re-based to `f81e070` on 2026-06-14 reconcile)
 
 ## Why this matters
 
