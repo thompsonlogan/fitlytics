@@ -208,3 +208,22 @@ exit 0, `go test ./internal/sessions/...` ok.
 
 **Status: the entire backlog (001–013) is now DONE and merged onto `improve-1`.** The
 worktree branches are superseded by the merges and can be pruned. Nothing remains TODO.
+
+## Reconcile report — 2026-06-14 (HEAD `7758b4f`, branch `improve-1`)
+
+Branch advanced `94e1835` → `7758b4f`. The only commit in that range is `7758b4f`
+(`docs(plans): record plans 008/009/010/013 merged onto improve-1`) — `git diff
+--name-only 94e1835..HEAD` touches **only** `plans/`. No source code moved since the
+last full integration verification at `94e1835`, so that verification carries forward.
+
+**Cheap spot-checks on HEAD `7758b4f` (all pass):**
+- **001** — `.github/workflows/ci.yml` present.
+- **002** — `internal/auth/{principal,session,verifier}_test.go` all present.
+- **003** — content-type guard live at `videos/service.go:157-161`.
+- **005** — `use-auth`/`use-session`/`use-day-completions` `.test.tsx` all present.
+- **006** — `/program` `/history` `/analytics` registered → `NotFoundPage` (`router.tsx:62-66`).
+- **007** — `internal/apierr/errors.go` present.
+
+**Rejected this pass:** none. **TODO:** none. **Nothing remains executable** — the
+entire 001–013 backlog is DONE and merged. No new findings audited (reconcile is
+not a fresh audit; run `/improve` to surface new opportunities).

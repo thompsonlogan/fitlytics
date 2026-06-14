@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/thompsonlogan/fitlytics/backend/internal/apierr"
 	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 	"github.com/thompsonlogan/fitlytics/backend/internal/storage"
 )
@@ -94,7 +95,7 @@ func TestCreateUpload_RejectsUnsupportedContentType(t *testing.T) {
 	svc := NewService(&fakeRepo{}, &fakeStore{}, testLimits(), silentLogger())
 	_, err := svc.CreateUpload(context.Background(), uuid.New(), uuid.New(), uuid.New(),
 		CreateVideoUploadRequest{Filename: "x.gif", ContentType: "image/gif", SizeBytes: 10})
-	if !errors.Is(err, ErrInvalidInput) {
+	if !errors.Is(err, apierr.ErrInvalidInput) {
 		t.Fatalf("want ErrInvalidInput, got %v", err)
 	}
 }
@@ -103,7 +104,7 @@ func TestCreateUpload_RejectsOversize(t *testing.T) {
 	svc := NewService(&fakeRepo{}, &fakeStore{}, testLimits(), silentLogger())
 	_, err := svc.CreateUpload(context.Background(), uuid.New(), uuid.New(), uuid.New(),
 		CreateVideoUploadRequest{Filename: "x.mp4", ContentType: "video/mp4", SizeBytes: 600 * 1024 * 1024})
-	if !errors.Is(err, ErrInvalidInput) {
+	if !errors.Is(err, apierr.ErrInvalidInput) {
 		t.Fatalf("want ErrInvalidInput, got %v", err)
 	}
 }
@@ -112,7 +113,7 @@ func TestCreateUpload_RejectsNonPositiveSize(t *testing.T) {
 	svc := NewService(&fakeRepo{}, &fakeStore{}, testLimits(), silentLogger())
 	_, err := svc.CreateUpload(context.Background(), uuid.New(), uuid.New(), uuid.New(),
 		CreateVideoUploadRequest{Filename: "x.mp4", ContentType: "video/mp4", SizeBytes: 0})
-	if !errors.Is(err, ErrInvalidInput) {
+	if !errors.Is(err, apierr.ErrInvalidInput) {
 		t.Fatalf("want ErrInvalidInput, got %v", err)
 	}
 }
@@ -126,7 +127,7 @@ func TestCreateUpload_UnownedSetLogIsNotFound(t *testing.T) {
 	svc := NewService(repo, &fakeStore{}, testLimits(), silentLogger())
 	_, err := svc.CreateUpload(context.Background(), uuid.New(), uuid.New(), uuid.New(),
 		CreateVideoUploadRequest{Filename: "x.mp4", ContentType: "video/mp4", SizeBytes: 10})
-	if !errors.Is(err, ErrNotFound) {
+	if !errors.Is(err, apierr.ErrNotFound) {
 		t.Fatalf("want ErrNotFound, got %v", err)
 	}
 }
@@ -213,7 +214,7 @@ func TestFinalize_MissingObjectMarksFailed(t *testing.T) {
 	svc := NewService(repo, store, testLimits(), silentLogger())
 
 	_, err := svc.Finalize(context.Background(), id, uuid.New())
-	if !errors.Is(err, ErrInvalidInput) {
+	if !errors.Is(err, apierr.ErrInvalidInput) {
 		t.Fatalf("want ErrInvalidInput, got %v", err)
 	}
 	if !failed {
@@ -237,7 +238,7 @@ func TestFinalize_TransientHeadErrorLeavesPending(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected an error, got nil")
 	}
-	if errors.Is(err, ErrInvalidInput) {
+	if errors.Is(err, apierr.ErrInvalidInput) {
 		t.Fatalf("transient error should not be ErrInvalidInput, got %v", err)
 	}
 	if markFailedCalled {
@@ -257,7 +258,7 @@ func TestFinalize_OversizeObjectIsDeletedAndRejected(t *testing.T) {
 	svc := NewService(repo, store, testLimits(), silentLogger())
 
 	_, err := svc.Finalize(context.Background(), id, uuid.New())
-	if !errors.Is(err, ErrInvalidInput) {
+	if !errors.Is(err, apierr.ErrInvalidInput) {
 		t.Fatalf("want ErrInvalidInput, got %v", err)
 	}
 	if len(store.deleted) != 1 {
@@ -284,7 +285,7 @@ func TestFinalize_SizeMismatchIsDeletedAndRejected(t *testing.T) {
 	svc := NewService(repo, store, testLimits(), silentLogger())
 
 	_, err := svc.Finalize(context.Background(), id, uuid.New())
-	if !errors.Is(err, ErrInvalidInput) {
+	if !errors.Is(err, apierr.ErrInvalidInput) {
 		t.Fatalf("want ErrInvalidInput, got %v", err)
 	}
 	if !failed {
@@ -317,7 +318,7 @@ func TestFinalize_ContentTypeMismatchIsDeletedAndRejected(t *testing.T) {
 	svc := NewService(repo, store, testLimits(), silentLogger())
 
 	_, err := svc.Finalize(context.Background(), id, uuid.New())
-	if !errors.Is(err, ErrInvalidInput) {
+	if !errors.Is(err, apierr.ErrInvalidInput) {
 		t.Fatalf("want ErrInvalidInput, got %v", err)
 	}
 	if !failed {
@@ -438,7 +439,7 @@ func TestDelete_NotFound(t *testing.T) {
 	}}
 	svc := NewService(repo, &fakeStore{}, testLimits(), silentLogger())
 
-	if err := svc.Delete(context.Background(), uuid.New(), uuid.New()); !errors.Is(err, ErrNotFound) {
+	if err := svc.Delete(context.Background(), uuid.New(), uuid.New()); !errors.Is(err, apierr.ErrNotFound) {
 		t.Fatalf("want ErrNotFound, got %v", err)
 	}
 }

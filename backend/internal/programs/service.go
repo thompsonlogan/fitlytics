@@ -11,8 +11,6 @@ import (
 	"github.com/thompsonlogan/fitlytics/backend/internal/apierr"
 )
 
-var ErrNotFound = apierr.ErrNotFound
-
 type Service interface {
 	GetProgramById(ctx context.Context, programID, ownerUserID uuid.UUID) (*ProgramResponse, error)
 	GetProgramsByUserId(ctx context.Context, ownerUserID uuid.UUID) ([]ProgramSummaryResponse, error)
@@ -30,7 +28,7 @@ func (s *service) GetProgramById(ctx context.Context, programID, ownerUserID uui
 	program, err := s.repo.GetProgramById(ctx, programID, ownerUserID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrNotFound
+			return nil, apierr.ErrNotFound
 		}
 		return nil, fmt.Errorf("load program: %w", err)
 	}

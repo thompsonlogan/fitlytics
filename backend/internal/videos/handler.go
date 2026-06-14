@@ -198,9 +198,9 @@ func (h *Handler) Delete(c *gin.Context) {
 // logging only the unexpected (5xx) ones.
 func (h *Handler) writeServiceError(c *gin.Context, op string, err error, attrs ...slog.Attr) {
 	switch {
-	case errors.Is(err, ErrNotFound):
+	case errors.Is(err, apierr.ErrNotFound):
 		apierr.NotFound(c, "video not found")
-	case errors.Is(err, ErrInvalidInput):
+	case errors.Is(err, apierr.ErrInvalidInput):
 		apierr.BadRequest(c, err.Error())
 	case errors.Is(err, ErrQuotaExceeded):
 		apierr.TooManyRequests(c, "video quota exceeded")

@@ -15,11 +15,6 @@ import (
 	"github.com/thompsonlogan/fitlytics/backend/internal/storage"
 )
 
-var (
-	ErrNotFound     = apierr.ErrNotFound
-	ErrInvalidInput = apierr.ErrInvalidInput
-)
-
 const (
 	uploadURLTTL   = 10 * time.Minute
 	playbackURLTTL = 6 * time.Hour
@@ -59,18 +54,18 @@ func NewService(repo Repository, store storage.ObjectStore, limits Limits, log *
 func (s *service) CreateUpload(ctx context.Context, sessionID, setLogID, ownerID uuid.UUID, in CreateVideoUploadRequest) (*CreateVideoUploadResponse, error) {
 	ext, ok := allowedContentTypes[in.ContentType]
 	if !ok {
-		return nil, fmt.Errorf("%w: unsupported content type %q", ErrInvalidInput, in.ContentType)
+		return nil, fmt.Errorf("%w: unsupported content type %q", apierr.ErrInvalidInput, in.ContentType)
 	}
 	if in.SizeBytes <= 0 {
-		return nil, fmt.Errorf("%w: size_bytes must be positive", ErrInvalidInput)
+		return nil, fmt.Errorf("%w: size_bytes must be positive", apierr.ErrInvalidInput)
 	}
 	if in.SizeBytes > s.limits.MaxBytes {
-		return nil, fmt.Errorf("%w: file exceeds the %d byte limit", ErrInvalidInput, s.limits.MaxBytes)
+		return nil, fmt.Errorf("%w: file exceeds the %d byte limit", apierr.ErrInvalidInput, s.limits.MaxBytes)
 	}
 
 	if err := s.repo.VerifySetLogOwned(ctx, sessionID, setLogID, ownerID); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrNotFound
+			return nil, apierr.ErrNotFound
 		}
 		return nil, fmt.Errorf("verify set log ownership: %w", err)
 	}
@@ -117,7 +112,7 @@ func (s *service) Finalize(ctx context.Context, videoID, ownerID uuid.UUID) (*Vi
 	row, err := s.repo.GetOwned(ctx, videoID, ownerID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrNotFound
+			return nil, apierr.ErrNotFound
 		}
 		return nil, fmt.Errorf("get video: %w", err)
 	}
@@ -127,7 +122,7 @@ func (s *service) Finalize(ctx context.Context, videoID, ownerID uuid.UUID) (*Vi
 		if errors.Is(err, storage.ErrNotFound) {
 			// No object landed — mark failed so the slot frees up and reject.
 			_ = s.repo.MarkFailed(ctx, videoID)
-			return nil, fmt.Errorf("%w: upload not found in storage", ErrInvalidInput)
+			return nil, fmt.Errorf("%w: upload not found in storage", apierr.ErrInvalidInput)
 		}
 		// Transient store failure: leave the row pending so the client can
 		// retry finalize without re-uploading.
@@ -138,7 +133,7 @@ func (s *service) Finalize(ctx context.Context, videoID, ownerID uuid.UUID) (*Vi
 			s.log.Warn("failed to delete oversize video object", slog.String("key", row.StorageKey), slog.Any("error", derr))
 		}
 		_ = s.repo.MarkFailed(ctx, videoID)
-		return nil, fmt.Errorf("%w: uploaded file exceeds the size limit", ErrInvalidInput)
+		return nil, fmt.Errorf("%w: uploaded file exceeds the size limit", apierr.ErrInvalidInput)
 	}
 
 	if row.SizeBytes != nil && *row.SizeBytes != head.SizeBytes {
@@ -151,14 +146,11 @@ func (s *service) Finalize(ctx context.Context, videoID, ownerID uuid.UUID) (*Vi
 			s.log.Warn("failed to delete mismatched video object", slog.String("key", row.StorageKey), slog.Any("error", derr))
 		}
 		_ = s.repo.MarkFailed(ctx, videoID)
-		return nil, fmt.Errorf("%w: upload did not complete (size mismatch); please try again", ErrInvalidInput)
+		return nil, fmt.Errorf("%w: upload did not complete (size mismatch); please try again", apierr.ErrInvalidInput)
 	}
 
 	// Reject if the object that actually landed isn't the content-type we
-	// reserved the slot for. Mirrors the size-mismatch handling above: the
-	// upload is repudiated, the object purged, and the slot freed. Skip the
-	// check when either side is unknown (older rows, or a store that doesn't
-	// return a content-type) to avoid false rejections.
+	// reserved the slot for.
 	if row.ContentType != nil && head.ContentType != "" && head.ContentType != *row.ContentType {
 		s.log.Warn("video upload content-type mismatch; rejecting",
 			slog.String("key", row.StorageKey),
@@ -169,7 +161,7 @@ func (s *service) Finalize(ctx context.Context, videoID, ownerID uuid.UUID) (*Vi
 			s.log.Warn("failed to delete mismatched-type video object", slog.String("key", row.StorageKey), slog.Any("error", derr))
 		}
 		_ = s.repo.MarkFailed(ctx, videoID)
-		return nil, fmt.Errorf("%w: uploaded file type does not match the reserved type", ErrInvalidInput)
+		return nil, fmt.Errorf("%w: uploaded file type does not match the reserved type", apierr.ErrInvalidInput)
 	}
 
 	updated, err := s.repo.MarkReady(ctx, videoID, head.SizeBytes)
@@ -205,7 +197,7 @@ func (s *service) UpdateNote(ctx context.Context, videoID, ownerID uuid.UUID, in
 	updated, err := s.repo.UpdateNote(ctx, videoID, ownerID, in.Note)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrNotFound
+			return nil, apierr.ErrNotFound
 		}
 		return nil, fmt.Errorf("update note: %w", err)
 	}
@@ -221,7 +213,7 @@ func (s *service) Delete(ctx context.Context, videoID, ownerID uuid.UUID) error 
 	key, err := s.repo.SoftDelete(ctx, videoID, ownerID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ErrNotFound
+			return apierr.ErrNotFound
 		}
 		return fmt.Errorf("delete video: %w", err)
 	}

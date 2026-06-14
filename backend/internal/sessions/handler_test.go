@@ -14,6 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/thompsonlogan/fitlytics/backend/internal/apierr"
 	"github.com/thompsonlogan/fitlytics/backend/internal/auth"
 	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
@@ -52,7 +53,7 @@ func TestHandlerGetCurrentSession_InvalidProgramID(t *testing.T) {
 func TestHandlerGetCurrentSession_NotFoundReturns404(t *testing.T) {
 	svc := &fakeService{
 		findCurrentFn: func(_ context.Context, _, _ uuid.UUID) (*SessionResponse, error) {
-			return nil, ErrNotFound
+			return nil, apierr.ErrNotFound
 		},
 	}
 	w := httptest.NewRecorder()
@@ -108,7 +109,7 @@ func TestHandlerGetCurrentSession_SuccessReturnsBody(t *testing.T) {
 func TestHandlerStartSession_NotFoundFor404(t *testing.T) {
 	svc := &fakeService{
 		ensureForDayFn: func(_ context.Context, _, _, _ uuid.UUID) (*SessionResponse, error) {
-			return nil, ErrNotFound
+			return nil, apierr.ErrNotFound
 		},
 	}
 	w := httptest.NewRecorder()
@@ -199,7 +200,7 @@ func TestHandlerUpdateSetLog_InvalidIDsReturn400(t *testing.T) {
 func TestHandlerUpdateSetLog_InvalidInputReturns400(t *testing.T) {
 	svc := &fakeService{
 		updateSetLogFn: func(_ context.Context, _, _, _ uuid.UUID, _ UpdateSetLogRequest) (*SetLogResponse, error) {
-			return nil, errors.Join(ErrInvalidInput, errors.New("actual_rpe out of range"))
+			return nil, errors.Join(apierr.ErrInvalidInput, errors.New("actual_rpe out of range"))
 		},
 	}
 	c, w := newPatchSetLogContext(t, uuid.New(), uuid.NewString(), uuid.NewString(),
@@ -213,7 +214,7 @@ func TestHandlerUpdateSetLog_InvalidInputReturns400(t *testing.T) {
 func TestHandlerUpdateSetLog_NotFoundReturns404(t *testing.T) {
 	svc := &fakeService{
 		updateSetLogFn: func(_ context.Context, _, _, _ uuid.UUID, _ UpdateSetLogRequest) (*SetLogResponse, error) {
-			return nil, ErrNotFound
+			return nil, apierr.ErrNotFound
 		},
 	}
 	c, w := newPatchSetLogContext(t, uuid.New(), uuid.NewString(), uuid.NewString(),

@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/thompsonlogan/fitlytics/backend/internal/apierr"
 	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
 
@@ -58,7 +59,7 @@ func TestServiceGetProgramById_NotFoundMapsToErrNotFound(t *testing.T) {
 	if resp != nil {
 		t.Errorf("response should be nil on not-found, got %+v", resp)
 	}
-	if !errors.Is(err, ErrNotFound) {
+	if !errors.Is(err, apierr.ErrNotFound) {
 		t.Errorf("error: want ErrNotFound, got %v", err)
 	}
 	if repo.getExercisesByIdsCount != 0 {
@@ -83,7 +84,7 @@ func TestServiceGetProgramById_RepoErrorIsWrapped(t *testing.T) {
 	if !errors.Is(err, boom) {
 		t.Errorf("error should wrap underlying repo error; got %v", err)
 	}
-	if errors.Is(err, ErrNotFound) {
+	if errors.Is(err, apierr.ErrNotFound) {
 		t.Error("generic repo error was incorrectly mapped to ErrNotFound")
 	}
 }

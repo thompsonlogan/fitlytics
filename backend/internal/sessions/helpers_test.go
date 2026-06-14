@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/thompsonlogan/fitlytics/backend/internal/apierr"
 	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
 
@@ -20,7 +21,7 @@ type fakeService struct {
 
 func (f *fakeService) GetCurrentSession(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error) {
 	if f.findCurrentFn == nil {
-		return nil, ErrNotFound
+		return nil, apierr.ErrNotFound
 	}
 	return f.findCurrentFn(ctx, programDayID, ownerUserID)
 }
