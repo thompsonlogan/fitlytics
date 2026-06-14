@@ -1,5 +1,4 @@
-# Local environment. VITE_* values are baked into the build at build time;
-# keep real .env files out of git but track the documented example.
-.env
-.env.*
-!.env.example
+# Local overrides (and any secret values). The committed .env holds the
+# shared, non-secret build-time config (VITE_*).
+.env.local
+.env.*.local

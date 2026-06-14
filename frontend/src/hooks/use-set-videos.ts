@@ -7,16 +7,16 @@ import {
   type VideoResponse,
 } from "@/services/generated"
 
-// Pre-upload UX hints, configurable via Vite env (VITE_*). These only drive
-// client-side validation messages and the dropzone caption — the server
-// enforces the real limits regardless. Defaults match the backend defaults.
-export const MAX_VIDEO_BYTES = Number(import.meta.env.VITE_MAX_VIDEO_BYTES) || 500 * 1024 * 1024
+// Pre-upload UX hints, sourced entirely from Vite build-time env (see
+// frontend/.env). These only drive client-side validation messages and the
+// dropzone caption — the server enforces the real limits regardless.
+export const MAX_VIDEO_BYTES = Number(import.meta.env.VITE_MAX_VIDEO_BYTES)
 
-export const ALLOWED_VIDEO_TYPES: readonly string[] = import.meta.env.VITE_ALLOWED_VIDEO_TYPES
-  ? import.meta.env.VITE_ALLOWED_VIDEO_TYPES.split(",")
-      .map((t) => t.trim())
-      .filter(Boolean)
-  : ["video/mp4", "video/quicktime", "video/webm"]
+export const ALLOWED_VIDEO_TYPES: readonly string[] = import.meta.env.VITE_ALLOWED_VIDEO_TYPES.split(
+  ","
+)
+  .map((t) => t.trim())
+  .filter(Boolean)
 
 export function isAllowedVideoType(type: string, allowed?: string[]): boolean {
   return (allowed ?? (ALLOWED_VIDEO_TYPES as readonly string[])).includes(type)
