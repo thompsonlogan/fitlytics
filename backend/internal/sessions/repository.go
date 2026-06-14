@@ -192,10 +192,6 @@ func (r *repository) StartSessionForDay(ctx context.Context, programID, programD
 		var setLogs []*generated.SetLog
 		for i, p := range pExercises {
 			seID := sessionExercises[i].ID
-			// Expand each prescribed block into one set_log per physical set. A
-			// "2 sets × 5" target (sets_count = 2) becomes two set_logs that share
-			// the same block_sequence so the UI can group them under one row.
-			// sequence is a contiguous per-exercise counter across all blocks.
 			seq := int32(1)
 			for _, pst := range p.SetTargets {
 				blockSeq := pst.Sequence
@@ -313,9 +309,6 @@ func (r *repository) UpdateSetLog(ctx context.Context, sessionID, setLogID, owne
 	return out, nil
 }
 
-// recomputeSessionState rebuilds the session's state column from its current
-// set_log distribution. It must be called inside an open transaction (q must
-// wrap that tx via query.Use(tx)).
 func recomputeSessionState(ctx context.Context, q *query.Query, sessionID uuid.UUID) error {
 	se := q.SessionExercise
 	sl := q.SetLog

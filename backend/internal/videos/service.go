@@ -24,16 +24,12 @@ const (
 	playbackURLTTL = 6 * time.Hour
 )
 
-// allowedContentTypes maps each accepted upload MIME type to the file extension
-// used in the storage key. Anything not in this set is rejected before a URL is
-// ever issued.
 var allowedContentTypes = map[string]string{
 	"video/mp4":       "mp4",
 	"video/quicktime": "mov",
 	"video/webm":      "webm",
 }
 
-// Limits are the abuse safeguards, sourced from config.
 type Limits struct {
 	MaxBytes   int64
 	MaxPerUser int
@@ -144,11 +140,6 @@ func (s *service) Finalize(ctx context.Context, videoID, ownerID uuid.UUID) (*Vi
 		return nil, fmt.Errorf("%w: uploaded file exceeds the size limit", ErrInvalidInput)
 	}
 
-	// Integrity check: the client uploads exactly the bytes it reserved, so the
-	// stored object must match the reserved size. A mismatch means the upload was
-	// truncated, interrupted, or silently re-encoded by the device (a known iOS
-	// behaviour) — the object is suspect, so purge it and reject rather than
-	// marking a broken clip ready. Skip when no size was reserved (defensive).
 	if row.SizeBytes != nil && *row.SizeBytes != head.SizeBytes {
 		s.log.Warn("video upload size mismatch; rejecting",
 			slog.String("key", row.StorageKey),
@@ -175,7 +166,6 @@ func (s *service) ListForSession(ctx context.Context, sessionID, ownerID uuid.UU
 	rows, err := s.repo.ListBySession(ctx, sessionID, ownerID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			// No such (owned) session yet — treat as no videos.
 			return []VideoResponse{}, nil
 		}
 		return nil, fmt.Errorf("list session videos: %w", err)
@@ -222,9 +212,6 @@ func (s *service) Delete(ctx context.Context, videoID, ownerID uuid.UUID) error 
 	return nil
 }
 
-// playbackURL mints a short-lived read URL, swallowing errors to a nil pointer
-// so a transient presign failure degrades to "no playback" rather than failing
-// the whole list/finalize response.
 func (s *service) playbackURL(ctx context.Context, key string) *string {
 	url, err := s.store.PresignGet(ctx, key, playbackURLTTL)
 	if err != nil {

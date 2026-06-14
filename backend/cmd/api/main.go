@@ -78,8 +78,6 @@ func main() {
 		bypassUserID = parsed
 	}
 
-	// Object store for set videos (R2 is required — config.Load fails fast if any
-	// R2_* var is missing).
 	videoStore, err := storage.NewR2Store(storage.R2Config{
 		Endpoint:        cfg.R2Endpoint,
 		Bucket:          cfg.R2Bucket,
