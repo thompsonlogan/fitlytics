@@ -5,9 +5,15 @@
 > "STOP conditions" section occurs, stop and report — do not improvise. When done,
 > update the status row for this plan in `plans/README.md`.
 >
-> **Drift check (run first)**: `git diff --stat cb2af4b..HEAD -- README.md frontend/vite.config.ts`
+> **Drift check (run first)**: `git diff --stat 4b5ccda..HEAD -- README.md frontend/vite.config.ts`
 > If either changed, compare the "Current state" excerpt against the live files before
 > proceeding; on a mismatch, treat it as a STOP condition.
+>
+> **Reconcile note (2026-06-14)**: re-based from `cb2af4b` to `4b5ccda`. The in-scope
+> file `README.md` is unchanged — the stale note is still at line 106. `vite.config.ts`
+> (evidence only) gained an 8-line Vitest `env` block since `cb2af4b`, which shifted the
+> proxy block to lines 27-30; the proxy config itself is unchanged, so this plan's
+> premise still holds.
 
 ## Status
 
@@ -16,7 +22,7 @@
 - **Risk**: LOW
 - **Depends on**: none
 - **Category**: docs
-- **Planned at**: commit `cb2af4b`, 2026-06-14
+- **Planned at**: commit `cb2af4b`, 2026-06-14 (reconcile-refreshed to `4b5ccda`, 2026-06-14)
 
 ## Why this matters
 
@@ -36,7 +42,7 @@ this corrects it.
 > up yet.
 ```
 
-The reality — `frontend/vite.config.ts:21-31`:
+The reality — `frontend/vite.config.ts:27-30` (inside `server.proxy`):
 ```ts
 server: {
   port: process.env.PORT ? Number(process.env.PORT) : undefined,

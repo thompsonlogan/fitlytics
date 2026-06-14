@@ -5,10 +5,17 @@
 > "STOP conditions" section occurs, stop and report — do not improvise. When done,
 > update the status row for this plan in `plans/README.md`.
 >
-> **Drift check (run first)**: `git diff --stat cb2af4b..HEAD -- frontend/src/hooks/`
+> **Drift check (run first)**: `git diff --stat 4b5ccda..HEAD -- frontend/src/hooks/`
 > If any hook under `frontend/src/hooks/` changed, compare the "Current state"
 > excerpts against the live code before proceeding; on a mismatch, treat it as a
 > STOP condition.
+>
+> **Reconcile note (2026-06-14)**: re-based from `cb2af4b` to `4b5ccda`. Between
+> those commits `use-session.ts` changed only inside `useLogSetBatch` (`log.id` →
+> `log.id!` non-null assertions, from plan 012's type fixes) — that function is
+> **out of scope** here. Everything this plan touches (`countPending`,
+> `sessionQueryKey`, `useLogSet`'s boundary logic) is unchanged; the excerpts below
+> still match the live code.
 
 ## Status
 
@@ -17,7 +24,7 @@
 - **Risk**: LOW (adds tests; one tiny `export` is the only production change)
 - **Depends on**: none
 - **Category**: tests
-- **Planned at**: commit `cb2af4b`, 2026-06-14
+- **Planned at**: commit `cb2af4b`, 2026-06-14 (reconcile-refreshed to `4b5ccda`, 2026-06-14)
 
 ## Why this matters
 

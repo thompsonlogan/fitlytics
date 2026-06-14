@@ -12,18 +12,18 @@ session. Everything needed is inlined in each plan file.
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| 001 | CI pipeline (GitHub Actions) | P1 | S | 011, 012 | DONE (integration-verified) — workflow correct (branch `worktree-agent-a24fac7f67fa81118`, commit `ea94a5d`). Full CI gate proven green on the combined `master`+011+012 state (typecheck/lint/test/build all exit 0; backend job verified during 001's run). **Merge 001 + 011 + 012 together** — 001's frontend job is red on `master` alone. |
+| 001 | CI pipeline (GitHub Actions) | P1 | S | 011, 012 | DONE — **merged with 011+012 into commit `4b5ccda` on `improve-1`** (merge-as-a-set satisfied). Reconcile-verified 2026-06-14 on HEAD `4b5ccda`: `.github/workflows/ci.yml` present and correct; frontend gate green (see 011/012); backend untouched since the integration-verified state. |
 | 002 | Backend auth test coverage (verifier, session, principal) | P1 | M | — | TODO |
 | 003 | Re-verify content-type on video finalize | P2 | S | — | TODO |
 | 004 | Fix N+1 in batch set-log update | P2 | M | — | TODO |
-| 005 | Frontend critical-hook tests | P2 | M | — | TODO |
+| 005 | Frontend critical-hook tests | P2 | M | — | TODO — reconcile 2026-06-14: re-based to `4b5ccda`. `use-session.ts` changed only in out-of-scope `useLogSetBatch`; finding still valid, no meaningful drift. |
 | 006 | Wire dead nav buttons to routes (branded 404) | P2 | S | — | TODO |
 | 007 | Consolidate sentinel errors into `apierr` | P3 | S | — | TODO |
 | 008 | Code-split the landing route | P3 | S | — | TODO |
 | 009 | Replace hand-rolled batch fetch with generated client | P3 | S | — | TODO |
-| 010 | Fix stale README dev-proxy note | P3 | S | — | TODO |
-| 011 | Fix 3 pre-existing frontend failures (lint x2 + test x1) | P1 | S | — | DONE — verified 2026-06-14 (lint exit 0, 57/57 tests pass) on branch `worktree-agent-a16422d8bd6e09b02`, commit `27fe639`. `pnpm build` criterion struck: build breakage is pre-existing, tracked as 012. |
-| 012 | Fix `pnpm build` (`tsc -b`) — 143 pre-existing type errors + no-op typecheck | P1 | M | — | DONE — verified 2026-06-14 on branch `worktree-agent-a3da1b70c41d3f476`, commit `4e74f3a`. `tsc -b` → 0 errors, scope clean (8 files, no generated edits). |
+| 010 | Fix stale README dev-proxy note | P3 | S | — | TODO — reconcile 2026-06-14: re-based to `4b5ccda`. Stale note still at `README.md:106`; finding still valid. |
+| 011 | Fix 3 pre-existing frontend failures (lint x2 + test x1) | P1 | S | — | DONE — merged into `4b5ccda` on `improve-1`. Reconcile-verified 2026-06-14 on HEAD `4b5ccda`: `pnpm lint` exit 0, `pnpm test` 57/57 pass. `pnpm build` criterion struck (build breakage was pre-existing, tracked as 012). |
+| 012 | Fix `pnpm build` (`tsc -b`) — 143 pre-existing type errors + no-op typecheck | P1 | M | — | DONE — merged into `4b5ccda` on `improve-1`. Reconcile-verified 2026-06-14 on HEAD `4b5ccda`: `pnpm typecheck` (`tsc -b`) → 0 errors. |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (one-line reason) | REJECTED (one-line rationale)
 
@@ -110,12 +110,32 @@ generated-client errors without weakening `strict` or ESLint's unused-var rule;
 fixed the 15 genuine app/test type errors; and made `pnpm typecheck` a real check
 (`tsc -b` instead of the no-op `tsc --noEmit`). Verified `tsc -b` → 0 errors.
 
-## Merge guidance for 001 / 011 / 012
+## Merge guidance for 001 / 011 / 012 — RESOLVED (2026-06-14)
 
-These three are now all DONE and were verified **together**: `master` + 011 + 012
-passes `pnpm typecheck && pnpm lint && pnpm test && pnpm build` (all exit 0), and the
-001 workflow's backend job was verified during 001's own run. They must be **merged
-as a set** — 001's CI is red on `master` alone because the frontend fixes (011, 012)
-aren't there yet. Merge order doesn't matter as long as all three land before (or
-with) enabling required status checks. Each lives on its own worktree branch (see the
-status table); the advisor did not merge, push, or commit to any user branch.
+All three landed **together** in commit `4b5ccda` on branch `improve-1`, satisfying
+the merge-as-a-set requirement (001's CI would have been red without 011+012). The
+separate worktree branches from execution are no longer relevant.
+
+## Reconcile report — 2026-06-14 (HEAD `4b5ccda`, branch `improve-1`)
+
+Re-ran since the plans were written against `cb2af4b`. Only `.github/`, `frontend/`,
+and `plans/` changed between `cb2af4b` and `4b5ccda`; no backend files moved.
+
+**DONE — verified on HEAD:**
+- **001** — `.github/workflows/ci.yml` present and correct.
+- **011** — `pnpm lint` exit 0, `pnpm test` 57/57 pass.
+- **012** — `pnpm typecheck` (`tsc -b`) → 0 errors.
+- (Combined: typecheck + lint + test all green on HEAD, so the CI frontend job passes.)
+
+**TODO — drift-checked, all still executable:**
+- **005, 010** — in-scope/evidence files shifted slightly; findings re-confirmed valid,
+  `Planned at` re-based to `4b5ccda` (see each plan's reconcile note). No excerpt content
+  changed meaningfully.
+- **002, 003, 004, 006, 007, 008, 009** — no in-scope files changed since `cb2af4b`; no
+  drift. Left at their original `Planned at` (their drift checks return clean).
+
+**Rejected this pass:** none.
+
+**Executable right now (no external deps):** 002, 003, 004, 005, 006, 007, 008, 010.
+009 still needs a running backend + Docker to regenerate the client (its own STOP
+condition).
