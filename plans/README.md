@@ -13,12 +13,12 @@ session. Everything needed is inlined in each plan file.
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
 | 001 | CI pipeline (GitHub Actions) | P1 | S | 011, 012 | DONE — **merged with 011+012 into commit `4b5ccda` on `improve-1`** (merge-as-a-set satisfied). Reconcile-verified 2026-06-14 on HEAD `4b5ccda`: `.github/workflows/ci.yml` present and correct; frontend gate green (see 011/012); backend untouched since the integration-verified state. |
-| 002 | Backend auth test coverage (verifier, session, principal) | P1 | M | — | DONE — executed 2026-06-14 on worktree branch `advisor/002-backend-auth-tests` (commit `caac7d1`, **not yet merged**). Added 3 test files (`session_test.go`, `principal_test.go`, `verifier_test.go`); auth pkg 66.1% coverage; `go vet` + `go test ./internal/...` green. Step 3 plan refined pre-dispatch: `keyfunc.Keyfunc` has 4 methods and embedding it collides with the `Keyfunc` method name, so the fake implements all 4 explicitly (executor-confirmed). |
-| 003 | Re-verify content-type on video finalize | P2 | S | — | DONE — executed 2026-06-14 in worktree branch `worktree-agent-a2b8fb8fd96d57b81` (commit `ed45158`, **not yet merged**). Added content-type guard in `Finalize` (mirrors size-mismatch path) + 2 new tests (mismatch→reject/purge/fail, match→ready); unchanged empty-type happy path stays green. `go vet` + `go test ./internal/...` green. Reviewer-verified. |
+| 002 | Backend auth test coverage (verifier, session, principal) | P1 | M | — | DONE — **MERGED to `improve-1` in commit `e9c99c3`**. Reconcile-verified 2026-06-14 on HEAD `e5c94f3`: `session_test.go`, `principal_test.go`, `verifier_test.go` all present; `go test ./internal/auth/...` → `ok`. (Was executed in worktree `advisor/002-backend-auth-tests`; that branch is now superseded by the merge.) |
+| 003 | Re-verify content-type on video finalize | P2 | S | — | DONE — **MERGED to `improve-1` in commit `e5c94f3`**. Reconcile-verified 2026-06-14 on HEAD `e5c94f3`: content-type guard present at `videos/service.go:161` (mirrors size-mismatch path); `go test ./internal/videos/...` → `ok`. (Was executed in worktree `worktree-agent-a2b8fb8fd96d57b81`; that branch is now superseded by the merge.) |
 | 004 | Fix N+1 in batch set-log update | P2 | M | — | TODO |
 | 005 | Frontend critical-hook tests | P2 | M | — | TODO — reconcile 2026-06-14: re-based to `4b5ccda`. `use-session.ts` changed only in out-of-scope `useLogSetBatch`; finding still valid, no meaningful drift. |
 | 006 | Wire dead nav buttons to routes (branded 404) | P2 | S | — | TODO |
-| 007 | Consolidate sentinel errors into `apierr` | P3 | S | — | TODO |
+| 007 | Consolidate sentinel errors into `apierr` | P3 | S | — | TODO — reconcile 2026-06-14: `videos/service.go` changed (plan 003's content-type guard at line 161), but 007's in-scope excerpt (sentinel defs at `service.go:18-19`) is unchanged. Finding still valid; drift benign. |
 | 008 | Code-split the landing route | P3 | S | — | TODO |
 | 009 | Replace hand-rolled batch fetch with generated client | P3 | S | — | TODO |
 | 010 | Fix stale README dev-proxy note | P3 | S | — | TODO — reconcile 2026-06-14: re-based to `4b5ccda`. Stale note still at `README.md:106`; finding still valid. |
@@ -139,3 +139,26 @@ and `plans/` changed between `cb2af4b` and `4b5ccda`; no backend files moved.
 **Executable right now (no external deps):** 003, 004, 005, 006, 007, 008, 010.
 009 still needs a running backend + Docker to regenerate the client (its own STOP
 condition). 002 is DONE (executed 2026-06-14, awaiting merge — see its status row).
+
+## Reconcile report — 2026-06-14 (HEAD `e5c94f3`, branch `improve-1`)
+
+Branch advanced `4b5ccda` → `e5c94f3` since the previous reconcile. New commits:
+`e9c99c3` (auth tests), `8fc18d9`/`3f999b9` (plan edits), `e5c94f3` (content-type
+guard). The two worktree-executed plans from last session have now been **merged
+into the branch**.
+
+**DONE — now merged & verified on HEAD:**
+- **002** — auth tests merged in `e9c99c3`; 3 test files present; `go test ./internal/auth/...` → ok.
+- **003** — content-type guard merged in `e5c94f3`; guard at `videos/service.go:161`; `go test ./internal/videos/...` → ok.
+- **001, 011, 012** — unchanged since last reconcile (frontend/CI files untouched `4b5ccda..e5c94f3`); remain verified.
+
+**TODO — drift-checked:**
+- **007** — `videos/service.go` changed (003's guard), but the lines 007 touches
+  (sentinel defs, `service.go:18-19`) are unchanged. Finding valid; drift benign.
+- **004, 005, 006, 008, 009, 010** — no in-scope files changed `4b5ccda..e5c94f3`.
+  No drift; left at their recorded `Planned at`.
+
+**Rejected this pass:** none.
+
+**Executable right now (no external deps):** 004, 005, 006, 007, 008, 010.
+009 still needs a running backend + Docker (its own STOP condition).
