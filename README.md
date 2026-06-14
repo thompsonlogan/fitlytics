@@ -102,9 +102,10 @@ pnpm dev
 
 Vite dev server with HMR on `http://localhost:5173`.
 
-> The frontend calls the API at `localhost:8080`. For local dev you'll need
-> either a Vite proxy entry or CORS middleware on the API — neither is wired
-> up yet.
+> The Vite dev server proxies `/api` and `/auth` to the backend at
+> `http://localhost:8080` (see `frontend/vite.config.ts`), so the SPA and API are
+> same-origin in dev — no CORS setup needed. Point the proxy at a different backend
+> by setting `VITE_API_PROXY_TARGET` (see `frontend/.env.example`).
 
 ## API endpoints
 
