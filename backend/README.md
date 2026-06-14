@@ -127,6 +127,10 @@ Required:
 | `WORKOS_CLIENT_ID` | WorkOS client ID (JWKS/issuer derived from this) |
 | `WORKOS_REDIRECT_URI` | OAuth callback URL |
 | `APP_URL` | Frontend URL for post-login redirect |
+| `R2_ENDPOINT` | Cloudflare R2 S3 endpoint (`https://<account>.r2.cloudflarestorage.com`) |
+| `R2_BUCKET` | R2 bucket name for set videos |
+| `R2_ACCESS_KEY_ID` | R2 access key ID |
+| `R2_SECRET_ACCESS_KEY` | R2 secret access key |
 
 Optional:
 
@@ -136,6 +140,9 @@ Optional:
 | `HTTP_PORT` | `8080` | API listen port |
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |
 | `AUTH_BYPASS_USER_ID` | — | Skip JWT auth in dev (set to a `users.id` UUID) |
+| `MAX_VIDEO_BYTES` | `524288000` | Per-upload size cap in bytes (500 MB) |
+| `MAX_VIDEOS_PER_USER` | `200` | Max active videos per user |
+| `MAX_VIDEOS_PER_DAY` | `50` | Max uploads per rolling 24h |
 
 ## Testing
 

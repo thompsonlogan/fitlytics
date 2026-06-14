@@ -37,9 +37,7 @@ type Config struct {
 	AuthBypassUserID string
 
 	// ── Set video upload (Cloudflare R2) ──────────────────────────────────────
-	// All optional: when the R2 settings are incomplete the video feature stays
-	// disabled and its endpoints return 503, so the rest of the app boots fine
-	// without storage configured.
+	// All four are required — the app fails to start if any is missing.
 	R2Endpoint        string // https://<account>.r2.cloudflarestorage.com
 	R2Bucket          string
 	R2AccessKeyID     string
@@ -53,12 +51,6 @@ type Config struct {
 }
 
 func (c Config) IsProduction() bool { return c.Env == "production" }
-
-// VideoStorageEnabled reports whether the R2 settings needed to issue uploads
-// are all present. The videos handler returns 503 when this is false.
-func (c Config) VideoStorageEnabled() bool {
-	return c.R2Endpoint != "" && c.R2Bucket != "" && c.R2AccessKeyID != "" && c.R2SecretAccessKey != ""
-}
 
 // Load reads configuration from the environment. In development a local .env
 // file (if present) is loaded first; in production env vars are expected to be
@@ -103,6 +95,18 @@ func Load() (Config, error) {
 	}
 	if c.AppURL == "" {
 		missing = append(missing, "APP_URL")
+	}
+	if c.R2Endpoint == "" {
+		missing = append(missing, "R2_ENDPOINT")
+	}
+	if c.R2Bucket == "" {
+		missing = append(missing, "R2_BUCKET")
+	}
+	if c.R2AccessKeyID == "" {
+		missing = append(missing, "R2_ACCESS_KEY_ID")
+	}
+	if c.R2SecretAccessKey == "" {
+		missing = append(missing, "R2_SECRET_ACCESS_KEY")
 	}
 	if len(missing) > 0 {
 		return Config{}, fmt.Errorf("missing required env vars: %s", strings.Join(missing, ", "))

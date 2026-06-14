@@ -9,7 +9,6 @@ import {
   MAX_VIDEO_BYTES,
   sessionVideosQueryKey,
   useUploadSetVideo,
-  useVideoConfig,
 } from "./use-set-videos"
 import { ServiceContext } from "@/services/context"
 import type { ServiceApis } from "@/services/data"
@@ -42,30 +41,6 @@ describe("use-set-videos client guards", () => {
     const custom = ["video/avi", "video/mkv"]
     expect(isAllowedVideoType("video/avi", custom)).toBe(true)
     expect(isAllowedVideoType("video/mp4", custom)).toBe(false)
-  })
-})
-
-describe("useVideoConfig", () => {
-  it("returns the server config when fetch resolves", async () => {
-    const payload = { enabled: false, max_bytes: 1, allowed_types: [] }
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(JSON.stringify(payload), { status: 200 })
-    )
-
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    })
-    const wrapper = ({ children }: { children: ReactNode }) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    )
-
-    const { result } = renderHook(() => useVideoConfig(), { wrapper })
-
-    await waitFor(() => {
-      expect(result.current.data?.enabled).toBe(false)
-    })
-
-    vi.restoreAllMocks()
   })
 })
 

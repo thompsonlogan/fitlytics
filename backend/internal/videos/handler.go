@@ -4,7 +4,6 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
-	"sort"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -15,57 +14,20 @@ import (
 
 type Handler struct {
 	service Service
-	enabled bool
 	limits  Limits
 	log     *slog.Logger
 }
 
-// NewHandler builds the videos handler. When enabled is false (R2 not
-// configured) service may be nil and every route responds 503, so the frontend
-// can distinguish "not configured" from "not found".
-func NewHandler(service Service, enabled bool, limits Limits, log *slog.Logger) *Handler {
-	return &Handler{service: service, enabled: enabled, limits: limits, log: log}
+func NewHandler(service Service, limits Limits, log *slog.Logger) *Handler {
+	return &Handler{service: service, limits: limits, log: log}
 }
 
 func (h *Handler) Register(rg *gin.RouterGroup) {
-	rg.GET("/videos/config", h.Config)
 	rg.POST("/sessions/:sessionId/set-logs/:setLogId/videos", h.CreateUpload)
 	rg.GET("/sessions/:sessionId/videos", h.ListForSession)
 	rg.POST("/videos/:videoId/finalize", h.Finalize)
 	rg.PATCH("/videos/:videoId", h.UpdateNote)
 	rg.DELETE("/videos/:videoId", h.Delete)
-}
-
-// guard returns false (after writing 503) when the video feature is disabled.
-func (h *Handler) guard(c *gin.Context) bool {
-	if !h.enabled {
-		apierr.ServiceUnavailable(c, "video uploads are not configured")
-		return false
-	}
-	return true
-}
-
-// Config returns the server's video-upload capabilities and constraints.
-// It intentionally does NOT call h.guard — returning enabled:false is its
-// entire purpose when the feature is disabled.
-//
-// @Summary      Get video upload capabilities
-// @Tags         Videos
-// @Produce      json
-// @Success      200  {object}  VideoConfigResponse
-// @Security     BearerAuth
-// @Router       /api/videos/config [get]
-func (h *Handler) Config(c *gin.Context) {
-	types := make([]string, 0, len(allowedContentTypes))
-	for t := range allowedContentTypes {
-		types = append(types, t)
-	}
-	sort.Strings(types)
-	c.JSON(http.StatusOK, VideoConfigResponse{
-		Enabled:      h.enabled,
-		MaxBytes:     h.limits.MaxBytes,
-		AllowedTypes: types,
-	})
 }
 
 // CreateUpload reserves a direct-to-storage upload for a set's video.
@@ -83,13 +45,9 @@ func (h *Handler) Config(c *gin.Context) {
 // @Failure      401  {object}  apierr.ProblemDetails  "missing or invalid auth token"
 // @Failure      404  {object}  apierr.ProblemDetails  "set log not found"
 // @Failure      429  {object}  apierr.ProblemDetails  "video quota exceeded"
-// @Failure      503  {object}  apierr.ProblemDetails  "video uploads not configured"
 // @Security     BearerAuth
 // @Router       /api/sessions/{sessionId}/set-logs/{setLogId}/videos [post]
 func (h *Handler) CreateUpload(c *gin.Context) {
-	if !h.guard(c) {
-		return
-	}
 	sessionID, err := uuid.Parse(c.Param("sessionId"))
 	if err != nil {
 		apierr.BadRequest(c, "invalid session id")
@@ -126,13 +84,9 @@ func (h *Handler) CreateUpload(c *gin.Context) {
 // @Success      200  {array}   VideoResponse
 // @Failure      400  {object}  apierr.ProblemDetails  "invalid id"
 // @Failure      401  {object}  apierr.ProblemDetails  "missing or invalid auth token"
-// @Failure      503  {object}  apierr.ProblemDetails  "video uploads not configured"
 // @Security     BearerAuth
 // @Router       /api/sessions/{sessionId}/videos [get]
 func (h *Handler) ListForSession(c *gin.Context) {
-	if !h.guard(c) {
-		return
-	}
 	sessionID, err := uuid.Parse(c.Param("sessionId"))
 	if err != nil {
 		apierr.BadRequest(c, "invalid session id")
@@ -159,13 +113,9 @@ func (h *Handler) ListForSession(c *gin.Context) {
 // @Failure      400  {object}  apierr.ProblemDetails  "upload missing or too large"
 // @Failure      401  {object}  apierr.ProblemDetails  "missing or invalid auth token"
 // @Failure      404  {object}  apierr.ProblemDetails  "video not found"
-// @Failure      503  {object}  apierr.ProblemDetails  "video uploads not configured"
 // @Security     BearerAuth
 // @Router       /api/videos/{videoId}/finalize [post]
 func (h *Handler) Finalize(c *gin.Context) {
-	if !h.guard(c) {
-		return
-	}
 	videoID, err := uuid.Parse(c.Param("videoId"))
 	if err != nil {
 		apierr.BadRequest(c, "invalid video id")
@@ -193,13 +143,9 @@ func (h *Handler) Finalize(c *gin.Context) {
 // @Failure      400  {object}  apierr.ProblemDetails  "invalid input"
 // @Failure      401  {object}  apierr.ProblemDetails  "missing or invalid auth token"
 // @Failure      404  {object}  apierr.ProblemDetails  "video not found"
-// @Failure      503  {object}  apierr.ProblemDetails  "video uploads not configured"
 // @Security     BearerAuth
 // @Router       /api/videos/{videoId} [patch]
 func (h *Handler) UpdateNote(c *gin.Context) {
-	if !h.guard(c) {
-		return
-	}
 	videoID, err := uuid.Parse(c.Param("videoId"))
 	if err != nil {
 		apierr.BadRequest(c, "invalid video id")
@@ -231,13 +177,9 @@ func (h *Handler) UpdateNote(c *gin.Context) {
 // @Failure      400  {object}  apierr.ProblemDetails  "invalid id"
 // @Failure      401  {object}  apierr.ProblemDetails  "missing or invalid auth token"
 // @Failure      404  {object}  apierr.ProblemDetails  "video not found"
-// @Failure      503  {object}  apierr.ProblemDetails  "video uploads not configured"
 // @Security     BearerAuth
 // @Router       /api/videos/{videoId} [delete]
 func (h *Handler) Delete(c *gin.Context) {
-	if !h.guard(c) {
-		return
-	}
 	videoID, err := uuid.Parse(c.Param("videoId"))
 	if err != nil {
 		apierr.BadRequest(c, "invalid video id")

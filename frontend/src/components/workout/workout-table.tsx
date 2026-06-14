@@ -38,7 +38,6 @@ type WorkoutTableProps = {
   cellErrors: Record<string, string>
   // videoInfo carries the per-block filmed summary keyed by WorkoutRow.key.
   videoInfo: Record<string, { filmedCount: number; firstFilmedSet: number | null }>
-  videosEnabled: boolean
   onCycleSet: (key: string) => void
   onEditLoad: (key: string, value: string) => void
   onEditRpe: (key: string, value: string) => void
@@ -235,7 +234,6 @@ export function WorkoutTable({
   persistedRpe,
   cellErrors,
   videoInfo,
-  videosEnabled,
   onCycleSet,
   onEditLoad,
   onEditRpe,
@@ -250,9 +248,6 @@ export function WorkoutTable({
     data,
     columns: COLUMNS,
     getCoreRowModel: getCoreRowModel(),
-    state: {
-      columnVisibility: { video: videosEnabled },
-    },
     meta: {
       cellState,
       loadEdits,
@@ -303,7 +298,7 @@ export function WorkoutTable({
           <col style={{ width: "4.5rem" }} />
           <col style={{ width: "6.5rem" }} />
           <col style={{ width: "4.5rem" }} />
-          {videosEnabled && <col style={{ width: "3rem" }} />}
+          <col style={{ width: "3rem" }} />
         </colgroup>
         <TableHeader className="[&_tr]:border-b-0">
           {table.getHeaderGroups().map((headerGroup) => (

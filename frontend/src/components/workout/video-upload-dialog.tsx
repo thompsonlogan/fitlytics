@@ -15,12 +15,12 @@ import { Textarea } from "@/components/ui/textarea"
 import { SetVideoPicker } from "@/components/workout/set-video-picker"
 import { type Exercise, type SetBlock } from "@/lib/program-data"
 import {
+  ALLOWED_VIDEO_TYPES,
   isAllowedVideoType,
   MAX_VIDEO_BYTES,
   useDeleteSetVideo,
   useUpdateVideoNote,
   useUploadSetVideo,
-  useVideoConfig,
 } from "@/hooks/use-set-videos"
 import { type SetLogResponse, type VideoResponse } from "@/services/generated"
 
@@ -106,7 +106,6 @@ export function VideoUploadDialog({
   const [erroredSrc, setErroredSrc] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const videoConfig = useVideoConfig()
   const upload = useUploadSetVideo()
   const remove = useDeleteSetVideo()
   const updateNote = useUpdateVideoNote()
@@ -132,13 +131,12 @@ export function VideoUploadDialog({
   async function stageFile(file: File) {
     setLocalError(null)
     setErroredSrc(null)
-    const maxBytes = videoConfig.data?.max_bytes ?? MAX_VIDEO_BYTES
-    if (!isAllowedVideoType(file.type, videoConfig.data?.allowed_types)) {
+    if (!isAllowedVideoType(file.type)) {
       setLocalError("Use an MP4, MOV or WebM video.")
       return
     }
-    if (file.size > maxBytes) {
-      setLocalError(`That file is over the ${fmtBytes(maxBytes)} limit.`)
+    if (file.size > MAX_VIDEO_BYTES) {
+      setLocalError(`That file is over the ${fmtBytes(MAX_VIDEO_BYTES)} limit.`)
       return
     }
 
@@ -357,10 +355,8 @@ export function VideoUploadDialog({
                 or <u className="underline-offset-2">browse files</u> to upload
               </span>
               <span className="mt-1 text-[0.6875rem] opacity-80">
-                {videoConfig.data?.allowed_types
-                  ? videoConfig.data.allowed_types.map((t) => t.split("/")[1]?.toUpperCase()).join(", ")
-                  : "MP4, MOV or WebM"}{" "}
-                · up to {fmtBytes(videoConfig.data?.max_bytes ?? MAX_VIDEO_BYTES)}
+                {ALLOWED_VIDEO_TYPES.map((t) => t.split("/")[1]?.toUpperCase()).join(", ")} · up to{" "}
+                {fmtBytes(MAX_VIDEO_BYTES)}
               </span>
             </button>
           )}

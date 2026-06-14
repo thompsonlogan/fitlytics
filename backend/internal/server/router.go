@@ -28,9 +28,8 @@ type Dependencies struct {
 	Log              *slog.Logger
 	Auth             handlers.AuthDeps
 	AuthBypassUserID uuid.UUID
-	// VideoStore is nil when R2 isn't configured; the videos routes then 503.
-	VideoStore  storage.ObjectStore
-	VideoLimits videos.Limits
+	VideoStore       storage.ObjectStore
+	VideoLimits      videos.Limits
 }
 
 // NewRouter builds the Gin engine: a public health check plus an authenticated
@@ -72,14 +71,8 @@ func NewRouter(deps Dependencies, isProduction bool) *gin.Engine {
 	sessionsService := sessions.NewService(sessionsRepo)
 	sessionsHandler := sessions.NewHandler(sessionsService, deps.Log)
 
-	// Videos: only fully wired when an object store is configured. Otherwise the
-	// handler is registered in disabled mode so its routes 503 (not 404).
-	videosEnabled := deps.VideoStore != nil
-	var videosService videos.Service
-	if videosEnabled {
-		videosService = videos.NewService(videos.NewRepository(deps.DB), deps.VideoStore, deps.VideoLimits, deps.Log)
-	}
-	videosHandler := videos.NewHandler(videosService, videosEnabled, deps.VideoLimits, deps.Log)
+	videosService := videos.NewService(videos.NewRepository(deps.DB), deps.VideoStore, deps.VideoLimits, deps.Log)
+	videosHandler := videos.NewHandler(videosService, deps.VideoLimits, deps.Log)
 
 	// Authenticated routes — every handler below can call auth.MustPrincipal.
 	api := r.Group("/api")
