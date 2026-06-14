@@ -19,11 +19,12 @@ session. Everything needed is inlined in each plan file.
 | 005 | Frontend critical-hook tests | P2 | M | — | DONE — **MERGED to `improve-1` in commit `c64a4ed`**. Reconcile-verified 2026-06-14 on HEAD `f81e070`: 3 hook test files present (`use-auth`/`use-day-completions`/`use-session`.test.tsx); `countPending` exported from `use-session.ts:92`. (Was executed in worktree `worktree-agent-a15cfda74960b92a6`; now superseded by the merge.) |
 | 006 | Wire dead nav buttons to routes (branded 404) | P2 | S | — | DONE — **MERGED to `improve-1` in commit `f81e070`**. Reconcile-verified 2026-06-14 on HEAD `f81e070`: `app-header.tsx` nav items are `Link`s (line 79–90); `/program`,`/history`,`/analytics` routes registered → `NotFoundPage` (`router.tsx:63-65`); no `Section`/`onSectionChange` remaining. |
 | 007 | Consolidate sentinel errors into `apierr` | P3 | S | — | DONE — **committed to `improve-1`** 2026-06-14 (executed on base `f81e070`). Reviewer-verified: 4 in-scope files only; `apierr/errors.go` defines both shared sentinels; three service.go files repoint to thin aliases; `go build`/`go vet` (internal) exit 0; `go test` ok across programs/sessions/videos/auth/users; grep confirms no remaining `errors.New` sentinel in any service.go. (Originally executed in worktree `agent-a0f3618a3981e4020`, commit `fa1c3bf`, then applied to the branch.) |
-| 008 | Code-split the landing route | P3 | S | — | TODO — reconcile 2026-06-14: `router.tsx` changed (006 added 3 routes), but `LandingPage`/`TodayPage` are still statically imported (`router.tsx:12-13,39,57`). Finding valid; drift baseline re-based to `f81e070`. |
-| 009 | Replace hand-rolled batch fetch with generated client | P3 | S | — | TODO — still needs running backend + Docker (own STOP condition); in-scope files untouched. |
-| 010 | Fix stale README dev-proxy note | P3 | S | — | TODO — reconcile 2026-06-14: re-based to `4b5ccda`. Stale note still at `README.md:106`; finding still valid. |
+| 008 | Code-split the landing route | P3 | S | — | DONE — **MERGED to `improve-1` in merge commit `7a7c261`** (code commit `d87c804`). Reviewer-verified 2026-06-14 on base HEAD `9513cea`: diff is only `router.tsx` (+3/−4); both routes now use `lazyRouteComponent(() => import(...), "<Name>")`; `pnpm typecheck` (`tsc -b`) exit 0, `pnpm test` 75/75, `pnpm build` exit 0; build emits separate `landing-*.js` (47 kB) and `today-*.js` (254 kB) chunks — landing-only string present only in the landing chunk (0 in today). |
+| 009 | Replace hand-rolled batch fetch with generated client | P3 | S | — | DONE — **MERGED to `improve-1` in merge commit `68a41a9`** (code commits `b244564` regen + `4fdd177` hook swap). Unblocked 2026-06-14: user ran `make swagger` + restarted backend so the live spec exposed `PATCH /api/sessions/{sessionId}/set-logs`. Reviewer-verified on base HEAD `9513cea`: scope is only `use-session.ts` + `services/generated/**`; `useLogSetBatch` now calls `sessionsApi.apiSessionsSessionIdSetLogsPatch(...)` (camelCase body, wire payload byte-identical), dead `API_BASE_URL`/`SetLogResponseFromJSON` removed, `onSuccess` untouched; `pnpm typecheck`/`lint`/`test` (75/75)/`build` all exit 0. **Note:** the plan's prose claim that "the backend must be running for nothing" is WRONG — `pnpm api_generate` fetches the spec over HTTP from the live backend (`host.docker.internal:8080`), so a rebuilt+restarted backend IS required (corrected at execution time). Incidental: regen blanked the JSDoc on `SetLogResponse.blockSequence` — pre-existing backend swag-comment drift, surfaced not caused; benign (field/type unchanged). |
+| 010 | Fix stale README dev-proxy note | P3 | S | — | DONE — **MERGED to `improve-1` in merge commit `cde768e`** (code commit `f7034c3`). Reviewer-verified 2026-06-14 on base HEAD `9513cea`: diff is only `README.md` (+4/−3); "neither is wired up yet" sentence gone; replacement accurately describes the `/api`+`/auth` Vite proxy and `VITE_API_PROXY_TARGET`; proxy entries confirmed live in `vite.config.ts`. |
 | 011 | Fix 3 pre-existing frontend failures (lint x2 + test x1) | P1 | S | — | DONE — merged into `4b5ccda` on `improve-1`. Reconcile-verified 2026-06-14 on HEAD `4b5ccda`: `pnpm lint` exit 0, `pnpm test` 57/57 pass. `pnpm build` criterion struck (build breakage was pre-existing, tracked as 012). |
 | 012 | Fix `pnpm build` (`tsc -b`) — 143 pre-existing type errors + no-op typecheck | P1 | M | — | DONE — merged into `4b5ccda` on `improve-1`. Reconcile-verified 2026-06-14 on HEAD `4b5ccda`: `pnpm typecheck` (`tsc -b`) → 0 errors. |
+| 013 | Restore `BlockSequence` swag doc comment on `SetLogResponse` | P4 | S | — | DONE — **MERGED to `improve-1` in merge commit `94e1835`** (code commit `ccd72e9`). Follow-up to 009: regen had surfaced the blank JSDoc. Reviewer-verified on base HEAD `9513cea`: diff is only `dto.go` (+3 comment lines, no other change); `go build`/`go vet`/`go test ./internal/sessions/...` all pass; `swag init` regenerates `docs/swagger.json` with the description attached to `block_sequence` (line 1255); `docs/` correctly git-ignored, not committed. Two documented in-scope deviations (both benign fresh-worktree realities): `make` absent in Git Bash → ran the Makefile's exact `swag init` command; `docs/` package generated before `go build` since `main.go` imports it. |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (one-line reason) | REJECTED (one-line rationale)
 
@@ -188,3 +189,22 @@ been **merged into the branch**:
 **Executable right now (no external deps):** 007, 008, 010.
 009 still needs a running backend + Docker (its own STOP condition). All P1/P2 plans
 (001–006, 011, 012) are now DONE and merged onto `improve-1`.
+
+## Merge report — 2026-06-14 (branch `improve-1`)
+
+The four remaining executed plans were merged onto `improve-1` (base `9513cea`), each as
+an explicit `--no-ff` merge of its executor worktree branch (all based off `9513cea`,
+disjoint files, no conflicts):
+
+- **008** → merge `7a7c261` (router.tsx)
+- **010** → merge `cde768e` (README.md)
+- **009** → merge `68a41a9` (use-session.ts + services/generated/**)
+- **013** → merge `94e1835` (sessions/dto.go)
+
+**Integration verified on the merged HEAD `94e1835`:** frontend `pnpm typecheck` (tsc -b)
+exit 0, `pnpm test` 75/75, `pnpm build` exit 0 (emits separate `landing-*.js` + `today-*.js`
+chunks — 008's split intact alongside 009's client); backend `go build ./...`/`go vet ./...`
+exit 0, `go test ./internal/sessions/...` ok.
+
+**Status: the entire backlog (001–013) is now DONE and merged onto `improve-1`.** The
+worktree branches are superseded by the merges and can be pruned. Nothing remains TODO.
