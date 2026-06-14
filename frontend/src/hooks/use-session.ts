@@ -89,7 +89,7 @@ export type UseLogSetVars = {
 // count crosses the 0 boundary in either direction. Counts only the
 // active (non-deleted) logs the cache holds; missing fields default to
 // "pending" to match the backend's not-null default.
-function countPending(session: SessionResponse | null | undefined): number {
+export function countPending(session: SessionResponse | null | undefined): number {
   if (!session?.exercises) return 0
   let n = 0
   for (const ex of session.exercises) {
