@@ -27,6 +27,7 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		Session:          newSession(db, opts...),
 		SessionExercise:  newSessionExercise(db, opts...),
 		SetLog:           newSetLog(db, opts...),
+		SetVideo:         newSetVideo(db, opts...),
 		User:             newUser(db, opts...),
 		UserMetric:       newUserMetric(db, opts...),
 	}
@@ -44,6 +45,7 @@ type Query struct {
 	Session          session
 	SessionExercise  sessionExercise
 	SetLog           setLog
+	SetVideo         setVideo
 	User             user
 	UserMetric       userMetric
 }
@@ -62,6 +64,7 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		Session:          q.Session.clone(db),
 		SessionExercise:  q.SessionExercise.clone(db),
 		SetLog:           q.SetLog.clone(db),
+		SetVideo:         q.SetVideo.clone(db),
 		User:             q.User.clone(db),
 		UserMetric:       q.UserMetric.clone(db),
 	}
@@ -87,6 +90,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		Session:          q.Session.replaceDB(db),
 		SessionExercise:  q.SessionExercise.replaceDB(db),
 		SetLog:           q.SetLog.replaceDB(db),
+		SetVideo:         q.SetVideo.replaceDB(db),
 		User:             q.User.replaceDB(db),
 		UserMetric:       q.UserMetric.replaceDB(db),
 	}
@@ -102,6 +106,7 @@ type queryCtx struct {
 	Session          *sessionDo
 	SessionExercise  *sessionExerciseDo
 	SetLog           *setLogDo
+	SetVideo         *setVideoDo
 	User             *userDo
 	UserMetric       *userMetricDo
 }
@@ -117,6 +122,7 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		Session:          q.Session.WithContext(ctx),
 		SessionExercise:  q.SessionExercise.WithContext(ctx),
 		SetLog:           q.SetLog.WithContext(ctx),
+		SetVideo:         q.SetVideo.WithContext(ctx),
 		User:             q.User.WithContext(ctx),
 		UserMetric:       q.UserMetric.WithContext(ctx),
 	}

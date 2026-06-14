@@ -15,14 +15,14 @@
 
 import * as runtime from '../runtime';
 import type {
-  ErrorResponse,
   MeResponse,
+  ProblemDetails,
 } from '../models/index';
 import {
-    ErrorResponseFromJSON,
-    ErrorResponseToJSON,
     MeResponseFromJSON,
     MeResponseToJSON,
+    ProblemDetailsFromJSON,
+    ProblemDetailsToJSON,
 } from '../models/index';
 
 /**
@@ -90,7 +90,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Swaps the refresh-token cookie for a fresh access-token cookie. Returns 204 on success and 401 when the refresh token is missing, expired, or rejected by WorkOS — in which case both session cookies are cleared and the SPA should redirect to /login.
+     * Swaps the refresh-token cookie for a fresh access-token cookie. Returns 204 on success and 401 when the refresh token is missing, expired, or rejected by WorkOS — in which case both session cookies are cleared and the SPA should redirect to /auth/login.
      * Refresh the session
      */
     async authRefreshPostRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
@@ -109,7 +109,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Swaps the refresh-token cookie for a fresh access-token cookie. Returns 204 on success and 401 when the refresh token is missing, expired, or rejected by WorkOS — in which case both session cookies are cleared and the SPA should redirect to /login.
+     * Swaps the refresh-token cookie for a fresh access-token cookie. Returns 204 on success and 401 when the refresh token is missing, expired, or rejected by WorkOS — in which case both session cookies are cleared and the SPA should redirect to /auth/login.
      * Refresh the session
      */
     async authRefreshPost(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {

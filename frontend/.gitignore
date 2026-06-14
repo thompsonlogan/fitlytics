@@ -1,0 +1,5 @@
+# Environment files. VITE_* are build-time and a local .env may hold overrides;
+# keep the documented template tracked, ignore real .env files.
+.env
+.env.*
+!.env.example

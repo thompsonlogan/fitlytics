@@ -107,6 +107,10 @@ func run() error {
 	// ── Session tree: Session → SessionExercise → SetLog ─────────────────────
 	setLog := g.GenerateModel("set_logs", softDelete)
 
+	// Set videos hang off a set_log but are queried directly (no nav field), so
+	// no gen.FieldRelate is needed — just generate the model + include it below.
+	setVideo := g.GenerateModel("set_videos", softDelete)
+
 	sessionExercise := g.GenerateModel("session_exercises",
 		// FK convention matches (session_exercise_id -> SessionExerciseID); no override needed.
 		gen.FieldRelate(field.HasMany, "SetLogs", setLog, nil),
@@ -144,7 +148,7 @@ func run() error {
 
 	g.ApplyBasic(
 		exercise, user, userMetric,
-		setLog, sessionExercise, session,
+		setLog, setVideo, sessionExercise, session,
 		programSetTarget, programExercise, programDay, programWeek, program,
 	)
 	g.Execute()

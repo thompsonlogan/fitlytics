@@ -311,6 +311,11 @@ create table set_logs (
   id                        uuid primary key default gen_random_uuid(),
   session_exercise_id       uuid not null references session_exercises(id) on delete cascade,
   sequence                  int not null,
+  -- The originating program_set_target.sequence, snapshotted at session start.
+  -- One program_set_target ("block", e.g. 2 sets × 5) expands into sets_count
+  -- individual set_logs that all share this block_sequence, so the UI can group
+  -- per-set logs back under their block row. Null on ad-hoc / pre-grouping rows.
+  block_sequence            int,
   set_type                  set_type not null default 'working',
   -- prescription snapshot
   reps_target_min           int,
@@ -341,7 +346,50 @@ create table set_logs (
 create index set_logs_active_seq_idx
   on set_logs (session_exercise_id, sequence)
   where deleted_at is null;
+create index if not exists set_logs_block_idx
+  on set_logs (session_exercise_id, block_sequence, sequence)
+  where deleted_at is null;
 create trigger set_logs_updated_at before update on set_logs
+  for each row execute function set_updated_at();
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Set videos (Cloudflare R2)
+-- One video per individual set: a clip of the lift the user performed, attached
+-- to a single set_log. The file lives in Cloudflare R2; this row holds the
+-- storage key + metadata + lifecycle status. user_id is denormalized off the
+-- owning session so quota checks and ownership filters don't need a join chain.
+--   status: 'pending'  — row created, presigned PUT issued, awaiting upload
+--           'ready'     — upload finalized + verified, playable
+--           'failed'    — verification failed (e.g. over size cap); object purged
+-- Re-uploading to a set soft-deletes the prior row (deleted_at) and purges its
+-- object, so the partial unique index below keeps at most one live row per set.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+create table if not exists set_videos (
+  id             uuid primary key default gen_random_uuid(),
+  set_log_id     uuid not null references set_logs(id) on delete cascade,
+  user_id        uuid not null references users(id) on delete cascade,
+  status         text not null default 'pending',
+  storage_key    text not null,
+  content_type   text,
+  size_bytes     bigint check (size_bytes is null or size_bytes >= 0),
+  duration_sec   numeric,                 -- client-reported hint; not authoritative
+  original_name  text,
+  note           text,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now(),
+  deleted_at     timestamptz
+);
+create unique index if not exists set_videos_setlog_uq
+  on set_videos (set_log_id)
+  where deleted_at is null;
+create index if not exists set_videos_user_idx
+  on set_videos (user_id)
+  where deleted_at is null;
+create index if not exists set_videos_setlog_idx
+  on set_videos (set_log_id)
+  where deleted_at is null;
+create trigger set_videos_updated_at before update on set_videos
   for each row execute function set_updated_at();
 
 -- ─────────────────────────────────────────────────────────────────────────────

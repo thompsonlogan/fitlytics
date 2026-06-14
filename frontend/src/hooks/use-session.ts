@@ -4,6 +4,7 @@ import { dayCompletionsQueryKey } from "@/hooks/use-day-completions"
 import { useServices } from "@/services/context"
 import {
   ResponseError,
+  SetLogResponseFromJSON,
   type SessionResponse,
   type SetLogResponse,
   type UpdateSetLogRequest,
@@ -155,6 +156,93 @@ export function useLogSet(programId: string | undefined, programDayId: string | 
       // nextPending sit on opposite sides of zero. State-less edits (load,
       // RPE) can't move the count so we don't even need to compute.
       if (vars.body.state === undefined) return
+      const nextSession = queryClient.getQueryData<SessionResponse | null>(cacheKey)
+      const nextPending = countPending(nextSession)
+      if ((prevPending === 0) !== (nextPending === 0)) {
+        queryClient.invalidateQueries({ queryKey: dayCompletionsQueryKey(programId) })
+      }
+    },
+  })
+}
+
+// UseLogSetBatchVars carries the batch of (setLogId, body) pairs for a single
+// block action. The session id is read from the cache at mutation time.
+export type UseLogSetBatchVars = {
+  updates: { setLogId: string; body: UpdateSetLogRequest }[]
+}
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ""
+
+// useLogSetBatch is the block-level actuals mutation. It sends all set_log
+// updates for a block in a single PATCH request — all-or-nothing semantics,
+// one recompute on the backend. The cache merge is the same as useLogSet but
+// applies all returned logs at once.
+//
+// NOTE: This hand-rolls a fetch rather than using the generated client because
+// the batch route was added after the last api_generate run. Swap to the
+// generated method after the next `make swagger && pnpm api_generate`.
+export function useLogSetBatch(
+  programId: string | undefined,
+  programDayId: string | undefined
+) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (vars: UseLogSetBatchVars): Promise<SetLogResponse[]> => {
+      if (!programId || !programDayId) {
+        throw new Error("missing program or day id")
+      }
+      const cached = queryClient.getQueryData<SessionResponse | null>(
+        sessionQueryKey(programId, programDayId)
+      )
+      if (!cached?.id) {
+        throw new Error("no session — call startSession first")
+      }
+      const res = await fetch(`${API_BASE_URL}/api/sessions/${cached.id}/set-logs`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          updates: vars.updates.map((u) => ({
+            set_log_id: u.setLogId,
+            reps_actual: u.body.repsActual,
+            actual_load_kg: u.body.actualLoadKg,
+            actual_rpe: u.body.actualRpe,
+            state: u.body.state,
+          })),
+        }),
+      })
+      if (!res.ok) throw new Error(`batch set-log update failed: ${res.status}`)
+      const raw: unknown[] = await res.json()
+      return raw.map(SetLogResponseFromJSON)
+    },
+    onSuccess: (updatedLogs, vars) => {
+      if (!programId || !programDayId) return
+
+      const cacheKey = sessionQueryKey(programId, programDayId)
+      const prevSession = queryClient.getQueryData<SessionResponse | null>(cacheKey)
+      const prevPending = countPending(prevSession)
+
+      // Build a Map of updated logs for O(1) lookup during cache splice.
+      const updatesById = new Map<string, SetLogResponse>()
+      for (const log of updatedLogs) {
+        updatesById.set(log.id, log)
+      }
+
+      queryClient.setQueryData<SessionResponse | null>(cacheKey, (prev) => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          exercises: prev.exercises?.map((e) => ({
+            ...e,
+            setLogs: e.setLogs?.map((l) => updatesById.get(l.id) ?? l),
+          })),
+        }
+      })
+
+      // Mirror useLogSet: only re-fetch day-completions on 0-boundary crossing.
+      const hasStateUpdate = vars.updates.some((u) => u.body.state !== undefined)
+      if (!hasStateUpdate) return
       const nextSession = queryClient.getQueryData<SessionResponse | null>(cacheKey)
       const nextPending = countPending(nextSession)
       if ((prevPending === 0) !== (nextPending === 0)) {

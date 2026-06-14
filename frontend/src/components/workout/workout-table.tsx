@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { SetStateCell, type SetState } from "@/components/workout/set-state-cell"
+import { VideoCell } from "@/components/workout/video-cell"
 import {
   Table,
   TableBody,
@@ -35,11 +36,14 @@ type WorkoutTableProps = {
   // cellErrors keys are `${rowKey}:${field}` (e.g. "0-1:load"). Presence of a
   // key means "show the error UI on this cell"; the value is the message.
   cellErrors: Record<string, string>
+  // videoInfo carries the per-block filmed summary keyed by WorkoutRow.key.
+  videoInfo: Record<string, { filmedCount: number; firstFilmedSet: number | null }>
   onCycleSet: (key: string) => void
   onEditLoad: (key: string, value: string) => void
   onEditRpe: (key: string, value: string) => void
   onBlurLoad: (key: string, value: string) => void
   onBlurRpe: (key: string, value: string) => void
+  onOpenVideo: (key: string, initialSet: number) => void
 }
 
 type WorkoutTableMeta = {
@@ -49,11 +53,13 @@ type WorkoutTableMeta = {
   persistedLoad: Record<string, number | "">
   persistedRpe: Record<string, number | null>
   cellErrors: Record<string, string>
+  videoInfo: Record<string, { filmedCount: number; firstFilmedSet: number | null }>
   onCycleSet: (key: string) => void
   onEditLoad: (key: string, value: string) => void
   onEditRpe: (key: string, value: string) => void
   onBlurLoad: (key: string, value: string) => void
   onBlurRpe: (key: string, value: string) => void
+  onOpenVideo: (key: string, initialSet: number) => void
 }
 
 const columnHelper = createColumnHelper<WorkoutRow>()
@@ -199,6 +205,24 @@ const COLUMNS = [
       )
     },
   }),
+  columnHelper.display({
+    id: "video",
+    header: () => null,
+    cell: ({ row, table }) => {
+      const meta = table.options.meta as WorkoutTableMeta
+      const r = row.original
+      const info = meta.videoInfo[r.key] ?? { filmedCount: 0, firstFilmedSet: null }
+      return (
+        <VideoCell
+          filmedCount={info.filmedCount}
+          totalSets={r.block.sets}
+          firstFilmedSet={info.firstFilmedSet}
+          exerciseName={r.exercise.name}
+          onOpen={(initialSet) => meta.onOpenVideo(r.key, initialSet)}
+        />
+      )
+    },
+  }),
 ]
 
 export function WorkoutTable({
@@ -209,11 +233,13 @@ export function WorkoutTable({
   persistedLoad,
   persistedRpe,
   cellErrors,
+  videoInfo,
   onCycleSet,
   onEditLoad,
   onEditRpe,
   onBlurLoad,
   onBlurRpe,
+  onOpenVideo,
 }: WorkoutTableProps) {
   const data = useMemo(() => flattenRows(day), [day])
 
@@ -229,11 +255,13 @@ export function WorkoutTable({
       persistedLoad,
       persistedRpe,
       cellErrors,
+      videoInfo,
       onCycleSet,
       onEditLoad,
       onEditRpe,
       onBlurLoad,
       onBlurRpe,
+      onOpenVideo,
     } satisfies WorkoutTableMeta,
   })
 
@@ -270,6 +298,7 @@ export function WorkoutTable({
           <col style={{ width: "4.5rem" }} />
           <col style={{ width: "6.5rem" }} />
           <col style={{ width: "4.5rem" }} />
+          <col style={{ width: "3rem" }} />
         </colgroup>
         <TableHeader className="[&_tr]:border-b-0">
           {table.getHeaderGroups().map((headerGroup) => (
@@ -277,7 +306,7 @@ export function WorkoutTable({
               {headerGroup.headers.map((header) => {
                 const colId = header.column.id
                 const isNumeric = ["rest", "sets", "reps", "cap", "load"].includes(colId)
-                const isCenter = colId === "rpe"
+                const isCenter = colId === "rpe" || colId === "video"
                 return (
                   <TableHead
                     key={header.id}
@@ -316,7 +345,7 @@ export function WorkoutTable({
                   if (SKIP_FOR_NON_FIRST.has(colId) && !r.first) return null
                   const rowSpan = colId === "discipline" ? r.rowSpan : undefined
                   const isNumeric = ["rest", "sets", "reps", "cap", "load"].includes(colId)
-                  const isCenter = colId === "rpe"
+                  const isCenter = colId === "rpe" || colId === "video"
                   const isDiscipline = colId === "discipline"
                   return (
                     <TableCell

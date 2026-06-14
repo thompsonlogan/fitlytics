@@ -13,7 +13,7 @@ build: docs/docs.go
 # any handler / DTO source changes, which catches most doc-comment edits. Force
 # a regeneration regardless by running `make swagger`.
 docs/docs.go: cmd/api/main.go $(wildcard internal/programs/*.go) $(wildcard internal/handlers/*.go)
-	swag init --generalInfo cmd/api/main.go --output docs --parseDependency --parseInternal
+	swag init --generalInfo cmd/api/main.go --output docs --parseInternal
 
 tidy:
 	go mod tidy
@@ -41,13 +41,18 @@ generate:
 # packages and writes the OpenAPI spec to backend/docs/. Run it whenever you
 # change a handler doc comment or a response DTO. The frontend regenerates its
 # typed client from docs/swagger.json.
+#
+# NOTE: --parseDependency is intentionally omitted. Every response DTO type is
+# in an internal package (covered by --parseInternal), and walking the full
+# dependency graph (notably the aws-sdk-go-v2 tree pulled in by internal/storage)
+# makes swag abort before it registers the internal types.
 
 # One-time install of the swag CLI. Requires $GOBIN (or $GOPATH/bin) on PATH.
 swagger-install:
 	go install github.com/swaggo/swag/cmd/swag@latest
 
 swagger:
-	swag init --generalInfo cmd/api/main.go --output docs --parseDependency --parseInternal
+	swag init --generalInfo cmd/api/main.go --output docs --parseInternal
 
 # ─ Database (Flyway via docker-compose) ──────────────────────────────────────
 # Compose lives in ../database. `db-up` brings Postgres up and runs

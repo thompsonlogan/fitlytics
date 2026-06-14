@@ -3,6 +3,7 @@ import {
   Configuration,
   ProgramsApi,
   SessionsApi,
+  VideosApi,
   type ConfigurationParameters,
 } from "./generated"
 
@@ -13,6 +14,7 @@ export interface ServiceApis {
   authApi: AuthApi
   programsApi: ProgramsApi
   sessionsApi: SessionsApi
+  videosApi: VideosApi
 }
 
 // createServiceApis instantiates each generated API class against a single
@@ -25,5 +27,6 @@ export function createServiceApis(configParams?: ConfigurationParameters): Servi
     authApi: new AuthApi(config),
     programsApi: new ProgramsApi(config),
     sessionsApi: new SessionsApi(config),
+    videosApi: new VideosApi(config),
   }
 }

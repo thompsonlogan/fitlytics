@@ -28,43 +28,43 @@ import {
  */
 export interface ProgramResponse {
     /**
-     *
+     * 
      * @type {string}
      * @memberof ProgramResponse
      */
     createdAt?: string;
     /**
-     *
+     * 
      * @type {string}
      * @memberof ProgramResponse
      */
     description?: string;
     /**
-     *
+     * 
      * @type {string}
      * @memberof ProgramResponse
      */
     id?: string;
     /**
-     *
+     * 
      * @type {string}
      * @memberof ProgramResponse
      */
     name?: string;
     /**
-     *
+     * 
      * @type {string}
      * @memberof ProgramResponse
      */
     startDate?: string;
     /**
-     *
+     * 
      * @type {string}
      * @memberof ProgramResponse
      */
     updatedAt?: string;
     /**
-     *
+     * 
      * @type {Array<ProgramWeekResponse>}
      * @memberof ProgramResponse
      */

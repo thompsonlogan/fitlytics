@@ -19,6 +19,7 @@ type SetLog struct {
 	ID                     uuid.UUID      `gorm:"column:id;type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	SessionExerciseID      uuid.UUID      `gorm:"column:session_exercise_id;type:uuid;not null" json:"session_exercise_id"`
 	Sequence               int32          `gorm:"column:sequence;type:integer;not null" json:"sequence"`
+	BlockSequence          *int32         `gorm:"column:block_sequence;type:integer" json:"block_sequence"`
 	SetType                string         `gorm:"column:set_type;type:set_type;not null;default:working" json:"set_type"`
 	RepsTargetMin          *int32         `gorm:"column:reps_target_min;type:integer" json:"reps_target_min"`
 	RepsTargetMax          *int32         `gorm:"column:reps_target_max;type:integer" json:"reps_target_max"`

@@ -48,6 +48,12 @@ export interface ProgramSummaryResponse {
      * @type {string}
      * @memberof ProgramSummaryResponse
      */
+    startDate?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ProgramSummaryResponse
+     */
     updatedAt?: string;
 }
 
@@ -72,6 +78,7 @@ export function ProgramSummaryResponseFromJSONTyped(json: any, ignoreDiscriminat
         'description': json['description'] == null ? undefined : json['description'],
         'id': json['id'] == null ? undefined : json['id'],
         'name': json['name'] == null ? undefined : json['name'],
+        'startDate': json['start_date'] == null ? undefined : json['start_date'],
         'updatedAt': json['updated_at'] == null ? undefined : json['updated_at'],
     };
 }
@@ -91,6 +98,7 @@ export function ProgramSummaryResponseToJSONTyped(value?: ProgramSummaryResponse
         'description': value['description'],
         'id': value['id'],
         'name': value['name'],
+        'start_date': value['startDate'],
         'updated_at': value['updatedAt'],
     };
 }

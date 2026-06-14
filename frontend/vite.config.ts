@@ -19,6 +19,9 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      // Honour a PORT env var when one is provided (e.g. by hosted preview
+      // tooling that assigns a port); otherwise Vite uses its default (5173).
+      port: process.env.PORT ? Number(process.env.PORT) : undefined,
       // Same-origin proxy so the session cookie set by the Go backend is
       // first-party from the SPA's perspective — no CORS, no SameSite issues.
       proxy: {
@@ -32,6 +35,13 @@ export default defineConfig(({ mode }) => {
       // default. Globals expose describe/it/expect without per-file imports.
       environment: "jsdom",
       globals: true,
+      // The video UX limits come solely from VITE_* (no in-code defaults), so
+      // the suite supplies them here rather than relying on a git-ignored .env.
+      // Keep in sync with .env.example.
+      env: {
+        VITE_MAX_VIDEO_BYTES: "524288000",
+        VITE_ALLOWED_VIDEO_TYPES: "video/mp4,video/quicktime,video/webm",
+      },
       setupFiles: ["./src/test/test_setup.ts"],
       // Generated OpenAPI client is a fixture, not application code — exclude
       // from runs so it doesn't get scanned for stray *.test.ts files.

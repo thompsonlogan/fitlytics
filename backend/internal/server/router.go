@@ -15,7 +15,9 @@ import (
 	"github.com/thompsonlogan/fitlytics/backend/internal/middleware"
 	"github.com/thompsonlogan/fitlytics/backend/internal/programs"
 	"github.com/thompsonlogan/fitlytics/backend/internal/sessions"
+	"github.com/thompsonlogan/fitlytics/backend/internal/storage"
 	"github.com/thompsonlogan/fitlytics/backend/internal/users"
+	"github.com/thompsonlogan/fitlytics/backend/internal/videos"
 )
 
 // Dependencies are the wired-up services a router needs.
@@ -26,6 +28,8 @@ type Dependencies struct {
 	Log              *slog.Logger
 	Auth             handlers.AuthDeps
 	AuthBypassUserID uuid.UUID
+	VideoStore       storage.ObjectStore
+	VideoLimits      videos.Limits
 }
 
 // NewRouter builds the Gin engine: a public health check plus an authenticated
@@ -67,6 +71,9 @@ func NewRouter(deps Dependencies, isProduction bool) *gin.Engine {
 	sessionsService := sessions.NewService(sessionsRepo)
 	sessionsHandler := sessions.NewHandler(sessionsService, deps.Log)
 
+	videosService := videos.NewService(videos.NewRepository(deps.DB), deps.VideoStore, deps.VideoLimits, deps.Log)
+	videosHandler := videos.NewHandler(videosService, deps.VideoLimits, deps.Log)
+
 	// Authenticated routes — every handler below can call auth.MustPrincipal.
 	api := r.Group("/api")
 	if deps.AuthBypassUserID != uuid.Nil {
@@ -80,6 +87,7 @@ func NewRouter(deps Dependencies, isProduction bool) *gin.Engine {
 		api.GET("/me", handlers.Me())
 		programsHandler.Register(api)
 		sessionsHandler.Register(api)
+		videosHandler.Register(api)
 	}
 
 	return r
