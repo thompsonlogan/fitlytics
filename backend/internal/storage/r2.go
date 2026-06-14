@@ -13,25 +13,19 @@ import (
 	smithy "github.com/aws/smithy-go"
 )
 
-// R2Config holds the connection settings for a Cloudflare R2 bucket. R2 speaks
-// the S3 API, so we drive it with aws-sdk-go-v2 pointed at the R2 endpoint.
 type R2Config struct {
-	Endpoint        string // https://<account>.r2.cloudflarestorage.com
+	Endpoint        string
 	Bucket          string
 	AccessKeyID     string
 	SecretAccessKey string
 }
 
-// R2Store is an ObjectStore backed by Cloudflare R2.
 type R2Store struct {
 	client  *s3.Client
 	presign *s3.PresignClient
 	bucket  string
 }
 
-// NewR2Store builds an R2-backed ObjectStore. R2 ignores the region but the SDK
-// requires one, so we pass the conventional "auto". Path-style addressing is
-// used because R2 does not support virtual-hosted-style buckets.
 func NewR2Store(cfg R2Config) (*R2Store, error) {
 	if cfg.Endpoint == "" || cfg.Bucket == "" || cfg.AccessKeyID == "" || cfg.SecretAccessKey == "" {
 		return nil, errors.New("storage: incomplete R2 configuration")
@@ -65,15 +59,11 @@ func (s *R2Store) PresignPut(ctx context.Context, key, contentType string, size 
 		return PresignedUpload{}, fmt.Errorf("presign put: %w", err)
 	}
 
-	// Return every header the SDK bound into the signature so the client can
-	// replay them verbatim — Content-Type and Content-Length included, which is
-	// what enforces the type and size constraints at the store.
 	headers := make(map[string]string, len(req.SignedHeader))
 	for k := range req.SignedHeader {
 		headers[k] = req.SignedHeader.Get(k)
 	}
-	// Browsers don't always echo a signed content-length header; make the
-	// expected value explicit so the client can set it on the PUT.
+
 	if _, ok := headers["Content-Length"]; !ok {
 		headers["Content-Length"] = fmt.Sprintf("%d", size)
 	}
@@ -105,8 +95,7 @@ func (s *R2Store) Head(ctx context.Context, key string) (HeadResult, error) {
 		if errors.As(err, &notFound) {
 			return HeadResult{}, fmt.Errorf("head object %q: %w", key, ErrNotFound)
 		}
-		// Some S3-compatible stores surface HeadObject 404s only as a generic
-		// API error with code NotFound/NoSuchKey.
+
 		var apiErr smithy.APIError
 		if errors.As(err, &apiErr) {
 			code := apiErr.ErrorCode()

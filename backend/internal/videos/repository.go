@@ -14,17 +14,10 @@ import (
 	"github.com/thompsonlogan/fitlytics/backend/internal/query"
 )
 
-// ErrQuotaExceeded is returned by CreateUpload when a per-user or per-day cap
-// would be exceeded.
 var ErrQuotaExceeded = errors.New("video quota exceeded")
 
 type Repository interface {
-	// VerifySetLogOwned confirms the set_log rolls up to sessionID and that the
-	// session belongs to ownerID. Returns gorm.ErrRecordNotFound otherwise.
 	VerifySetLogOwned(ctx context.Context, sessionID, setLogID, ownerID uuid.UUID) error
-	// CreateUpload enforces the quotas, soft-deletes any existing video for the
-	// set_log (returning its storage key so the caller can purge the object),
-	// and inserts the new pending row — all in one transaction.
 	CreateUpload(ctx context.Context, ownerID uuid.UUID, row *generated.SetVideo, maxPerUser, maxPerDay int) (oldStorageKey string, err error)
 	GetOwned(ctx context.Context, videoID, ownerID uuid.UUID) (*generated.SetVideo, error)
 	MarkReady(ctx context.Context, videoID uuid.UUID, sizeBytes int64) (*generated.SetVideo, error)
@@ -68,7 +61,6 @@ func (r *repository) CreateUpload(ctx context.Context, ownerID uuid.UUID, row *g
 		q := query.Use(tx)
 		sv := q.SetVideo
 
-		// Quota: total active videos for the user (soft-deleted excluded).
 		total, err := sv.WithContext(ctx).Where(sv.UserID.Eq(ownerID)).Count()
 		if err != nil {
 			return fmt.Errorf("count user videos: %w", err)
@@ -77,9 +69,6 @@ func (r *repository) CreateUpload(ctx context.Context, ownerID uuid.UUID, row *g
 			return ErrQuotaExceeded
 		}
 
-		// Quota: videos created in the trailing 24h. Unscoped on purpose —
-		// re-uploading soft-deletes the replaced row, and the daily cap bounds
-		// upload bandwidth, so replaced uploads must still count.
 		since := time.Now().Add(-24 * time.Hour)
 		recent, err := sv.WithContext(ctx).Unscoped().
 			Where(sv.UserID.Eq(ownerID), sv.CreatedAt.Gt(since)).Count()
@@ -90,8 +79,6 @@ func (r *repository) CreateUpload(ctx context.Context, ownerID uuid.UUID, row *g
 			return ErrQuotaExceeded
 		}
 
-		// Replace any existing video for this set: soft-delete it and capture the
-		// storage key so the caller can purge the object outside the transaction.
 		existing, err := sv.WithContext(ctx).Where(sv.SetLogID.Eq(row.SetLogID)).First()
 		switch {
 		case err == nil:
@@ -139,7 +126,6 @@ func (r *repository) MarkFailed(ctx context.Context, videoID uuid.UUID) error {
 func (r *repository) UpdateNote(ctx context.Context, videoID, ownerID uuid.UUID, note *string) (*generated.SetVideo, error) {
 	sv := r.q.SetVideo
 
-	// Ownership probe first so a foreign id returns not-found, not a silent no-op.
 	if _, err := sv.WithContext(ctx).Where(sv.ID.Eq(videoID), sv.UserID.Eq(ownerID)).First(); err != nil {
 		return nil, err
 	}

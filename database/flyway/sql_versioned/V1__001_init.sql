@@ -311,10 +311,6 @@ create table set_logs (
   id                        uuid primary key default gen_random_uuid(),
   session_exercise_id       uuid not null references session_exercises(id) on delete cascade,
   sequence                  int not null,
-  -- The originating program_set_target.sequence, snapshotted at session start.
-  -- One program_set_target ("block", e.g. 2 sets × 5) expands into sets_count
-  -- individual set_logs that all share this block_sequence, so the UI can group
-  -- per-set logs back under their block row. Null on ad-hoc / pre-grouping rows.
   block_sequence            int,
   set_type                  set_type not null default 'working',
   -- prescription snapshot
