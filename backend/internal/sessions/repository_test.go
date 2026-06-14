@@ -275,8 +275,6 @@ func TestRepositoryStartSessionForDay_SnapshotsProgramIntoNewSession(t *testing.
 	}
 }
 
-// A target with sets_count = 2 must expand into two set_logs that share the
-// originating block_sequence and carry a contiguous per-exercise sequence.
 func TestRepositoryStartSessionForDay_ExpandsSetsCountIntoPerSetLogs(t *testing.T) {
 	db, mock := newMockDB(t)
 

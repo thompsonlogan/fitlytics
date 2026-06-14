@@ -31,9 +31,6 @@ type SessionExerciseResponse struct {
 type SetLogResponse struct {
 	ID       uuid.UUID `json:"id"`
 	Sequence int32     `json:"sequence"`
-	// BlockSequence is the originating program_set_target.sequence. Set logs that
-	// share a block_sequence are the individual sets of one prescribed block, so
-	// the frontend groups them back under a single table row.
 	BlockSequence *int32 `json:"block_sequence,omitempty"`
 	SetType       string `json:"set_type" example:"working"`
 	// prescription snapshot
@@ -58,14 +55,11 @@ type UpdateSetLogRequest struct {
 	State        *string  `json:"state,omitempty" example:"completed"`
 } // @name UpdateSetLogRequest
 
-// BatchUpdateSetLogItem is one set_log's updates within a batch write.
 type BatchUpdateSetLogItem struct {
 	SetLogID uuid.UUID `json:"set_log_id" binding:"required"`
 	UpdateSetLogRequest
 } // @name BatchUpdateSetLogItem
 
-// BatchUpdateSetLogsRequest applies updates to several of one session's
-// set_logs atomically — all rows update or none do.
 type BatchUpdateSetLogsRequest struct {
 	Updates []BatchUpdateSetLogItem `json:"updates" binding:"required,min=1,max=50"`
 } // @name BatchUpdateSetLogsRequest
