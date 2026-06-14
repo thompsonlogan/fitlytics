@@ -3,14 +3,13 @@ import {
   createRootRouteWithContext,
   createRoute,
   createRouter,
+  lazyRouteComponent,
   Outlet,
   redirect,
 } from "@tanstack/react-router"
 
 import { NotFoundPage } from "@/components/not-found/not-found-page"
 import { fetchMe, ME_KEY } from "@/hooks/use-auth"
-import { LandingPage } from "@/routes/landing"
-import { TodayPage } from "@/routes/today"
 import type { ServiceApis } from "@/services/data"
 
 // There's no local login screen — authentication is handled entirely by WorkOS.
@@ -36,7 +35,7 @@ const rootRoute = createRootRouteWithContext<RouterContext>()({
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
-  component: LandingPage,
+  component: lazyRouteComponent(() => import("@/routes/landing"), "LandingPage"),
 })
 
 const todayRoute = createRoute({
@@ -54,7 +53,7 @@ const todayRoute = createRoute({
       throw redirect({ href: WORKOS_LOGIN })
     }
   },
-  component: TodayPage,
+  component: lazyRouteComponent(() => import("@/routes/today"), "TodayPage"),
 })
 
 // Features promised in the nav/marketing but not built yet. Each renders the
