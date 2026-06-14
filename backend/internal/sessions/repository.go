@@ -380,10 +380,9 @@ func (r *repository) UpdateSetLogs(ctx context.Context, sessionID, ownerUserID u
 		ss := q.Session
 
 		// Probe session ownership once.
-		_, err := ss.WithContext(ctx).
+		if _, err := ss.WithContext(ctx).
 			Where(ss.ID.Eq(sessionID), ss.UserID.Eq(ownerUserID)).
-			First()
-		if err != nil {
+			First(); err != nil {
 			return err
 		}
 
@@ -400,16 +399,34 @@ func (r *repository) UpdateSetLogs(ctx context.Context, sessionID, ownerUserID u
 			seSet[ex.ID] = struct{}{}
 		}
 
-		out = make([]*generated.SetLog, 0, len(updates))
+		// Prefetch every targeted set log in one query.
+		idVals := make([]driver.Valuer, len(updates))
+		for i, item := range updates {
+			idVals[i] = item.SetLogID
+		}
+		existing, err := sl.WithContext(ctx).Where(sl.ID.In(idVals...)).Find()
+		if err != nil {
+			return fmt.Errorf("load set logs: %w", err)
+		}
+		byID := make(map[uuid.UUID]*generated.SetLog, len(existing))
+		for _, row := range existing {
+			byID[row.ID] = row
+		}
+
+		// Validate every item BEFORE writing anything: each id must exist and
+		// belong to a session_exercise in this session.
 		for _, item := range updates {
-			setLog, err := sl.WithContext(ctx).Where(sl.ID.Eq(item.SetLogID)).First()
-			if err != nil {
-				return err
-			}
-			if _, ok := seSet[setLog.SessionExerciseID]; !ok {
+			row, ok := byID[item.SetLogID]
+			if !ok {
 				return gorm.ErrRecordNotFound
 			}
+			if _, ok := seSet[row.SessionExerciseID]; !ok {
+				return gorm.ErrRecordNotFound
+			}
+		}
 
+		// Apply each item's field updates (one UPDATE per item; assignments differ).
+		for _, item := range updates {
 			var assigns []field.AssignExpr
 			if item.RepsActual != nil {
 				assigns = append(assigns, sl.RepsActual.Value(*item.RepsActual))
@@ -428,12 +445,20 @@ func (r *repository) UpdateSetLogs(ctx context.Context, sessionID, ownerUserID u
 					return fmt.Errorf("update set log: %w", err)
 				}
 			}
+		}
 
-			reloaded, err := sl.WithContext(ctx).Where(sl.ID.Eq(item.SetLogID)).First()
-			if err != nil {
-				return err
-			}
-			out = append(out, reloaded)
+		// Reload all updated rows in one query; assemble in input order.
+		reloaded, err := sl.WithContext(ctx).Where(sl.ID.In(idVals...)).Find()
+		if err != nil {
+			return fmt.Errorf("reload set logs: %w", err)
+		}
+		byID = make(map[uuid.UUID]*generated.SetLog, len(reloaded))
+		for _, row := range reloaded {
+			byID[row.ID] = row
+		}
+		out = make([]*generated.SetLog, 0, len(updates))
+		for _, item := range updates {
+			out = append(out, byID[item.SetLogID])
 		}
 
 		// Recompute session state exactly once after all updates.

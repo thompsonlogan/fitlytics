@@ -522,37 +522,28 @@ func TestRepositoryUpdateSetLogs_AppliesAllInOneTransaction(t *testing.T) {
 		WithArgs(uuidArg(sessionID)).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(seID))
 
-	// First item: First set_log, UPDATE, reload.
-	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE .*"set_logs"\."id" = \$1.* LIMIT`).
-		WithArgs(uuidArg(logID1), 1).
+	// Prefetch both set logs in one query.
+	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE .*"set_logs"\."id" IN`).
+		WithArgs(uuidArg(logID1), uuidArg(logID2)).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "session_exercise_id", "sequence", "set_type", "state",
-		}).AddRow(logID1, seID, 1, "working", "pending"))
+		}).AddRow(logID1, seID, 1, "working", "pending").
+			AddRow(logID2, seID, 2, "working", "pending"))
+
+	// Two UPDATEs, one per item.
+	mock.ExpectExec(`UPDATE "set_logs" SET`).
+		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	mock.ExpectExec(`UPDATE "set_logs" SET`).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
-	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE .*"set_logs"\."id" = \$1.* LIMIT`).
-		WithArgs(uuidArg(logID1), 1).
+	// Reload both in one query.
+	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE .*"set_logs"\."id" IN`).
+		WithArgs(uuidArg(logID1), uuidArg(logID2)).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "session_exercise_id", "sequence", "set_type", "state",
-		}).AddRow(logID1, seID, 1, "working", "completed"))
-
-	// Second item: First set_log, UPDATE, reload.
-	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE .*"set_logs"\."id" = \$1.* LIMIT`).
-		WithArgs(uuidArg(logID2), 1).
-		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "session_exercise_id", "sequence", "set_type", "state",
-		}).AddRow(logID2, seID, 2, "working", "pending"))
-
-	mock.ExpectExec(`UPDATE "set_logs" SET`).
-		WillReturnResult(sqlmock.NewResult(0, 1))
-
-	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE .*"set_logs"\."id" = \$1.* LIMIT`).
-		WithArgs(uuidArg(logID2), 1).
-		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "session_exercise_id", "sequence", "set_type", "state",
-		}).AddRow(logID2, seID, 2, "working", "completed"))
+		}).AddRow(logID1, seID, 1, "working", "completed").
+			AddRow(logID2, seID, 2, "working", "completed"))
 
 	// Recompute (once): session exercises, set_log states, UPDATE session.
 	mock.ExpectQuery(`SELECT "session_exercises"\."id" FROM "session_exercises"`).
@@ -614,29 +605,15 @@ func TestRepositoryUpdateSetLogs_ForeignSetLogRollsBackAll(t *testing.T) {
 		WithArgs(uuidArg(sessionID)).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(seID))
 
-	// First item succeeds the membership check.
-	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE .*"set_logs"\."id" = \$1.* LIMIT`).
-		WithArgs(uuidArg(logID1), 1).
+	// Prefetch both set logs in one query; logID2 belongs to a foreign exercise.
+	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE .*"set_logs"\."id" IN`).
+		WithArgs(uuidArg(logID1), uuidArg(logID2)).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "session_exercise_id", "sequence", "set_type", "state",
-		}).AddRow(logID1, seID, 1, "working", "pending"))
+		}).AddRow(logID1, seID, 1, "working", "pending").
+			AddRow(logID2, foreignSeID, 1, "working", "pending"))
 
-	mock.ExpectExec(`UPDATE "set_logs" SET`).
-		WillReturnResult(sqlmock.NewResult(0, 1))
-
-	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE .*"set_logs"\."id" = \$1.* LIMIT`).
-		WithArgs(uuidArg(logID1), 1).
-		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "session_exercise_id", "sequence", "set_type", "state",
-		}).AddRow(logID1, seID, 1, "working", "completed"))
-
-	// Second item's set_log belongs to a different session_exercise — membership fails.
-	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE .*"set_logs"\."id" = \$1.* LIMIT`).
-		WithArgs(uuidArg(logID2), 1).
-		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "session_exercise_id", "sequence", "set_type", "state",
-		}).AddRow(logID2, foreignSeID, 1, "working", "pending"))
-
+	// Validation rejects logID2 before any write — no UPDATEs, no reload.
 	mock.ExpectRollback()
 
 	updates := []BatchUpdateSetLogItem{
