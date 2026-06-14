@@ -1,4 +1,5 @@
-# Local overrides (and any secret values). The committed .env holds the
-# shared, non-secret build-time config (VITE_*).
-.env.local
-.env.*.local
+# Environment files. VITE_* are build-time and a local .env may hold overrides;
+# keep the documented template tracked, ignore real .env files.
+.env
+.env.*
+!.env.example
