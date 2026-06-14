@@ -29,7 +29,7 @@ export function TodayPage() {
   const todayPos = useMemo(
     () =>
       program?.startDate ? computeTodayPosition(program.startDate, weekCount) : null,
-    [program?.startDate, weekCount]
+    [program, weekCount]
   )
 
   // User selection is stored as an override. null = "follow today", which

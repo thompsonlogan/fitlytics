@@ -226,7 +226,7 @@ export function useLogSetBatch(
       // Build a Map of updated logs for O(1) lookup during cache splice.
       const updatesById = new Map<string, SetLogResponse>()
       for (const log of updatedLogs) {
-        updatesById.set(log.id, log)
+        updatesById.set(log.id!, log)
       }
 
       queryClient.setQueryData<SessionResponse | null>(cacheKey, (prev) => {
@@ -235,7 +235,7 @@ export function useLogSetBatch(
           ...prev,
           exercises: prev.exercises?.map((e) => ({
             ...e,
-            setLogs: e.setLogs?.map((l) => updatesById.get(l.id) ?? l),
+            setLogs: e.setLogs?.map((l) => updatesById.get(l.id!) ?? l),
           })),
         }
       })

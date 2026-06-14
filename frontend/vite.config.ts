@@ -40,6 +40,14 @@ export default defineConfig(({ mode }) => {
       // from runs so it doesn't get scanned for stray *.test.ts files.
       exclude: ["node_modules", "dist", "src/services/generated/**"],
       css: false,
+      // use-set-videos.ts reads these at module load and they have no in-code
+      // fallback by design (see .env.example). frontend/.env is git-ignored, so
+      // provide the public, non-secret values here for CI / fresh-checkout test
+      // runs. Keep in sync with .env.example.
+      env: {
+        VITE_MAX_VIDEO_BYTES: "524288000",
+        VITE_ALLOWED_VIDEO_TYPES: "video/mp4,video/quicktime,video/webm",
+      },
     },
   }
 })
