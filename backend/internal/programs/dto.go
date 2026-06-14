@@ -67,4 +67,3 @@ type ProgramSetTargetResponse struct {
 	CapLoadKg              *float64  `json:"cap_load_kg,omitempty"`
 	PrescribedRpe          *float64  `json:"prescribed_rpe,omitempty" example:"5"`
 } // @name ProgramSetTargetResponse
-

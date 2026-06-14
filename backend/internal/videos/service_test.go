@@ -272,7 +272,9 @@ func TestFinalize_SizeMismatchIsDeletedAndRejected(t *testing.T) {
 	markReadyCalled := false
 	repo := &fakeRepo{
 		// Reserved 1 MB, but only part of it landed.
-		getOwnedFn:   func(context.Context, uuid.UUID, uuid.UUID) (*generated.SetVideo, error) { return sizedRow(id, 1_000_000), nil },
+		getOwnedFn: func(context.Context, uuid.UUID, uuid.UUID) (*generated.SetVideo, error) {
+			return sizedRow(id, 1_000_000), nil
+		},
 		markFailedFn: func(context.Context, uuid.UUID) error { failed = true; return nil },
 		markReadyFn: func(context.Context, uuid.UUID, int64) (*generated.SetVideo, error) {
 			markReadyCalled = true
@@ -305,7 +307,9 @@ func TestFinalize_ContentTypeMismatchIsDeletedAndRejected(t *testing.T) {
 	markReadyCalled := false
 	repo := &fakeRepo{
 		// Reserved an mp4, but a different type landed at the slot.
-		getOwnedFn:   func(context.Context, uuid.UUID, uuid.UUID) (*generated.SetVideo, error) { return typedRow(id, 4096, "video/mp4"), nil },
+		getOwnedFn: func(context.Context, uuid.UUID, uuid.UUID) (*generated.SetVideo, error) {
+			return typedRow(id, 4096, "video/mp4"), nil
+		},
 		markFailedFn: func(context.Context, uuid.UUID) error { failed = true; return nil },
 		markReadyFn: func(context.Context, uuid.UUID, int64) (*generated.SetVideo, error) {
 			markReadyCalled = true
@@ -335,7 +339,9 @@ func TestFinalize_ContentTypeMismatchIsDeletedAndRejected(t *testing.T) {
 func TestFinalize_MatchingContentTypePasses(t *testing.T) {
 	id := uuid.New()
 	repo := &fakeRepo{
-		getOwnedFn: func(context.Context, uuid.UUID, uuid.UUID) (*generated.SetVideo, error) { return typedRow(id, 4096, "video/mp4"), nil },
+		getOwnedFn: func(context.Context, uuid.UUID, uuid.UUID) (*generated.SetVideo, error) {
+			return typedRow(id, 4096, "video/mp4"), nil
+		},
 		markReadyFn: func(_ context.Context, v uuid.UUID, size int64) (*generated.SetVideo, error) {
 			return &generated.SetVideo{ID: v, Status: "ready", StorageKey: "k.mp4", SizeBytes: &size}, nil
 		},
@@ -358,7 +364,9 @@ func TestFinalize_HappyPathMarksReadyWithPlayback(t *testing.T) {
 	id := uuid.New()
 	repo := &fakeRepo{
 		// Reserved size matches what landed, so the integrity check passes.
-		getOwnedFn: func(context.Context, uuid.UUID, uuid.UUID) (*generated.SetVideo, error) { return sizedRow(id, 4096), nil },
+		getOwnedFn: func(context.Context, uuid.UUID, uuid.UUID) (*generated.SetVideo, error) {
+			return sizedRow(id, 4096), nil
+		},
 		markReadyFn: func(_ context.Context, v uuid.UUID, size int64) (*generated.SetVideo, error) {
 			return &generated.SetVideo{ID: v, Status: "ready", StorageKey: "k.mp4", SizeBytes: &size}, nil
 		},

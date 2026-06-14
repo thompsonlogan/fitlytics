@@ -585,8 +585,8 @@ func TestRepositoryUpdateSetLogs_ForeignSetLogRollsBackAll(t *testing.T) {
 
 	ownerID := uuid.New()
 	sessionID := uuid.New()
-	seID := uuid.New()         // belongs to this session
-	foreignSeID := uuid.New()  // belongs to a different session
+	seID := uuid.New()        // belongs to this session
+	foreignSeID := uuid.New() // belongs to a different session
 	logID1 := uuid.New()
 	logID2 := uuid.New()
 	now := time.Now()

@@ -9,7 +9,6 @@ import (
 	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
 
-
 func ptr[T any](v T) *T { return &v }
 
 func strPtr(s string) *string { return &s }
@@ -135,14 +134,14 @@ func exerciseNames() map[uuid.UUID]string {
 // ── Test doubles ────────────────────────────────────────────────────────────
 
 type fakeRepository struct {
-	getProgramByIdFn        func(ctx context.Context, programID, ownerUserID uuid.UUID) (*generated.Program, error)
-	getProgramsByUserIdFn   func(ctx context.Context, ownerUserID uuid.UUID) ([]generated.Program, error)
-	getExercisesByIdsFn     func(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]string, error)
-	lastLookupIDs           []uuid.UUID
-	getExercisesByIdsCount  int
-	getProgramByIdCount     int
+	getProgramByIdFn         func(ctx context.Context, programID, ownerUserID uuid.UUID) (*generated.Program, error)
+	getProgramsByUserIdFn    func(ctx context.Context, ownerUserID uuid.UUID) ([]generated.Program, error)
+	getExercisesByIdsFn      func(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]string, error)
+	lastLookupIDs            []uuid.UUID
+	getExercisesByIdsCount   int
+	getProgramByIdCount      int
 	getProgramsByUserIdCount int
-	lastListOwnerID         uuid.UUID
+	lastListOwnerID          uuid.UUID
 }
 
 func (f *fakeRepository) GetProgramById(ctx context.Context, programID, ownerUserID uuid.UUID) (*generated.Program, error) {

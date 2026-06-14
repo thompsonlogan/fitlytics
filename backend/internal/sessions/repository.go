@@ -157,8 +157,8 @@ func (r *repository) StartSessionForDay(ctx context.Context, programID, programD
 			ProgramDayID:    &programDayID,
 			ProgramNameSnap: &program.Name,
 			DayNameSnap:     &day.Name,
-			State:     "planned",
-			StartedAt: &now,
+			State:           "planned",
+			StartedAt:       &now,
 		}
 		if err := s.WithContext(ctx).Create(&session); err != nil {
 			return fmt.Errorf("create session: %w", err)
