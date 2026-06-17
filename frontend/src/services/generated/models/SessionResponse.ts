@@ -46,13 +46,19 @@ export interface SessionResponse {
      */
     exercises?: Array<SessionExerciseResponse>;
     /**
-     * 
+     *
      * @type {string}
      * @memberof SessionResponse
      */
     id?: string;
     /**
-     * 
+     * Notes is the athlete's own free-text note for this workout ("Your notes" in the UI). Distinct from the program day's coach note, which is prescription-side and read-only.
+     * @type {string}
+     * @memberof SessionResponse
+     */
+    notes?: string;
+    /**
+     *
      * @type {string}
      * @memberof SessionResponse
      */
@@ -104,6 +110,7 @@ export function SessionResponseFromJSONTyped(json: any, ignoreDiscriminator: boo
         'dayNameSnap': json['day_name_snap'] == null ? undefined : json['day_name_snap'],
         'exercises': json['exercises'] == null ? undefined : ((json['exercises'] as Array<any>).map(SessionExerciseResponseFromJSON)),
         'id': json['id'] == null ? undefined : json['id'],
+        'notes': json['notes'] == null ? undefined : json['notes'],
         'programDayId': json['program_day_id'] == null ? undefined : json['program_day_id'],
         'programNameSnap': json['program_name_snap'] == null ? undefined : json['program_name_snap'],
         'startedAt': json['started_at'] == null ? undefined : json['started_at'],
@@ -127,6 +134,7 @@ export function SessionResponseToJSONTyped(value?: SessionResponse | null, ignor
         'day_name_snap': value['dayNameSnap'],
         'exercises': value['exercises'] == null ? undefined : ((value['exercises'] as Array<any>).map(SessionExerciseResponseToJSON)),
         'id': value['id'],
+        'notes': value['notes'],
         'program_day_id': value['programDayId'],
         'program_name_snap': value['programNameSnap'],
         'started_at': value['startedAt'],

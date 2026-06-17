@@ -26,6 +26,7 @@ func (h *Handler) Register(rg *gin.RouterGroup) {
 	rg.POST("/programs/:id/days/:dayId/sessions", h.StartSession)
 	rg.PATCH("/sessions/:sessionId/set-logs/:setLogId", h.UpdateSetLog)
 	rg.PATCH("/sessions/:sessionId/set-logs", h.UpdateSetLogs)
+	rg.PATCH("/sessions/:sessionId", h.UpdateSession)
 	rg.GET("/programs/:id/day-completions", h.GetCompletedDays)
 }
 
@@ -229,6 +230,56 @@ func (h *Handler) UpdateSetLogs(c *gin.Context) {
 			return
 		}
 		h.log.Error("batch update set logs failed",
+			slog.String("session_id", sessionID.String()),
+			slog.String("user_id", principal.User.ID.String()),
+			slog.Any("error", err),
+		)
+		apierr.InternalServerError(c, "internal server error")
+		return
+	}
+
+	c.JSON(http.StatusOK, updated)
+}
+
+// UpdateSession applies a partial update to a session — currently the
+// athlete's free-text note for the workout.
+//
+// @Summary      Update a session
+// @Description  Partial update of a session owned by the caller. Currently supports the athlete's free-text note (sessions.notes); a null note clears it. The session must belong to the caller, otherwise 404.
+// @Tags         Sessions
+// @Accept       json
+// @Produce      json
+// @Param        sessionId  path      string                true  "Session UUID"  Format(uuid)
+// @Param        body       body      UpdateSessionRequest  true  "Fields to update"
+// @Success      200  {object}  SessionResponse
+// @Failure      400  {object}  apierr.ProblemDetails  "invalid input"
+// @Failure      401  {object}  apierr.ProblemDetails  "missing or invalid auth token"
+// @Failure      404  {object}  apierr.ProblemDetails  "session not found"
+// @Failure      500  {object}  apierr.ProblemDetails  "internal server error"
+// @Security     BearerAuth
+// @Router       /api/sessions/{sessionId} [patch]
+func (h *Handler) UpdateSession(c *gin.Context) {
+	sessionID, err := uuid.Parse(c.Param("sessionId"))
+	if err != nil {
+		apierr.BadRequest(c, "invalid session id")
+		return
+	}
+
+	var body UpdateSessionRequest
+	if err := c.ShouldBindJSON(&body); err != nil {
+		apierr.BadRequest(c, "invalid request body")
+		return
+	}
+
+	principal := auth.MustPrincipal(c)
+
+	updated, err := h.service.UpdateSession(c.Request.Context(), sessionID, principal.User.ID, body)
+	if err != nil {
+		if errors.Is(err, apierr.ErrNotFound) {
+			apierr.NotFound(c, "session not found")
+			return
+		}
+		h.log.Error("update session failed",
 			slog.String("session_id", sessionID.String()),
 			slog.String("user_id", principal.User.ID.String()),
 			slog.Any("error", err),

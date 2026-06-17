@@ -7,16 +7,28 @@ import (
 )
 
 type SessionResponse struct {
-	ID              uuid.UUID                 `json:"id"`
-	UserID          uuid.UUID                 `json:"user_id"`
-	ProgramDayID    *uuid.UUID                `json:"program_day_id,omitempty"`
-	ProgramNameSnap *string                   `json:"program_name_snap,omitempty"`
-	DayNameSnap     *string                   `json:"day_name_snap,omitempty"`
-	State           string                    `json:"state" example:"in_progress"`
-	StartedAt       *time.Time                `json:"started_at,omitempty"`
-	CompletedAt     *time.Time                `json:"completed_at,omitempty"`
-	Exercises       []SessionExerciseResponse `json:"exercises"`
+	ID              uuid.UUID  `json:"id"`
+	UserID          uuid.UUID  `json:"user_id"`
+	ProgramDayID    *uuid.UUID `json:"program_day_id,omitempty"`
+	ProgramNameSnap *string    `json:"program_name_snap,omitempty"`
+	DayNameSnap     *string    `json:"day_name_snap,omitempty"`
+	State           string     `json:"state" example:"in_progress"`
+	StartedAt       *time.Time `json:"started_at,omitempty"`
+	CompletedAt     *time.Time `json:"completed_at,omitempty"`
+	// Notes is the athlete's own free-text note for this workout ("Your notes"
+	// in the UI). Distinct from the program day's coach note, which is
+	// prescription-side and read-only.
+	Notes     *string                   `json:"notes,omitempty"`
+	Exercises []SessionExerciseResponse `json:"exercises"`
 } // @name SessionResponse
+
+// UpdateSessionRequest is the update body for a session. Notes is written
+// verbatim: a string (including "") sets the note, and a null/omitted value
+// clears it to SQL NULL. The single-field shape means callers always send the
+// note's full new value rather than a partial patch.
+type UpdateSessionRequest struct {
+	Notes *string `json:"notes" example:"Felt strong, bar speed good on the openers."`
+} // @name UpdateSessionRequest
 
 type SessionExerciseResponse struct {
 	ID               uuid.UUID        `json:"id"`

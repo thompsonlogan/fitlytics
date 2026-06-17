@@ -14,6 +14,7 @@ func mapSession(s *generated.Session) *SessionResponse {
 		State:           s.State,
 		StartedAt:       s.StartedAt,
 		CompletedAt:     s.CompletedAt,
+		Notes:           s.Notes,
 		Exercises:       make([]SessionExerciseResponse, 0, len(s.Exercises)),
 	}
 	for _, e := range s.Exercises {

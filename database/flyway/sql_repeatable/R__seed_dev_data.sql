@@ -124,6 +124,18 @@ insert into program_days (id, week_id, sequence, name, tag, is_rest_day) values
   ('a1b2c3d4-0001-4000-8000-000000000008', '27504ec2-84de-4e24-846a-e48db7b293e9', 7, 'Rest', 'OFF 3', true)
 on conflict (id) do nothing;
 
+-- 5b. Coach notes on a handful of week-1 days. These populate the read-only
+-- "Coach" section of the side panel's Notes card. Newline-separated lines each
+-- render as a bullet. Guarded with `notes is null` so re-running this seed never
+-- clobbers a note edited in the running app; the rest of the days are left
+-- without notes on purpose so the card's empty state stays reachable in dev.
+update program_days set notes = E'Squat openers: belt + sleeves from set 2 onward.\nRIR work: stop 1 rep shy on the heaviest set.\nLog RPE on the last set of each block — it drives next week''s load cap.\nBar speed is the limiter; if you grind, cut the back-offs at 0.95.'
+  where id = '78a3a15f-b735-4bf1-bdbc-ace8ac318e77' and notes is null;
+update program_days set notes = E'Paused bench: full 2-count, no heave off the chest.\nKeep upper-back tight across the machine press back-offs.\nKelso shrugs: slow eccentric, squeeze the mid-traps.'
+  where id = '9f113763-bf66-4840-94cf-5b54f150f6af' and notes is null;
+update program_days set notes = E'Full rest day — stay non-sedentary.\n20–40 min easy walk; hydrate.\nHips + t-spine mobility, ~10 min.'
+  where id = '66a2d597-3968-4816-90e0-a02b0d8430d7' and notes is null;
+
 -- 6. Program exercises (one row per (week, day, contiguous exercise block))
 insert into program_exercises (id, day_id, sequence, exercise_id, sub_text, rest_seconds) values
   ('a4346111-d645-425f-917b-20d67fbf455b', '78a3a15f-b735-4bf1-bdbc-ace8ac318e77', 1, '704b039d-895c-476b-80ed-991010629bb2', null, null),
@@ -560,7 +572,7 @@ insert into sessions
   (id, user_id, program_day_id, program_name_snap, day_name_snap, state,
    scheduled_for, started_at, completed_at, notes)
 values
-  ('89489b1f-6ad2-4314-88ba-abc8fb40957f', '265f6d7d-c361-4189-ac41-3f053b2b217d', '78a3a15f-b735-4bf1-bdbc-ace8ac318e77', 'Logan PL — May/June 2026 Block', 'Day 1', 'completed', '2026-05-04', '2026-05-04 17:30:00+00', '2026-05-04 18:45:00+00', null),
+  ('89489b1f-6ad2-4314-88ba-abc8fb40957f', '265f6d7d-c361-4189-ac41-3f053b2b217d', '78a3a15f-b735-4bf1-bdbc-ace8ac318e77', 'Logan PL — May/June 2026 Block', 'Day 1', 'completed', '2026-05-04', '2026-05-04 17:30:00+00', '2026-05-04 18:45:00+00', 'Felt strong — bar speed crisp on the openers. Right hip a touch tight, foam-rolled after.'),
   ('df727df5-b1ca-46c8-90db-f70dabe8353a', '265f6d7d-c361-4189-ac41-3f053b2b217d', 'c826cd6f-21cb-492c-b181-194feb2a57ec', 'Logan PL — May/June 2026 Block', 'Day 2', 'completed', '2026-05-06', '2026-05-06 17:30:00+00', '2026-05-06 18:45:00+00', null),
   ('1f8c575e-5b22-4e98-9ea5-f56b2d92e135', '265f6d7d-c361-4189-ac41-3f053b2b217d', '9f113763-bf66-4840-94cf-5b54f150f6af', 'Logan PL — May/June 2026 Block', 'Day 3', 'completed', '2026-05-07', '2026-05-07 17:30:00+00', '2026-05-07 18:45:00+00', null),
   ('77201cf5-b5c4-46ad-9994-84d1aa5e5e67', '265f6d7d-c361-4189-ac41-3f053b2b217d', 'f2485f21-f719-4c9d-92d2-3007128f3619', 'Logan PL — May/June 2026 Block', 'Day 4', 'completed', '2026-05-08', '2026-05-08 17:30:00+00', '2026-05-08 18:45:00+00', null)

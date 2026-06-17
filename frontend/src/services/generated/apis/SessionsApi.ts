@@ -20,6 +20,7 @@ import type {
   ProblemDetails,
   SessionResponse,
   SetLogResponse,
+  UpdateSessionRequest,
   UpdateSetLogRequest,
 } from '../models/index';
 import {
@@ -33,6 +34,8 @@ import {
     SessionResponseToJSON,
     SetLogResponseFromJSON,
     SetLogResponseToJSON,
+    UpdateSessionRequestFromJSON,
+    UpdateSessionRequestToJSON,
     UpdateSetLogRequestFromJSON,
     UpdateSetLogRequestToJSON,
 } from '../models/index';
@@ -49,6 +52,11 @@ export interface ApiProgramsIdDaysDayIdSessionsCurrentGetRequest {
 export interface ApiProgramsIdDaysDayIdSessionsPostRequest {
     id: string;
     dayId: string;
+}
+
+export interface ApiSessionsSessionIdPatchRequest {
+    sessionId: string;
+    body: UpdateSessionRequest;
 }
 
 export interface ApiSessionsSessionIdSetLogsPatchRequest {
@@ -195,6 +203,55 @@ export class SessionsApi extends runtime.BaseAPI {
      */
     async apiProgramsIdDaysDayIdSessionsPost(requestParameters: ApiProgramsIdDaysDayIdSessionsPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SessionResponse> {
         const response = await this.apiProgramsIdDaysDayIdSessionsPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Partial update of a session owned by the caller. Currently supports the athlete\'s free-text note (sessions.notes); a null note clears it. The session must belong to the caller, otherwise 404.
+     * Update a session
+     */
+    async apiSessionsSessionIdPatchRaw(requestParameters: ApiSessionsSessionIdPatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SessionResponse>> {
+        if (requestParameters['sessionId'] == null) {
+            throw new runtime.RequiredError(
+                'sessionId',
+                'Required parameter "sessionId" was null or undefined when calling apiSessionsSessionIdPatch().'
+            );
+        }
+
+        if (requestParameters['body'] == null) {
+            throw new runtime.RequiredError(
+                'body',
+                'Required parameter "body" was null or undefined when calling apiSessionsSessionIdPatch().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["Authorization"] = await this.configuration.apiKey("Authorization"); // BearerAuth authentication
+        }
+
+        const response = await this.request({
+            path: `/api/sessions/{sessionId}`.replace(`{${"sessionId"}}`, encodeURIComponent(String(requestParameters['sessionId']))),
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+            body: UpdateSessionRequestToJSON(requestParameters['body']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => SessionResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Partial update of a session owned by the caller. Currently supports the athlete\'s free-text note (sessions.notes); a null note clears it. The session must belong to the caller, otherwise 404.
+     * Update a session
+     */
+    async apiSessionsSessionIdPatch(requestParameters: ApiSessionsSessionIdPatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SessionResponse> {
+        const response = await this.apiSessionsSessionIdPatchRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

@@ -17,6 +17,7 @@ type Service interface {
 	UpdateSetLog(ctx context.Context, sessionID, setLogID, ownerUserID uuid.UUID, input UpdateSetLogRequest) (*SetLogResponse, error)
 	UpdateSetLogs(ctx context.Context, sessionID, ownerUserID uuid.UUID, input BatchUpdateSetLogsRequest) ([]SetLogResponse, error)
 	GetCompletedDays(ctx context.Context, programID, ownerUserID uuid.UUID) ([]CompletedDayResponse, error)
+	UpdateSession(ctx context.Context, sessionID, ownerUserID uuid.UUID, input UpdateSessionRequest) (*SessionResponse, error)
 }
 
 type service struct {
@@ -122,6 +123,17 @@ func (s *service) UpdateSetLogs(ctx context.Context, sessionID, ownerUserID uuid
 		out = append(out, mapSetLog(*row))
 	}
 	return out, nil
+}
+
+func (s *service) UpdateSession(ctx context.Context, sessionID, ownerUserID uuid.UUID, input UpdateSessionRequest) (*SessionResponse, error) {
+	row, err := s.repo.UpdateSessionNotes(ctx, sessionID, ownerUserID, input.Notes)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, apierr.ErrNotFound
+		}
+		return nil, fmt.Errorf("update session: %w", err)
+	}
+	return mapSession(row), nil
 }
 
 func (s *service) GetCompletedDays(ctx context.Context, programID, ownerUserID uuid.UUID) ([]CompletedDayResponse, error) {

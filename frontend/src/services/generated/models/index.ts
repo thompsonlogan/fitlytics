@@ -17,6 +17,7 @@ export * from './SessionExerciseResponse';
 export * from './SessionResponse';
 export * from './SetLogResponse';
 export * from './StoragePresignedUpload';
+export * from './UpdateSessionRequest';
 export * from './UpdateSetLogRequest';
 export * from './UpdateVideoRequest';
 export * from './VideoResponse';

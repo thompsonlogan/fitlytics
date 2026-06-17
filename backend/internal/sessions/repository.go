@@ -23,6 +23,7 @@ type Repository interface {
 	UpdateSetLog(ctx context.Context, sessionID, setLogID, ownerUserID uuid.UUID, input UpdateSetLogRequest) (*generated.SetLog, error)
 	UpdateSetLogs(ctx context.Context, sessionID, ownerUserID uuid.UUID, updates []BatchUpdateSetLogItem) ([]*generated.SetLog, error)
 	FindCompletedDays(ctx context.Context, programID, ownerUserID uuid.UUID) ([]CompletedDayRow, error)
+	UpdateSessionNotes(ctx context.Context, sessionID, ownerUserID uuid.UUID, notes *string) (*generated.Session, error)
 }
 
 type CompletedDayRow struct {
@@ -491,4 +492,41 @@ func (r *repository) FindCompletedDays(ctx context.Context, programID, ownerUser
 		rows = []CompletedDayRow{}
 	}
 	return rows, nil
+}
+
+// UpdateSessionNotes writes sessions.notes for a session owned by the caller.
+// notes is written verbatim — a nil pointer clears the column. Returns
+// gorm.ErrRecordNotFound when no active session matches the id + owner, which
+// the service surfaces as a 404 (covering both not-found and not-owned without
+// leaking which).
+func (r *repository) UpdateSessionNotes(ctx context.Context, sessionID, ownerUserID uuid.UUID, notes *string) (*generated.Session, error) {
+	s := r.q.Session
+
+	// field.String.Value takes a plain string; a nil pointer maps to a SQL
+	// NULL via .Null() so clearing the note actually nulls the column.
+	assign := s.Notes.Null()
+	if notes != nil {
+		assign = s.Notes.Value(*notes)
+	}
+
+	result, err := s.WithContext(ctx).
+		Where(s.ID.Eq(sessionID), s.UserID.Eq(ownerUserID)).
+		UpdateSimple(assign)
+	if err != nil {
+		return nil, fmt.Errorf("update session notes: %w", err)
+	}
+	if result.RowsAffected == 0 {
+		return nil, gorm.ErrRecordNotFound
+	}
+
+	updated, err := s.WithContext(ctx).
+		Preload(s.Exercises).
+		Preload(s.Exercises.SetLogs).
+		Where(s.ID.Eq(sessionID)).
+		First()
+	if err != nil {
+		return nil, err
+	}
+	sortSessionTree(updated)
+	return updated, nil
 }

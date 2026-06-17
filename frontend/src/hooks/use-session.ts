@@ -74,6 +74,43 @@ export function useStartSession(programId: string | undefined, programDayId: str
   })
 }
 
+// useUpdateSessionNotes persists the athlete's free-text note for a session
+// (sessions.notes — the "Your notes" box in the side panel). Like useLogSet it
+// reads the session id from the cache at mutation time (so a save fired right
+// after startSession sees the fresh id) and splices the server's response —
+// which carries the full reloaded session tree — back into the same cache slot
+// so the next render reads the persisted note without a refetch. Callers must
+// ensure a session exists first (the note box lazily starts one on first edit).
+export function useUpdateSessionNotes(
+  programId: string | undefined,
+  programDayId: string | undefined
+) {
+  const { sessionsApi } = useServices()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (vars: { notes: string }): Promise<SessionResponse> => {
+      if (!programId || !programDayId) {
+        throw new Error("missing program or day id")
+      }
+      const cached = queryClient.getQueryData<SessionResponse | null>(
+        sessionQueryKey(programId, programDayId)
+      )
+      if (!cached?.id) {
+        throw new Error("no session — call startSession first")
+      }
+      return sessionsApi.apiSessionsSessionIdPatch({
+        sessionId: cached.id,
+        body: { notes: vars.notes },
+      })
+    },
+    onSuccess: (updated) => {
+      if (!programId || !programDayId) return
+      queryClient.setQueryData(sessionQueryKey(programId, programDayId), updated)
+    },
+  })
+}
+
 // UseLogSetVars carry both the set_log id and the partial body. The session
 // id comes from the hook closure so callers don't have to pass it on every
 // invocation.

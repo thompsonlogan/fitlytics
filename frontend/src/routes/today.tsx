@@ -10,7 +10,7 @@ import { SubBar } from "@/components/workout/sub-bar"
 import { useAuth } from "@/hooks/use-auth"
 import { useDayCompletions } from "@/hooks/use-day-completions"
 import { useWorkoutProgram } from "@/hooks/use-workout-program"
-import { computeTodayPosition, type ProgramDay } from "@/lib/program-data"
+import { computeTodayPosition, nextWorkoutDay, type ProgramDay } from "@/lib/program-data"
 
 // PLACEHOLDER_DAY keeps the SubBar's "current day" panel populated while the
 // program is loading so the header chrome doesn't pop in alongside the table
@@ -46,6 +46,15 @@ export function TodayPage() {
       : undefined
   const days = activeWeek?.days ?? []
   const dayData = days[dayIndex] ?? PLACEHOLDER_DAY
+
+  // prevDayId: the same day-index in the previous week, for the side panel's
+  // "vs last week" planned-volume delta. null in week 1 (nothing to compare).
+  // A rest-day placeholder has an empty id, which disables the prev-session
+  // fetch downstream — exactly what we want.
+  const prevDayId = week > 1 ? (program?.weeks[week - 2]?.days[dayIndex]?.id ?? null) : null
+  // nextDay: the next non-rest day after the viewed position, for the rest-day
+  // "Next session" card. The panel only reads it on rest days.
+  const nextDay = program ? nextWorkoutDay(program, week, dayIndex) : null
 
   // completedDays drives the "done" dot on the day-selector tabs. Populated
   // from the dedicated day-completions endpoint, which reports sessions whose
@@ -113,6 +122,8 @@ export function TodayPage() {
           day={dayData}
           programId={program.id}
           programDayId={dayData.id}
+          prevDayId={prevDayId}
+          nextDay={nextDay}
           initialCompleted={initialCompleted}
         />
       )}
