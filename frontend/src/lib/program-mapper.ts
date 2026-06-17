@@ -49,6 +49,7 @@ export function mapSetTarget(t: ProgramSetTargetResponse): SetBlock {
     cap: capLb,
     used: "",
     rpe: t.prescribedRpe ?? null,
+    prescribedLoad: t.prescribedLoadKg != null ? KG_TO_LB(t.prescribedLoadKg) : null,
   }
 }
 
@@ -77,13 +78,14 @@ export function mapDay(d: ProgramDayResponse): ProgramDay {
   const id = d.id ?? ""
 
   if (d.isRestDay) {
-    return { id, name: "Rest", tag, off: true }
+    return { id, name: "Rest", tag, off: true, notes: d.notes ?? null }
   }
 
   return {
     id,
     name: dayName,
     tag,
+    notes: d.notes ?? null,
     exercises: (d.exercises ?? []).map(mapExercise),
   }
 }

@@ -341,3 +341,97 @@ func TestServiceGetCompletedDays_RepoErrorIsWrapped(t *testing.T) {
 		t.Errorf("error should wrap underlying repo error; got %v", err)
 	}
 }
+
+// ─── UpdateSession ─────────────────────────────────────────────────────────
+
+func TestServiceUpdateSession_ThreadsNotesAndMapsRow(t *testing.T) {
+	sessionID, ownerID := uuid.New(), uuid.New()
+	var (
+		gotSessionID, gotOwnerID uuid.UUID
+		gotNotes                 *string
+	)
+	repo := &fakeRepository{
+		updateNotesFn: func(_ context.Context, sid, oid uuid.UUID, notes *string) (*generated.Session, error) {
+			gotSessionID, gotOwnerID, gotNotes = sid, oid, notes
+			return &generated.Session{ID: sid, UserID: oid, State: "in_progress", Notes: notes}, nil
+		},
+	}
+
+	resp, err := NewService(repo).UpdateSession(
+		context.Background(), sessionID, ownerID, UpdateSessionRequest{Notes: ptr("bar speed good")})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if gotSessionID != sessionID || gotOwnerID != ownerID {
+		t.Errorf("ids: session=%v owner=%v", gotSessionID, gotOwnerID)
+	}
+	if gotNotes == nil || *gotNotes != "bar speed good" {
+		t.Errorf("notes not threaded through: %v", gotNotes)
+	}
+	if resp == nil || resp.ID != sessionID || resp.Notes == nil || *resp.Notes != "bar speed good" {
+		t.Errorf("mapped response: %+v", resp)
+	}
+}
+
+func TestServiceUpdateSession_ClearNotePassesNilPointer(t *testing.T) {
+	var (
+		gotNotes  *string
+		notesSeen bool
+	)
+	repo := &fakeRepository{
+		updateNotesFn: func(_ context.Context, sid, oid uuid.UUID, notes *string) (*generated.Session, error) {
+			gotNotes, notesSeen = notes, true
+			return &generated.Session{ID: sid, UserID: oid, State: "planned", Notes: notes}, nil
+		},
+	}
+
+	_, err := NewService(repo).UpdateSession(
+		context.Background(), uuid.New(), uuid.New(), UpdateSessionRequest{Notes: nil})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !notesSeen {
+		t.Fatal("repo was not called")
+	}
+	if gotNotes != nil {
+		t.Errorf("nil note should pass a nil pointer (SQL NULL), got %v", *gotNotes)
+	}
+}
+
+func TestServiceUpdateSession_NotFoundMapsToErrNotFound(t *testing.T) {
+	repo := &fakeRepository{
+		updateNotesFn: func(_ context.Context, _, _ uuid.UUID, _ *string) (*generated.Session, error) {
+			return nil, gorm.ErrRecordNotFound
+		},
+	}
+
+	resp, err := NewService(repo).UpdateSession(
+		context.Background(), uuid.New(), uuid.New(), UpdateSessionRequest{Notes: ptr("hi")})
+	if resp != nil {
+		t.Errorf("response should be nil on not-found, got %+v", resp)
+	}
+	if !errors.Is(err, apierr.ErrNotFound) {
+		t.Errorf("error: want ErrNotFound, got %v", err)
+	}
+}
+
+func TestServiceUpdateSession_RepoErrorIsWrapped(t *testing.T) {
+	boom := errors.New("connection refused")
+	repo := &fakeRepository{
+		updateNotesFn: func(_ context.Context, _, _ uuid.UUID, _ *string) (*generated.Session, error) {
+			return nil, boom
+		},
+	}
+
+	resp, err := NewService(repo).UpdateSession(
+		context.Background(), uuid.New(), uuid.New(), UpdateSessionRequest{Notes: ptr("hi")})
+	if resp != nil {
+		t.Errorf("response should be nil on error, got %+v", resp)
+	}
+	if !errors.Is(err, boom) {
+		t.Errorf("error should wrap underlying repo error; got %v", err)
+	}
+	if errors.Is(err, apierr.ErrNotFound) {
+		t.Error("generic repo error was incorrectly mapped to ErrNotFound")
+	}
+}

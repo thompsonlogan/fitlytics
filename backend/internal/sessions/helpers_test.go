@@ -17,6 +17,7 @@ type fakeService struct {
 	updateSetLogFn      func(ctx context.Context, sessionID, setLogID, ownerUserID uuid.UUID, input UpdateSetLogRequest) (*SetLogResponse, error)
 	updateSetLogsFn     func(ctx context.Context, sessionID, ownerUserID uuid.UUID, input BatchUpdateSetLogsRequest) ([]SetLogResponse, error)
 	listCompletedDaysFn func(ctx context.Context, programID, ownerUserID uuid.UUID) ([]CompletedDayResponse, error)
+	updateSessionFn     func(ctx context.Context, sessionID, ownerUserID uuid.UUID, input UpdateSessionRequest) (*SessionResponse, error)
 }
 
 func (f *fakeService) GetCurrentSession(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error) {
@@ -54,6 +55,13 @@ func (f *fakeService) GetCompletedDays(ctx context.Context, programID, ownerUser
 	return f.listCompletedDaysFn(ctx, programID, ownerUserID)
 }
 
+func (f *fakeService) UpdateSession(ctx context.Context, sessionID, ownerUserID uuid.UUID, input UpdateSessionRequest) (*SessionResponse, error) {
+	if f.updateSessionFn == nil {
+		return nil, nil
+	}
+	return f.updateSessionFn(ctx, sessionID, ownerUserID, input)
+}
+
 // ─── fakeRepository ──────────────────────────────────────────────────────────
 
 type fakeRepository struct {
@@ -62,14 +70,18 @@ type fakeRepository struct {
 	updateSetLogFn  func(ctx context.Context, sessionID, setLogID, ownerUserID uuid.UUID, input UpdateSetLogRequest) (*generated.SetLog, error)
 	updateSetLogsFn func(ctx context.Context, sessionID, ownerUserID uuid.UUID, updates []BatchUpdateSetLogItem) ([]*generated.SetLog, error)
 	findCompletedFn func(ctx context.Context, programID, ownerUserID uuid.UUID) ([]CompletedDayRow, error)
+	updateNotesFn   func(ctx context.Context, sessionID, ownerUserID uuid.UUID, notes *string) (*generated.Session, error)
 
 	getCurrentCount    int
 	startCount         int
 	updateSetLogCount  int
 	updateSetLogsCount int
 	findCompletedCount int
+	updateNotesCount   int
 
-	lastInput UpdateSetLogRequest
+	lastInput     UpdateSetLogRequest
+	lastNotes     *string
+	lastNotesSeen bool
 }
 
 func (f *fakeRepository) GetCurrentSessionByDay(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*generated.Session, error) {
@@ -111,4 +123,14 @@ func (f *fakeRepository) FindCompletedDays(ctx context.Context, programID, owner
 		return nil, nil
 	}
 	return f.findCompletedFn(ctx, programID, ownerUserID)
+}
+
+func (f *fakeRepository) UpdateSessionNotes(ctx context.Context, sessionID, ownerUserID uuid.UUID, notes *string) (*generated.Session, error) {
+	f.updateNotesCount++
+	f.lastNotes = notes
+	f.lastNotesSeen = true
+	if f.updateNotesFn == nil {
+		return nil, nil
+	}
+	return f.updateNotesFn(ctx, sessionID, ownerUserID, notes)
 }

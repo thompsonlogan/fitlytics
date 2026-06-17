@@ -8,7 +8,13 @@ import { CYCLE_NEXT, type SetState } from "@/components/workout/set-state"
 import { WorkoutTableSkeleton } from "@/components/workout/workout-table-skeleton"
 import { RestDayCard, WorkoutTable } from "@/components/workout/workout-table"
 import { VideoUploadDialog } from "@/components/workout/video-upload-dialog"
-import { useCurrentSession, useLogSet, useLogSetBatch, useStartSession } from "@/hooks/use-session"
+import {
+  useCurrentSession,
+  useLogSet,
+  useLogSetBatch,
+  useStartSession,
+  useUpdateSessionNotes,
+} from "@/hooks/use-session"
 import { useSessionVideos } from "@/hooks/use-set-videos"
 import { type ProgramDay } from "@/lib/program-data"
 import { LB_TO_KG } from "@/lib/program-mapper"
@@ -28,6 +34,13 @@ type DayBoardProps = {
   day: ProgramDay
   programId: string
   programDayId: string
+  // prevDayId is the program_day id of the same day-index in the previous week,
+  // or null in week 1. The side panel fetches that day's session to compute the
+  // "vs last week" planned-volume delta. nextDay is the next non-rest day after
+  // this one, used by the rest-day "Next session" card. Both are resolved by
+  // the today page, which holds the full program + position.
+  prevDayId?: string | null
+  nextDay?: ProgramDay | null
   initialCompleted?: Record<string, boolean>
 }
 
@@ -122,13 +135,21 @@ function readActualRpe(log: SetLogResponse | undefined): number | null {
   return log.actualRpe
 }
 
-export function DayBoard({ day, programId, programDayId, initialCompleted = {} }: DayBoardProps) {
+export function DayBoard({
+  day,
+  programId,
+  programDayId,
+  prevDayId = null,
+  nextDay = null,
+  initialCompleted = {},
+}: DayBoardProps) {
   // Session is the source of truth for actuals + completion. We read existing
   // (404 surfaces as null) and lazily POST when the user first edits.
   const sessionQuery = useCurrentSession(programId, programDayId)
   const startSession = useStartSession(programId, programDayId)
   const logSet = useLogSet(programId, programDayId)
   const logSetBatch = useLogSetBatch(programId, programDayId)
+  const updateNotes = useUpdateSessionNotes(programId, programDayId)
 
   const session = sessionQuery.data
 
@@ -412,6 +433,19 @@ export function DayBoard({ day, programId, programDayId, initialCompleted = {} }
     timersRef.current.set(key, timerId)
   }
 
+  // saveNotes persists the athlete's "Your notes" text. Adding a note is a
+  // first-class edit, so it lazily starts the session (same rule as logging a
+  // cell) before patching sessions.notes. Errors are swallowed into a toast;
+  // the NotesCard re-reads the unchanged cached value, which reverts the box.
+  const saveNotes = async (value: string) => {
+    try {
+      await ensureSession()
+      await updateNotes.mutateAsync({ notes: value })
+    } catch {
+      toast.error("Couldn't save your note. Check your connection and try again.")
+    }
+  }
+
   // Persisted actuals get merged with local edits at render time: a local
   // edit takes precedence (user is mid-typing), otherwise display the
   // session-backed value. We do that inside WorkoutTable via the meta.
@@ -453,7 +487,15 @@ export function DayBoard({ day, programId, programDayId, initialCompleted = {} }
         />
       )}
       <div className="hidden min-h-0 lg:block">
-        <SidePanel day={day} completed={completed} />
+        <SidePanel
+          day={day}
+          completed={completed}
+          programId={programId}
+          prevDayId={prevDayId}
+          nextDay={nextDay}
+          sessionNotes={session?.notes ?? ""}
+          onSaveNotes={saveNotes}
+        />
       </div>
 
       {videoDialog

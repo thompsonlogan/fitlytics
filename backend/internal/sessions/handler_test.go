@@ -332,6 +332,94 @@ func TestHandlerGetCompletedDays_SuccessReturnsRows(t *testing.T) {
 	}
 }
 
+// ─── UpdateSession ─────────────────────────────────────────────────────────
+
+func newPatchSessionContext(t *testing.T, userID uuid.UUID, sessionID string, body any) (*gin.Context, *httptest.ResponseRecorder) {
+	t.Helper()
+	raw, err := json.Marshal(body)
+	if err != nil {
+		t.Fatalf("marshal body: %v", err)
+	}
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodPatch, "/", bytes.NewReader(raw))
+	c.Request.Header.Set("Content-Type", "application/json")
+	c.Params = gin.Params{{Key: "sessionId", Value: sessionID}}
+	withPrincipal(c, userID)
+	return c, w
+}
+
+func TestHandlerUpdateSession_InvalidIDReturns400(t *testing.T) {
+	c, w := newPatchSessionContext(t, uuid.New(), "not-a-uuid", UpdateSessionRequest{Notes: ptr("hi")})
+	NewHandler(&fakeService{}, silentLogger()).UpdateSession(c)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("status: want 400, got %d", w.Code)
+	}
+}
+
+func TestHandlerUpdateSession_NotFoundReturns404(t *testing.T) {
+	svc := &fakeService{
+		updateSessionFn: func(_ context.Context, _, _ uuid.UUID, _ UpdateSessionRequest) (*SessionResponse, error) {
+			return nil, apierr.ErrNotFound
+		},
+	}
+	c, w := newPatchSessionContext(t, uuid.New(), uuid.NewString(), UpdateSessionRequest{Notes: ptr("hi")})
+	NewHandler(svc, silentLogger()).UpdateSession(c)
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("status: want 404, got %d", w.Code)
+	}
+}
+
+func TestHandlerUpdateSession_GenericErrorReturns500(t *testing.T) {
+	svc := &fakeService{
+		updateSessionFn: func(_ context.Context, _, _ uuid.UUID, _ UpdateSessionRequest) (*SessionResponse, error) {
+			return nil, errors.New("kaboom")
+		},
+	}
+	c, w := newPatchSessionContext(t, uuid.New(), uuid.NewString(), UpdateSessionRequest{Notes: ptr("hi")})
+	NewHandler(svc, silentLogger()).UpdateSession(c)
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("status: want 500, got %d (body=%s)", w.Code, w.Body.String())
+	}
+}
+
+func TestHandlerUpdateSession_SuccessThreadsNotesAndReturnsBody(t *testing.T) {
+	userID := uuid.New()
+	sessionID := uuid.New()
+	want := &SessionResponse{ID: sessionID, State: "in_progress", Notes: ptr("bar speed good")}
+
+	var (
+		gotSessionID, gotOwnerID uuid.UUID
+		gotInput                 UpdateSessionRequest
+	)
+	svc := &fakeService{
+		updateSessionFn: func(_ context.Context, sid, oid uuid.UUID, in UpdateSessionRequest) (*SessionResponse, error) {
+			gotSessionID, gotOwnerID = sid, oid
+			gotInput = in
+			return want, nil
+		},
+	}
+	c, w := newPatchSessionContext(t, userID, sessionID.String(), UpdateSessionRequest{Notes: ptr("bar speed good")})
+	NewHandler(svc, silentLogger()).UpdateSession(c)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status: want 200, got %d (body=%s)", w.Code, w.Body.String())
+	}
+	if gotSessionID != sessionID || gotOwnerID != userID {
+		t.Errorf("ids: session=%v owner=%v", gotSessionID, gotOwnerID)
+	}
+	if gotInput.Notes == nil || *gotInput.Notes != "bar speed good" {
+		t.Errorf("notes not threaded through: %+v", gotInput)
+	}
+	var resp SessionResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if resp.Notes == nil || *resp.Notes != "bar speed good" {
+		t.Errorf("response notes mismatch: %+v", resp.Notes)
+	}
+}
+
 // ─── Register ───────────────────────────────────────────────────────────────
 
 func TestHandlerRegister_MountsAllRoutes(t *testing.T) {
@@ -350,6 +438,9 @@ func TestHandlerRegister_MountsAllRoutes(t *testing.T) {
 		},
 		listCompletedDaysFn: func(_ context.Context, _, _ uuid.UUID) ([]CompletedDayResponse, error) {
 			return []CompletedDayResponse{}, nil
+		},
+		updateSessionFn: func(_ context.Context, sid, _ uuid.UUID, _ UpdateSessionRequest) (*SessionResponse, error) {
+			return &SessionResponse{ID: sid}, nil
 		},
 	}
 
@@ -374,6 +465,9 @@ func TestHandlerRegister_MountsAllRoutes(t *testing.T) {
 			bytes.NewBufferString(`{"actual_rpe": 7.5}`)},
 		{"GetCompletedDays", http.MethodGet,
 			"/api/programs/" + uuid.NewString() + "/day-completions", nil},
+		{"UpdateSession", http.MethodPatch,
+			"/api/sessions/" + uuid.NewString(),
+			bytes.NewBufferString(`{"notes": "felt good"}`)},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

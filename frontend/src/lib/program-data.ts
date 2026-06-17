@@ -14,6 +14,12 @@ export type SetBlock = {
   cap: number | ""
   used: number | ""
   rpe: number | null
+  // prescribedLoad is the block's planned working load in lb (converted from
+  // the backend's prescribed_load_kg). null when the prescription is given by
+  // text/RIR only (e.g. accessories with no absolute load). Drives the side
+  // panel's planned-volume / top-set stats; the table shows prescription as
+  // free-text `intensity` and `cap`, so this never renders in a cell.
+  prescribedLoad: number | null
 }
 
 export type Exercise = {
@@ -31,6 +37,10 @@ export type ProgramDay = {
   name: string
   tag: string
   off?: boolean
+  // notes is the day's coach/programming note (program_days.notes). Read-only
+  // in the UI — authored with the program, surfaced in the side panel's Notes
+  // card. null/undefined when no note was written for this day.
+  notes?: string | null
   exercises?: Exercise[]
 }
 
@@ -105,16 +115,100 @@ export function totalSets(day: ProgramDay): number {
   return day.exercises.reduce((sum, ex) => sum + ex.blocks.reduce((s, b) => s + b.sets, 0), 0)
 }
 
+const WORK_TIME_PER_SET = 2
+
+function rpeMultiplier(rpe: number | null): number {
+  if (rpe == null || rpe < 8) return 1
+  if (rpe <= 8) return 1.1
+  if (rpe <= 9) return 1.2
+  return 1.3
+}
+
 export function estimateDuration(day: ProgramDay): number {
   if (day.off || !day.exercises) return 0
-  let setCount = 0
-  let restMin = 0
-  day.exercises.forEach((ex) => {
-    ex.blocks.forEach((b) => {
-      setCount += b.sets
-    })
-    const exSets = ex.blocks.reduce((s, b) => s + b.sets, 0)
-    restMin += (ex.rest || 2) * Math.max(0, exSets - 1)
-  })
-  return Math.round(setCount * 0.9 + restMin)
+  let total = 0
+  for (const ex of day.exercises) {
+    const rest = ex.rest || 2
+    for (const b of ex.blocks) {
+      total += b.sets * (rest + WORK_TIME_PER_SET) * rpeMultiplier(b.rpe)
+    }
+  }
+  return Math.round(total)
+}
+
+// repsLowerBound pulls the conservative rep count out of a SetBlock's display
+// string ("3" → 3, "6–10" → 6). Used for planned-volume math, which multiplies
+// load × reps × sets. Returns 0 when the string carries no number.
+function repsLowerBound(reps: string): number {
+  return parseInt(String(reps).split(/[–-]/)[0], 10) || 0
+}
+
+// plannedVolume totals the day's prescribed working volume in lb:
+// Σ (prescribed load × lower-bound reps × sets) over every block that carries
+// an absolute load. Blocks prescribed by text/RIR only (prescribedLoad == null)
+// contribute nothing — this is "planned barbell volume", not a rep-count proxy.
+export function plannedVolume(day: ProgramDay): number {
+  return flattenRows(day).reduce((sum, r) => {
+    const load = r.block.prescribedLoad
+    if (load == null) return sum
+    return sum + load * repsLowerBound(r.block.reps) * r.block.sets
+  }, 0)
+}
+
+// topSet returns the heaviest prescribed load on the day (lb) and the exercise
+// it belongs to. load is 0 / exercise null when nothing on the day has an
+// absolute prescribed load.
+export function topSet(day: ProgramDay): { load: number; exercise: string | null } {
+  let best: { load: number; exercise: string | null } = { load: 0, exercise: null }
+  for (const r of flattenRows(day)) {
+    const load = r.block.prescribedLoad
+    if (load != null && load > best.load) {
+      best = { load, exercise: r.exercise.name }
+    }
+  }
+  return best
+}
+
+// avgTargetRpe returns the sets-weighted mean prescribed RPE for the day plus
+// the min/max of the prescribed values (for a "5–8 target" sub-line). Returns
+// null when no block prescribes an RPE, so callers can render an em dash.
+export function avgTargetRpe(
+  day: ProgramDay
+): { avg: number; min: number; max: number } | null {
+  let weighted = 0
+  let sets = 0
+  let min = Infinity
+  let max = -Infinity
+  for (const r of flattenRows(day)) {
+    const rpe = r.block.rpe
+    if (rpe == null) continue
+    weighted += rpe * r.block.sets
+    sets += r.block.sets
+    if (rpe < min) min = rpe
+    if (rpe > max) max = rpe
+  }
+  if (sets === 0) return null
+  return { avg: Math.round((weighted / sets) * 10) / 10, min, max }
+}
+
+// nextWorkoutDay scans forward from the position AFTER (week, dayIndex) and
+// returns the first non-rest day, walking into later weeks as needed. Used by
+// the rest-day side panel's "Next session" card. `week` is 1-based, `dayIndex`
+// 0-based (matching the today-page position model). null when nothing remains
+// (end of program).
+export function nextWorkoutDay(
+  program: Program,
+  week: number,
+  dayIndex: number
+): ProgramDay | null {
+  for (let w = week; w <= program.weeks.length; w++) {
+    const weekObj = program.weeks[w - 1]
+    if (!weekObj) continue
+    const startDay = w === week ? dayIndex + 1 : 0
+    for (let d = startDay; d < weekObj.days.length; d++) {
+      const day = weekObj.days[d]
+      if (day && !day.off) return day
+    }
+  }
+  return null
 }

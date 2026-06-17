@@ -56,6 +56,17 @@ describe("mapSetTarget", () => {
     expect(out.used).toBe("")
   })
 
+  it("converts prescribedLoadKg → lb for the side panel's planned stats", () => {
+    // 129.27 kg → 285 lb.
+    const out = mapSetTarget({ setsCount: 1, prescribedLoadKg: 129.27 })
+    expect(out.prescribedLoad).toBe(285)
+  })
+
+  it("leaves prescribedLoad null when no absolute load is prescribed", () => {
+    const out = mapSetTarget({ setsCount: 1, intensityText: "0-1RIR" })
+    expect(out.prescribedLoad).toBeNull()
+  })
+
   it("threads through the set target id (still useful as a stable row key)", () => {
     const out = mapSetTarget({ id: "pst-123", setsCount: 1 })
     expect(out.id).toBe("pst-123")
@@ -150,6 +161,26 @@ describe("mapDay", () => {
   it("falls back tag → name when the backend leaves tag null", () => {
     const out = mapDay({ name: "Day 2", isRestDay: false, exercises: [] })
     expect(out.tag).toBe("Day 2")
+  })
+
+  it("threads the coach note through on training days", () => {
+    const out = mapDay({
+      name: "Day 1",
+      isRestDay: false,
+      notes: "Belt from set 2.",
+      exercises: [],
+    })
+    expect(out.notes).toBe("Belt from set 2.")
+  })
+
+  it("threads the coach note through on rest days", () => {
+    const out = mapDay({ name: "Rest", isRestDay: true, notes: "Easy walk.", exercises: [] })
+    expect(out.notes).toBe("Easy walk.")
+  })
+
+  it("maps a missing coach note to null", () => {
+    const out = mapDay({ name: "Day 1", isRestDay: false, exercises: [] })
+    expect(out.notes).toBeNull()
   })
 })
 
