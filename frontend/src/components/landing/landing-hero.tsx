@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router"
 import { ArrowRight, Play, Star } from "lucide-react"
 
 import { landingButton } from "@/components/landing/landing-button"
-import { Wrap } from "@/components/landing/landing-primitives"
+import { Wrap } from "@/components/landing/wrap"
 import { MockTable, type MockRow } from "@/components/landing/mock-table"
 import { REVEAL } from "@/components/landing/use-reveal"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"

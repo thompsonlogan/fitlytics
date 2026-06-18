@@ -20,8 +20,7 @@ import {
 import { Link, useLocation } from "@tanstack/react-router"
 
 import { useTheme } from "@/components/theme-provider"
-import { Button } from "@/components/ui/button"
-import { buttonVariants } from "@/components/ui/button-variants"
+import { Button, buttonVariants } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,

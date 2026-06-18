@@ -8,8 +8,6 @@ import { cn } from "@/lib/utils"
 // content — the real tracker lives in components/workout/workout-table.tsx.
 
 export type MockRow = {
-  // Stable identity for React's list key. The exercise name repeats across rows
-  // (e.g. multiple "Comp Bench" sets), so we can't key on content alone.
   id: string
   done?: boolean
   exercise: string

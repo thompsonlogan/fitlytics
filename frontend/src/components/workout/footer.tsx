@@ -8,12 +8,13 @@ export function Footer() {
       <span className="text-border">·</span>
       <span>Block 3, Mesocycle 2</span>
       <span className="flex-1" />
-      {/* Placeholder destinations — rendered as plain text until the pages exist
-          (a dead href="#" is a keyboard/accessibility trap). Swap to a Link or
-          real href once Changelog / Help ship. */}
-      <span>Changelog</span>
+      <a href="/changelog" className="text-muted-foreground hover:text-foreground">
+        Changelog
+      </a>
       <span className="text-border">·</span>
-      <span>Help</span>
+      <a href="/help" className="text-muted-foreground hover:text-foreground">
+        Help
+      </a>
       <span className="text-border">·</span>
       <span>
         Press{" "}

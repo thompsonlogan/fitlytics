@@ -1,6 +1,7 @@
 import { Star } from "lucide-react"
 
-import { SectionHead, Wrap } from "@/components/landing/landing-primitives"
+import { SectionHead } from "@/components/landing/section-head"
+import { Wrap } from "@/components/landing/wrap"
 import { REVEAL } from "@/components/landing/use-reveal"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Card } from "@/components/ui/card"

@@ -18,10 +18,8 @@ import { computeTodayPosition, nextWorkoutDay, type ProgramDay } from "@/lib/pro
 // stays steady. The empty id is fine — DayBoard never renders this placeholder.
 const PLACEHOLDER_DAY: ProgramDay = { id: "", name: "Loading…", tag: "—" }
 
-// Stable empty seed for DayBoard's already-completed sets. A module-scope
-// constant (rather than a fresh `{}` each render) keeps the prop reference
-// stable so a memoized DayBoard isn't forced to re-render. The session detail
-// overrides this on load; this just avoids a flicker on a freshly-mounted board.
+// Stable empty seed for DayBoard's already-completed sets — a module constant
+// keeps the prop reference stable across renders.
 const EMPTY_COMPLETED: Record<string, boolean> = {}
 
 export function TodayPage() {

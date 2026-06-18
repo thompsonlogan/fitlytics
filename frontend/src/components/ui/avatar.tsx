@@ -12,9 +12,27 @@ function Avatar({ className, ...props }: AvatarPrimitive.Root.Props) {
   )
 }
 
-// AvatarImage / AvatarFallback live in their own files (one component per file)
-// but are re-exported here so `@/components/ui/avatar` stays the single import
-// site for the avatar compound component.
-export { Avatar }
-export { AvatarImage } from "./avatar-image"
-export { AvatarFallback } from "./avatar-fallback"
+function AvatarImage({ className, ...props }: AvatarPrimitive.Image.Props) {
+  return (
+    <AvatarPrimitive.Image
+      data-slot="avatar-image"
+      className={cn("aspect-square size-full", className)}
+      {...props}
+    />
+  )
+}
+
+function AvatarFallback({ className, ...props }: AvatarPrimitive.Fallback.Props) {
+  return (
+    <AvatarPrimitive.Fallback
+      data-slot="avatar-fallback"
+      className={cn(
+        "flex size-full items-center justify-center rounded-full bg-muted text-muted-foreground",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+export { Avatar, AvatarImage, AvatarFallback }

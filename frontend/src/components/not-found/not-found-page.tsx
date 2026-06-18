@@ -10,8 +10,7 @@ import {
 
 import { NotFoundHeader } from "@/components/not-found/not-found-header"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { buttonVariants } from "@/components/ui/button-variants"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Footer } from "@/components/workout/footer"
 import { cn } from "@/lib/utils"
 

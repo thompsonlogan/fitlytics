@@ -1,6 +1,6 @@
 import { Activity, Dumbbell, Flame, Hexagon, Shield, Zap } from "lucide-react"
 
-import { Wrap } from "@/components/landing/landing-primitives"
+import { Wrap } from "@/components/landing/wrap"
 
 const LOGOS = [
   { Icon: Dumbbell, label: "IronType" },

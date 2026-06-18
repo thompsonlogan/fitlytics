@@ -1,4 +1,4 @@
-import { buttonVariants } from "@/components/ui/button-variants"
+import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 // Marketing CTAs are links, so they're styled with shadcn's `buttonVariants`

@@ -2,7 +2,6 @@ import type { ReactNode } from "react"
 
 import { Eyebrow } from "@/components/landing/eyebrow"
 
-/** Centered eyebrow + heading + lede used above grid sections. */
 export function SectionHead({ eyebrow, heading, body }: { eyebrow: string; heading: ReactNode; body: ReactNode }) {
   return (
     <div className="mx-auto mb-[clamp(2.5rem,5vw,4rem)] max-w-[44rem] text-center">

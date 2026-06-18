@@ -2,7 +2,6 @@ import type { ReactNode } from "react"
 
 import { cn } from "@/lib/utils"
 
-/** Mono uppercase section label with the leading rule. */
 export function Eyebrow({ centered, children }: { centered?: boolean; children: ReactNode }) {
   return (
     <span
