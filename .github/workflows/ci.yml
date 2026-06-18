@@ -76,4 +76,6 @@ jobs:
       # master pushes, where there's no PR merge base to diff against.
       - name: React Doctor (block newly-introduced issues)
         if: github.event_name == 'pull_request'
-        run: pnpm doctor --scope changed
+        # Call the CLI directly — `pnpm doctor` resolves to pnpm's built-in
+        # doctor command, not the `doctor` npm script.
+        run: npx react-doctor@latest --scope changed
