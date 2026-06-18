@@ -12,13 +12,20 @@ import { TestimonialsSection } from "@/components/landing/testimonials-section"
 import { useReveal } from "@/components/landing/use-reveal"
 
 const TRACKING_ROWS: MockRow[] = [
-  { done: true, exercise: "Comp Bench", sets: "1", reps: "1", intensity: "215 lb", load: "215", rpe: "8" },
-  { done: true, exercise: "Comp Bench", sets: "1", reps: "2", intensity: "205 lb", load: "205", rpe: "8" },
-  { exercise: "Comp Bench", sets: "2", reps: "2", intensity: "−7.5%", load: "199", rpe: "8" },
-  { exercise: "RDL", sets: "1", reps: "4–8", intensity: "1–2 RIR", load: "185", rpe: "—" },
-  { exercise: "Pec Dec", sets: "2", reps: "8", intensity: "MMR 0–1", load: "140", rpe: "—" },
-  { exercise: "V-Bar Pulldown", sets: "1", reps: "8", intensity: "MMR 0–1", load: "130", rpe: "—" },
+  { id: "bench-1", done: true, exercise: "Comp Bench", sets: "1", reps: "1", intensity: "215 lb", load: "215", rpe: "8" },
+  { id: "bench-2", done: true, exercise: "Comp Bench", sets: "1", reps: "2", intensity: "205 lb", load: "205", rpe: "8" },
+  { id: "bench-3", exercise: "Comp Bench", sets: "2", reps: "2", intensity: "−7.5%", load: "199", rpe: "8" },
+  { id: "rdl", exercise: "RDL", sets: "1", reps: "4–8", intensity: "1–2 RIR", load: "185", rpe: "—" },
+  { id: "pec-dec", exercise: "Pec Dec", sets: "2", reps: "8", intensity: "MMR 0–1", load: "140", rpe: "—" },
+  { id: "vbar-pulldown", exercise: "V-Bar Pulldown", sets: "1", reps: "8", intensity: "MMR 0–1", load: "130", rpe: "—" },
 ]
+
+// Hoisted to module scope so each <FeatureSection> receives the same element
+// reference across renders, rather than a freshly-built one every time
+// (react-doctor/jsx-no-jsx-as-prop). These visuals take no per-render props.
+const TRACKING_VISUAL = <MockTable rows={TRACKING_ROWS} />
+const BUILDER_VISUAL = <BuilderMock />
+const ANALYTICS_VISUAL = <AnalyticsMock />
 
 // LandingPage is the public marketing page served at "/". App CTAs route to
 // /today (whose guard sends unauthenticated visitors to the WorkOS login) and
@@ -44,7 +51,7 @@ export function LandingPage() {
         ]}
         ctaLabel="Open the tracker"
         ctaTo="/today"
-        visual={<MockTable rows={TRACKING_ROWS} />}
+        visual={TRACKING_VISUAL}
       />
 
       <FeatureSection
@@ -61,7 +68,7 @@ export function LandingPage() {
         ]}
         ctaLabel="Start a program"
         ctaTo="/today"
-        visual={<BuilderMock />}
+        visual={BUILDER_VISUAL}
       />
 
       <FeatureSection
@@ -76,7 +83,7 @@ export function LandingPage() {
         ]}
         ctaLabel="View analytics"
         ctaTo="/today"
-        visual={<AnalyticsMock />}
+        visual={ANALYTICS_VISUAL}
       />
 
       <PricingSection />

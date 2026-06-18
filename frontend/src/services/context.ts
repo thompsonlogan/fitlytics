@@ -1,4 +1,4 @@
-import { createContext, useContext } from "react"
+import { createContext, use } from "react"
 
 import type { ServiceApis } from "./data"
 
@@ -19,5 +19,5 @@ export const ServiceContext = createContext<Services>(null!)
 // Never call this outside a component or hook — it depends on the provider
 // being mounted in the tree.
 export function useServices() {
-  return useContext(ServiceContext).apis
+  return use(ServiceContext).apis
 }

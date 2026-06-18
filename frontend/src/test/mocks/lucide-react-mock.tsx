@@ -36,7 +36,7 @@ function makeIconStub(name: string) {
 // type on every render.
 const iconCache = new Map<string, ReturnType<typeof makeIconStub>>()
 
-export const lucideReactMockHandler: ProxyHandler<Record<string, unknown>> = {
+const lucideReactMockHandler: ProxyHandler<Record<string, unknown>> = {
   get(_target, prop) {
     if (typeof prop !== "string") return undefined
     // The real module also exports a few non-component names like

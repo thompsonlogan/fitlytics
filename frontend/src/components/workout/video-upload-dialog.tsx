@@ -1,5 +1,5 @@
 import { useRef, useState } from "react"
-import { Check, CircleCheck, Film, Info, Repeat2, Trash2, UploadCloud, Video } from "lucide-react"
+import { Check, Info, Trash2, UploadCloud, Video } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -10,12 +10,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Progress } from "@/components/ui/progress"
 import { Textarea } from "@/components/ui/textarea"
 import { SetVideoPicker } from "@/components/workout/set-video-picker"
+import { fmtBytes, type StagedFile } from "@/components/workout/video-format"
+import { VideoMediaRegion } from "@/components/workout/video-media-region"
 import { type Exercise, type SetBlock } from "@/lib/program-data"
 import {
-  ALLOWED_VIDEO_TYPES,
   isAllowedVideoType,
   MAX_VIDEO_BYTES,
   useDeleteSetVideo,
@@ -23,19 +23,6 @@ import {
   useUploadSetVideo,
 } from "@/hooks/use-set-videos"
 import { type SetLogResponse, type VideoResponse } from "@/services/generated"
-
-// ── formatting helpers ──────────────────────────────────────────
-function fmtBytes(n: number | undefined): string {
-  if (n == null) return ""
-  if (n < 1024) return `${n} B`
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`
-  return `${(n / (1024 * 1024)).toFixed(1)} MB`
-}
-function fmtTime(s: number | undefined): string {
-  if (s == null) return "0:00"
-  const r = Math.round(s)
-  return `${Math.floor(r / 60)}:${String(r % 60).padStart(2, "0")}`
-}
 
 // probeDuration reads a video file's duration via an off-DOM element so the
 // client can send it as a hint with the upload (best-effort).
@@ -54,10 +41,6 @@ function probeDuration(file: File): Promise<number | undefined> {
 }
 
 type EnsureSetLog = (setIdx: number) => Promise<{ sessionId: string; setLogId: string } | undefined>
-
-// A file the user has picked but not yet uploaded. The object URL drives the
-// in-dialog preview and is revoked once the pick is uploaded or discarded.
-type StagedFile = { file: File; url: string; durationSec?: number }
 
 type VideoUploadDialogProps = {
   open: boolean
@@ -253,119 +236,22 @@ export function VideoUploadDialog({
         </DialogHeader>
 
         {/* media region */}
-        <div>
-          {isUploading ? (
-            <div className="flex min-h-40 items-center">
-              <div className="flex w-full items-center gap-3 rounded-md border bg-background p-3.5">
-                <div className="flex size-13 shrink-0 items-center justify-center rounded bg-muted text-muted-foreground">
-                  <Film className="size-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline gap-2">
-                    <span className="truncate text-sm font-medium">Uploading…</span>
-                    <span className="ml-auto text-xs font-semibold tabular-nums">
-                      {Math.round(progress * 100)}%
-                    </span>
-                  </div>
-                  <Progress value={progress * 100} className="my-1.5" />
-                </div>
-              </div>
-            </div>
-          ) : staged ? (
-            <div className="flex flex-col gap-2.5">
-              <video
-                key={staged.url}
-                src={staged.url}
-                controls
-                playsInline
-                preload="metadata"
-                onError={() => setErroredSrc(staged.url)}
-                className="aspect-video max-h-72 w-full rounded-md border bg-black"
-              />
-              {erroredSrc === staged.url ? <FormatWarning staged /> : null}
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Film className="size-3.5" />
-                <span className="max-w-44 truncate font-medium text-foreground">
-                  {staged.file.name}
-                </span>
-                <span className="tabular-nums whitespace-nowrap">
-                  {fmtBytes(staged.file.size)} · {fmtTime(staged.durationSec)}
-                </span>
-                <span className="flex-1" />
-                <button
-                  type="button"
-                  onClick={() => fileRef.current?.click()}
-                  className="inline-flex items-center gap-1 font-medium text-foreground hover:underline"
-                >
-                  <Repeat2 className="size-3" />
-                  Change
-                </button>
-              </div>
-            </div>
-          ) : isReady && currentVideo?.playbackUrl ? (
-            <div className="flex flex-col gap-2.5">
-              <video
-                key={currentVideo.playbackUrl}
-                src={currentVideo.playbackUrl}
-                controls
-                playsInline
-                preload="metadata"
-                onError={() => setErroredSrc(currentVideo.playbackUrl!)}
-                className="aspect-video max-h-72 w-full rounded-md border bg-black"
-              />
-              {erroredSrc === currentVideo.playbackUrl ? <FormatWarning /> : null}
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <CircleCheck className="size-3.5 text-emerald-500" />
-                <span className="max-w-44 truncate font-medium text-foreground">
-                  {currentVideo.originalName}
-                </span>
-                <span className="tabular-nums whitespace-nowrap">
-                  {fmtBytes(currentVideo.sizeBytes)} · {fmtTime(currentVideo.durationSec)}
-                </span>
-                <span className="flex-1" />
-                <button
-                  type="button"
-                  onClick={() => fileRef.current?.click()}
-                  className="inline-flex items-center gap-1 font-medium text-foreground hover:underline"
-                >
-                  <Repeat2 className="size-3" />
-                  Replace
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              onDragOver={(e) => {
-                e.preventDefault()
-                setDragOver(true)
-              }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={onDrop}
-              className={cnDrop(dragOver)}
-            >
-              <span className="mb-1 flex size-11 items-center justify-center rounded-full bg-muted text-foreground">
-                <UploadCloud className="size-5.5" />
-              </span>
-              <span className="text-sm font-semibold text-foreground">
-                Drag &amp; drop your lift video
-              </span>
-              <span className="text-[0.8125rem]">
-                or <u className="underline-offset-2">browse files</u> to upload
-              </span>
-              <span className="mt-1 text-[0.6875rem] opacity-80">
-                {ALLOWED_VIDEO_TYPES.map((t) => t.split("/")[1]?.toUpperCase()).join(", ")} · up to{" "}
-                {fmtBytes(MAX_VIDEO_BYTES)}
-              </span>
-            </button>
-          )}
-          {localError ? (
-            <p className="mt-2 text-xs text-destructive" role="alert">
-              {localError}
-            </p>
-          ) : null}
-        </div>
+        <VideoMediaRegion
+          isUploading={isUploading}
+          progress={progress}
+          staged={staged}
+          isReady={isReady}
+          currentVideo={currentVideo}
+          erroredSrc={erroredSrc}
+          setErroredSrc={setErroredSrc}
+          fileRef={fileRef}
+          exercise={exercise}
+          setIdx={setIdx}
+          dragOver={dragOver}
+          setDragOver={setDragOver}
+          onDrop={onDrop}
+          localError={localError}
+        />
 
         {/* set picker */}
         {block.sets > 1 ? (
@@ -424,19 +310,17 @@ export function VideoUploadDialog({
           submitting={upload.isPending}
         />
 
-        <input ref={fileRef} type="file" accept="video/*" hidden onChange={onPick} />
+        <input
+          ref={fileRef}
+          type="file"
+          accept="video/*"
+          hidden
+          aria-label="Choose a video file to upload"
+          onChange={onPick}
+        />
       </DialogContent>
     </Dialog>
   )
-}
-
-function cnDrop(dragOver: boolean): string {
-  return [
-    "flex min-h-40 w-full flex-col items-center justify-center gap-1.5 rounded-md border-[1.5px] border-dashed p-6 text-center text-muted-foreground transition-colors",
-    dragOver
-      ? "border-foreground border-solid bg-muted"
-      : "border-border bg-background hover:border-ring hover:bg-muted",
-  ].join(" ")
 }
 
 function ContextCell({
@@ -543,20 +427,5 @@ function DialogFooterRow({
         </Button>
       )}
     </div>
-  )
-}
-
-// FormatWarning explains the common case where a browser can't decode an
-// uploaded clip — almost always an iPhone HEVC (H.265) .mov, which Chrome and
-// Firefox can't play even though the file is intact.
-function FormatWarning({ staged }: { staged?: boolean }) {
-  return (
-    <p className="text-xs text-muted-foreground" role="status">
-      This video can&rsquo;t be played in this browser &mdash; likely an iPhone HEVC
-      (H.265) .mov, which Chrome and Firefox can&rsquo;t decode.{" "}
-      {staged
-        ? "You can still upload it; it will play on devices that support the format, such as Safari or iOS."
-        : "The file is saved and will play in browsers that support the format, such as Safari or iOS."}
-    </p>
   )
 }

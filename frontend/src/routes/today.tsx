@@ -18,6 +18,12 @@ import { computeTodayPosition, nextWorkoutDay, type ProgramDay } from "@/lib/pro
 // stays steady. The empty id is fine — DayBoard never renders this placeholder.
 const PLACEHOLDER_DAY: ProgramDay = { id: "", name: "Loading…", tag: "—" }
 
+// Stable empty seed for DayBoard's already-completed sets. A module-scope
+// constant (rather than a fresh `{}` each render) keeps the prop reference
+// stable so a memoized DayBoard isn't forced to re-render. The session detail
+// overrides this on load; this just avoids a flicker on a freshly-mounted board.
+const EMPTY_COMPLETED: Record<string, boolean> = {}
+
 export function TodayPage() {
   const { data: program, isLoading, isError, refetch } = useWorkoutProgram()
   const { data: dayCompletions } = useDayCompletions(program?.id)
@@ -62,10 +68,6 @@ export function TodayPage() {
   // skipped). Keyed `${week}-${dayIndex}` (0-based dayIndex) to match the
   // SubBar's lookup.
   const completedDays: Record<string, boolean> = dayCompletions ?? {}
-  // initialCompleted seeds the per-set state inside DayBoard for already-done
-  // sets when the day mounts. The session detail itself overrides this on
-  // load; this just avoids a flicker for a freshly-mounted DayBoard.
-  const initialCompleted: Record<string, boolean> = {}
 
   if (isError) {
     // The program failed to load. Keep the user in the app shell (header/nav
@@ -124,7 +126,7 @@ export function TodayPage() {
           programDayId={dayData.id}
           prevDayId={prevDayId}
           nextDay={nextDay}
-          initialCompleted={initialCompleted}
+          initialCompleted={EMPTY_COMPLETED}
         />
       )}
       <Footer />

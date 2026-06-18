@@ -39,7 +39,7 @@ export function useAuth() {
   const queryClient = useQueryClient()
   const { authApi } = useServices()
 
-  const query = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ME_KEY,
     queryFn: () => fetchMe(authApi),
     retry: false,
@@ -47,10 +47,10 @@ export function useAuth() {
   })
 
   return {
-    user: query.data ?? null,
-    isLoading: query.isLoading,
-    isAuthenticated: !!query.data,
-    error: query.error,
+    user: data ?? null,
+    isLoading,
+    isAuthenticated: !!data,
+    error,
 
     // signIn is a full-page navigation, not a fetch, because the WorkOS
     // authorize URL is a 302 chain that the browser must follow itself.

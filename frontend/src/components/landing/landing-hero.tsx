@@ -11,11 +11,11 @@ import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 
 const HERO_ROWS: MockRow[] = [
-  { done: true, exercise: "Comp Squat", sets: "1", reps: "3", intensity: "300 lb", load: "300", rpe: "8" },
-  { exercise: "Comp Squat", sets: "2", reps: "5", intensity: "0.95", load: "285", rpe: "8" },
-  { exercise: "Comp Deadlift", sets: "1", reps: "3", intensity: "305 lb", load: "305", rpe: "9", rpeHot: true },
-  { exercise: "SL Quad Ext", sets: "2", reps: "6–10", intensity: "0–1 RIR", load: "70", rpe: "—" },
-  { exercise: "SL Ham Curl", sets: "2", reps: "6–10", intensity: "0–1 RIR", load: "80", rpe: "—" },
+  { id: "squat-1", done: true, exercise: "Comp Squat", sets: "1", reps: "3", intensity: "300 lb", load: "300", rpe: "8" },
+  { id: "squat-2", exercise: "Comp Squat", sets: "2", reps: "5", intensity: "0.95", load: "285", rpe: "8" },
+  { id: "deadlift", exercise: "Comp Deadlift", sets: "1", reps: "3", intensity: "305 lb", load: "305", rpe: "9", rpeHot: true },
+  { id: "quad-ext", exercise: "SL Quad Ext", sets: "2", reps: "6–10", intensity: "0–1 RIR", load: "70", rpe: "—" },
+  { id: "ham-curl", exercise: "SL Ham Curl", sets: "2", reps: "6–10", intensity: "0–1 RIR", load: "80", rpe: "—" },
 ]
 
 // Faint editorial grid behind the hero, masked to fade out toward the edges.

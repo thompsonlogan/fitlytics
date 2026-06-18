@@ -8,6 +8,9 @@ import { cn } from "@/lib/utils"
 // content — the real tracker lives in components/workout/workout-table.tsx.
 
 export type MockRow = {
+  // Stable identity for React's list key. The exercise name repeats across rows
+  // (e.g. multiple "Comp Bench" sets), so we can't key on content alone.
+  id: string
   done?: boolean
   exercise: string
   sets: string
@@ -36,10 +39,10 @@ export function MockTable({ rows }: { rows: MockRow[] }) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {rows.map((row, i) => {
+        {rows.map((row) => {
           const dim = row.done ? "text-muted-foreground" : undefined
           return (
-            <TableRow key={i} className="hover:bg-transparent">
+            <TableRow key={row.id} className="hover:bg-transparent">
               <TableCell className={CELL}>
                 <Checkbox
                   checked={Boolean(row.done)}
