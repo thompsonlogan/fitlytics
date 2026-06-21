@@ -1,11 +1,8 @@
-import {
-  AuthApi,
-  Configuration,
-  ProgramsApi,
-  SessionsApi,
-  VideosApi,
-  type ConfigurationParameters,
-} from "./generated"
+import { AuthApi } from "./generated/apis/AuthApi"
+import { ProgramsApi } from "./generated/apis/ProgramsApi"
+import { SessionsApi } from "./generated/apis/SessionsApi"
+import { VideosApi } from "./generated/apis/VideosApi"
+import { Configuration, type ConfigurationParameters } from "./generated/runtime"
 
 // ServiceApis is the bundle of OpenAPI-generated clients exposed to the app
 // via React context. Add a new line per backend feature slice (one API class

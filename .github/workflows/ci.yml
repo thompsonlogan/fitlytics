@@ -49,6 +49,10 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v4
+        with:
+          # React Doctor's --scope changed diffs against the PR merge base, so it
+          # needs full history, not the default shallow (depth 1) checkout.
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
         with:
           version: 9
@@ -67,3 +71,11 @@ jobs:
         run: pnpm test
       - name: Build
         run: pnpm build
+      # Ratchet: fail a PR only when it *introduces* new React Doctor issues,
+      # leaving the existing backlog to be paid down incrementally. Skipped on
+      # master pushes, where there's no PR merge base to diff against.
+      - name: React Doctor (block newly-introduced issues)
+        if: github.event_name == 'pull_request'
+        # Call the CLI directly — `pnpm doctor` resolves to pnpm's built-in
+        # doctor command, not the `doctor` npm script.
+        run: npx react-doctor@latest --scope changed

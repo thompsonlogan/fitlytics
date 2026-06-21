@@ -3,7 +3,7 @@ import { ArrowRight, Moon, Sun } from "lucide-react"
 
 import { useTheme } from "@/components/theme-provider"
 import { landingButton } from "@/components/landing/landing-button"
-import { Wrap } from "@/components/landing/landing-primitives"
+import { Wrap } from "@/components/landing/wrap"
 import { Button } from "@/components/ui/button"
 
 const NAV_LINKS = [

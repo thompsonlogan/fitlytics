@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router"
 import { ArrowRight } from "lucide-react"
 
 import { landingButton } from "@/components/landing/landing-button"
-import { Wrap } from "@/components/landing/landing-primitives"
+import { Wrap } from "@/components/landing/wrap"
 import { REVEAL } from "@/components/landing/use-reveal"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"

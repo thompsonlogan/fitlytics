@@ -64,8 +64,8 @@ export function NotesCard({ coachNotes, yourNotes, onSaveYourNotes, tag }: Notes
         </span>
         {coachBullets.length > 0 ? (
           <ul className="m-0 list-disc pl-4 [&_li]:mb-1 [&_li::marker]:text-muted-foreground">
-            {coachBullets.map((line, i) => (
-              <li key={i}>{line}</li>
+            {coachBullets.map((line) => (
+              <li key={line}>{line}</li>
             ))}
           </ul>
         ) : (

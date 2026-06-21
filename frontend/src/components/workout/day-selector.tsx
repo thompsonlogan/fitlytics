@@ -35,7 +35,8 @@ export function DaySelector({
         const calDay = startDate ? calendarDayOfMonth(startDate, week, i) : i + 1
         return (
           <button
-            key={i}
+            key={d.id}
+            type="button"
             role="tab"
             aria-selected={isActive}
             onClick={() => onDayChange(i)}

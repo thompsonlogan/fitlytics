@@ -39,8 +39,8 @@ export function NextSessionCard({ nextDay }: NextSessionCardProps) {
           </p>
         ) : (
           <>
-            {preview.map((ex, i) => (
-              <NextLine key={i} name={ex.name} scheme={scheme(ex)} />
+            {preview.map((ex) => (
+              <NextLine key={ex.name} name={ex.name} scheme={scheme(ex)} />
             ))}
             {overflow > 0 ? (
               <NextLine name={`+ ${overflow} more`} scheme="" />

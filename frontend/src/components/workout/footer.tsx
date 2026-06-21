@@ -8,11 +8,11 @@ export function Footer() {
       <span className="text-border">·</span>
       <span>Block 3, Mesocycle 2</span>
       <span className="flex-1" />
-      <a href="#" className="text-muted-foreground hover:text-foreground">
+      <a href="/changelog" className="text-muted-foreground hover:text-foreground">
         Changelog
       </a>
       <span className="text-border">·</span>
-      <a href="#" className="text-muted-foreground hover:text-foreground">
+      <a href="/help" className="text-muted-foreground hover:text-foreground">
         Help
       </a>
       <span className="text-border">·</span>

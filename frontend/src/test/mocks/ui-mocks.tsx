@@ -187,10 +187,15 @@ export const dropdownMenuMock = {
   DropdownMenuRadioItem: function DropdownMenuRadioItem({
     className,
     children,
+    checked,
     ...props
-  }: React.HTMLAttributes<HTMLDivElement>) {
+  }: React.HTMLAttributes<HTMLDivElement> & { checked?: boolean }) {
     return (
-      <div role="menuitemradio" {...withSlot("dropdown-menu-radio-item", { className, ...props })}>
+      <div
+        role="menuitemradio"
+        aria-checked={!!checked}
+        {...withSlot("dropdown-menu-radio-item", { className, ...props })}
+      >
         {children}
       </div>
     )
@@ -198,10 +203,8 @@ export const dropdownMenuMock = {
   DropdownMenuSeparator: function DropdownMenuSeparator({
     className,
     ...props
-  }: React.HTMLAttributes<HTMLDivElement>) {
-    return (
-      <div role="separator" {...withSlot("dropdown-menu-separator", { className, ...props })} />
-    )
+  }: React.HTMLAttributes<HTMLHRElement>) {
+    return <hr {...withSlot("dropdown-menu-separator", { className, ...props })} />
   },
   DropdownMenuShortcut: function DropdownMenuShortcut({
     className,
@@ -249,13 +252,12 @@ export const separatorMock = {
     orientation = "horizontal",
     decorative: _decorative,
     ...props
-  }: React.HTMLAttributes<HTMLDivElement> & {
+  }: React.HTMLAttributes<HTMLHRElement> & {
     orientation?: "horizontal" | "vertical"
     decorative?: boolean
   }) {
     return (
-      <div
-        role="separator"
+      <hr
         data-orientation={orientation}
         {...withSlot("separator", { className, ...props })}
       />

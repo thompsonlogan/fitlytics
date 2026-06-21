@@ -1,0 +1,14 @@
+# Supply-chain hardening for pnpm installs. See react-doctor/require-pnpm-hardening.
+# - minimumReleaseAge: don't install a package version until it's been public for
+#   7 days (10080 min), so freshly-published malware has time to be caught/unpublished.
+# - blockExoticSubdeps: reject transitive deps from non-registry sources (git:, file:,
+#   tarballs) that bypass registry vetting.
+# - trustPolicy: no-downgrade refuses packages whose provenance/signature signals
+#   weaken between updates.
+# pnpm 9 treats this file as a workspace manifest and requires a non-empty
+# `packages` list even though this is a single-package repo.
+packages:
+  - .
+minimumReleaseAge: 10080
+blockExoticSubdeps: true
+trustPolicy: no-downgrade
