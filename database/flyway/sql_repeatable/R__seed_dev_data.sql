@@ -28,23 +28,23 @@ on conflict (id) do nothing;
 
 -- 2. Canonical exercises referenced by the program.
 insert into exercises
-  (id, name, slug, primary_muscles, secondary_muscles, movement_pattern, equipment, is_compound, load_type, default_load_modifier)
+  (id, name, slug, primary_muscles, secondary_muscles, movement_pattern, is_compound, load_type, default_load_modifier)
 values
-  ('704b039d-895c-476b-80ed-991010629bb2', 'Competition Squat', 'seed-comp-squat', array['quads','glutes']::muscle[], array['hamstrings','lower_back','abs']::muscle[], 'squat', array['barbell','rack']::text[], true, 'weighted', 'absolute'),
-  ('eacd9689-6804-4bb6-96db-c50a46157746', 'Competition Bench Press', 'seed-comp-bench', array['chest','triceps','front_delts']::muscle[], array[]::muscle[], 'horizontal_push', array['barbell','bench']::text[], true, 'weighted', 'absolute'),
-  ('2f1678ce-4c33-467b-8f5b-2d3fe99900dd', 'Competition Deadlift', 'seed-comp-deadlift', array['glutes','hamstrings','lower_back']::muscle[], array['lats','traps','forearms']::muscle[], 'hinge', array['barbell']::text[], true, 'weighted', 'absolute'),
-  ('5b99f804-ee24-4442-b9b1-7c1059024b2c', '2ct Paused Bench', 'seed-paused-bench', array['chest','triceps','front_delts']::muscle[], array[]::muscle[], 'horizontal_push', array['barbell','bench']::text[], true, 'weighted', 'absolute'),
-  ('630119e6-40ba-4f1f-a8f0-2eb13a560f2e', 'High-Bar Squat', 'seed-hb-squat', array['quads','glutes']::muscle[], array['hamstrings','lower_back','abs']::muscle[], 'squat', array['barbell','rack']::text[], true, 'weighted', 'absolute'),
-  ('0bd72d61-3e3a-4b90-8eda-772e52bdb98e', 'Romanian Deadlift', 'seed-rdl', array['hamstrings','glutes','lower_back']::muscle[], array[]::muscle[], 'hinge', array['barbell']::text[], true, 'weighted', 'absolute'),
-  ('e0561fa4-9685-4544-b9bb-289426eea2fd', 'Dumbbell Romanian Deadlift', 'seed-db-rdl', array['hamstrings','glutes']::muscle[], array['lower_back']::muscle[], 'hinge', array['dumbbell']::text[], true, 'weighted', 'absolute'),
-  ('476a4b77-164d-44b1-b7bf-82d916315bf7', 'Pec Deck', 'seed-pec-deck', array['chest']::muscle[], array['front_delts']::muscle[], 'isolation', array['machine']::text[], false, 'weighted', 'absolute'),
-  ('e1b0ba29-5c2d-4596-8f44-3b7c5929eecc', 'V-Bar Pulldown', 'seed-vbar-pulldown', array['lats']::muscle[], array['biceps','rear_delts']::muscle[], 'vertical_pull', array['cable']::text[], true, 'weighted', 'absolute'),
-  ('bb3c0781-210a-4386-9f8d-19a75e1f1bc1', 'Machine Chest Press', 'seed-machine-press', array['chest','triceps','front_delts']::muscle[], array[]::muscle[], 'horizontal_push', array['machine']::text[], true, 'weighted', 'absolute'),
-  ('cdb350d7-da7e-4b8a-8de2-94749b23d79d', 'Kelso Shrug', 'seed-kelso-shrug', array['rhomboids','rear_delts']::muscle[], array['traps']::muscle[], 'isolation', array['dumbbell','bench']::text[], false, 'weighted', 'absolute'),
-  ('c1e30306-ecc4-4a9d-83bf-c0a0cfef24d7', 'Cable Curl', 'seed-cable-curl', array['biceps']::muscle[], array['forearms']::muscle[], 'isolation', array['cable']::text[], false, 'weighted', 'absolute'),
-  ('bcc50be4-55ba-4337-b92e-2cbd74aea345', 'Triceps Pushdown', 'seed-tricep-pushdown', array['triceps']::muscle[], array[]::muscle[], 'isolation', array['cable']::text[], false, 'weighted', 'absolute'),
-  ('f1dadafd-14bf-4b7b-9abf-fecc2aa8560f', 'Alternating Single-Leg Quad Extension', 'seed-alt-sl-quad-ext', array['quads']::muscle[], array[]::muscle[], 'isolation', array['machine']::text[], false, 'weighted', 'absolute'),
-  ('3ff72cb2-c689-404c-9948-7cd8b5a8cfef', 'Alternating Single-Leg Hamstring Curl', 'seed-alt-sl-ham-curl', array['hamstrings']::muscle[], array['calves']::muscle[], 'isolation', array['machine']::text[], false, 'weighted', 'absolute')
+  ('704b039d-895c-476b-80ed-991010629bb2', 'Competition Squat', 'seed-comp-squat', array['quads','glutes']::muscle[], array['hamstrings','lower_back','abs']::muscle[], 'squat', true, 'weighted', 'absolute'),
+  ('eacd9689-6804-4bb6-96db-c50a46157746', 'Competition Bench Press', 'seed-comp-bench', array['chest','triceps','front_delts']::muscle[], array[]::muscle[], 'horizontal_push', true, 'weighted', 'absolute'),
+  ('2f1678ce-4c33-467b-8f5b-2d3fe99900dd', 'Competition Deadlift', 'seed-comp-deadlift', array['glutes','hamstrings','lower_back']::muscle[], array['lats','traps','forearms']::muscle[], 'hinge', true, 'weighted', 'absolute'),
+  ('5b99f804-ee24-4442-b9b1-7c1059024b2c', '2ct Paused Bench', 'seed-paused-bench', array['chest','triceps','front_delts']::muscle[], array[]::muscle[], 'horizontal_push', true, 'weighted', 'absolute'),
+  ('630119e6-40ba-4f1f-a8f0-2eb13a560f2e', 'High-Bar Squat', 'seed-hb-squat', array['quads','glutes']::muscle[], array['hamstrings','lower_back','abs']::muscle[], 'squat', true, 'weighted', 'absolute'),
+  ('0bd72d61-3e3a-4b90-8eda-772e52bdb98e', 'Romanian Deadlift', 'seed-rdl', array['hamstrings','glutes','lower_back']::muscle[], array[]::muscle[], 'hinge', true, 'weighted', 'absolute'),
+  ('e0561fa4-9685-4544-b9bb-289426eea2fd', 'Dumbbell Romanian Deadlift', 'seed-db-rdl', array['hamstrings','glutes']::muscle[], array['lower_back']::muscle[], 'hinge', true, 'weighted', 'absolute'),
+  ('476a4b77-164d-44b1-b7bf-82d916315bf7', 'Pec Deck', 'seed-pec-deck', array['chest']::muscle[], array['front_delts']::muscle[], 'isolation', false, 'weighted', 'absolute'),
+  ('e1b0ba29-5c2d-4596-8f44-3b7c5929eecc', 'V-Bar Pulldown', 'seed-vbar-pulldown', array['lats']::muscle[], array['biceps','rear_delts']::muscle[], 'vertical_pull', true, 'weighted', 'absolute'),
+  ('bb3c0781-210a-4386-9f8d-19a75e1f1bc1', 'Machine Chest Press', 'seed-machine-press', array['chest','triceps','front_delts']::muscle[], array[]::muscle[], 'horizontal_push', true, 'weighted', 'absolute'),
+  ('cdb350d7-da7e-4b8a-8de2-94749b23d79d', 'Kelso Shrug', 'seed-kelso-shrug', array['rhomboids','rear_delts']::muscle[], array['traps']::muscle[], 'isolation', false, 'weighted', 'absolute'),
+  ('c1e30306-ecc4-4a9d-83bf-c0a0cfef24d7', 'Cable Curl', 'seed-cable-curl', array['biceps']::muscle[], array['forearms']::muscle[], 'isolation', false, 'weighted', 'absolute'),
+  ('bcc50be4-55ba-4337-b92e-2cbd74aea345', 'Triceps Pushdown', 'seed-tricep-pushdown', array['triceps']::muscle[], array[]::muscle[], 'isolation', false, 'weighted', 'absolute'),
+  ('f1dadafd-14bf-4b7b-9abf-fecc2aa8560f', 'Alternating Single-Leg Quad Extension', 'seed-alt-sl-quad-ext', array['quads']::muscle[], array[]::muscle[], 'isolation', false, 'weighted', 'absolute'),
+  ('3ff72cb2-c689-404c-9948-7cd8b5a8cfef', 'Alternating Single-Leg Hamstring Curl', 'seed-alt-sl-ham-curl', array['hamstrings']::muscle[], array['calves']::muscle[], 'isolation', false, 'weighted', 'absolute')
 on conflict (id) do nothing;
 
 -- 3. Program

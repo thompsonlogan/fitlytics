@@ -36,7 +36,6 @@ func newExercise(db *gorm.DB, opts ...gen.DOOption) exercise {
 	_exercise.PrimaryMuscles = field.NewField(tableName, "primary_muscles")
 	_exercise.SecondaryMuscles = field.NewField(tableName, "secondary_muscles")
 	_exercise.MovementPattern = field.NewString(tableName, "movement_pattern")
-	_exercise.Equipment = field.NewField(tableName, "equipment")
 	_exercise.IsCompound = field.NewBool(tableName, "is_compound")
 	_exercise.LoadType = field.NewString(tableName, "load_type")
 	_exercise.DefaultLoadModifier = field.NewString(tableName, "default_load_modifier")
@@ -63,7 +62,6 @@ type exercise struct {
 	PrimaryMuscles      field.Field
 	SecondaryMuscles    field.Field
 	MovementPattern     field.String
-	Equipment           field.Field
 	IsCompound          field.Bool
 	LoadType            field.String
 	DefaultLoadModifier field.String
@@ -96,7 +94,6 @@ func (e *exercise) updateTableName(table string) *exercise {
 	e.PrimaryMuscles = field.NewField(table, "primary_muscles")
 	e.SecondaryMuscles = field.NewField(table, "secondary_muscles")
 	e.MovementPattern = field.NewString(table, "movement_pattern")
-	e.Equipment = field.NewField(table, "equipment")
 	e.IsCompound = field.NewBool(table, "is_compound")
 	e.LoadType = field.NewString(table, "load_type")
 	e.DefaultLoadModifier = field.NewString(table, "default_load_modifier")
@@ -128,7 +125,7 @@ func (e *exercise) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (e *exercise) fillFieldMap() {
-	e.fieldMap = make(map[string]field.Expr, 17)
+	e.fieldMap = make(map[string]field.Expr, 16)
 	e.fieldMap["id"] = e.ID
 	e.fieldMap["canonical_id"] = e.CanonicalID
 	e.fieldMap["created_by_user_id"] = e.CreatedByUserID
@@ -138,7 +135,6 @@ func (e *exercise) fillFieldMap() {
 	e.fieldMap["primary_muscles"] = e.PrimaryMuscles
 	e.fieldMap["secondary_muscles"] = e.SecondaryMuscles
 	e.fieldMap["movement_pattern"] = e.MovementPattern
-	e.fieldMap["equipment"] = e.Equipment
 	e.fieldMap["is_compound"] = e.IsCompound
 	e.fieldMap["load_type"] = e.LoadType
 	e.fieldMap["default_load_modifier"] = e.DefaultLoadModifier

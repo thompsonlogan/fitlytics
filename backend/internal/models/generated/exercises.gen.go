@@ -25,7 +25,6 @@ type Exercise struct {
 	PrimaryMuscles      pq.StringArray `gorm:"column:primary_muscles;type:muscle[];not null;default:{}" json:"primary_muscles"`
 	SecondaryMuscles    pq.StringArray `gorm:"column:secondary_muscles;type:muscle[];not null;default:{}" json:"secondary_muscles"`
 	MovementPattern     *string        `gorm:"column:movement_pattern;type:movement_pattern" json:"movement_pattern"`
-	Equipment           pq.StringArray `gorm:"column:equipment;type:text[];not null;default:{}" json:"equipment"`
 	IsCompound          bool           `gorm:"column:is_compound;type:boolean;not null" json:"is_compound"`
 	LoadType            string         `gorm:"column:load_type;type:load_type;not null;default:weighted" json:"load_type"`
 	DefaultLoadModifier string         `gorm:"column:default_load_modifier;type:load_modifier;not null;default:absolute" json:"default_load_modifier"`

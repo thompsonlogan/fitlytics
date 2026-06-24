@@ -138,7 +138,6 @@ create table exercises (
   primary_muscles        muscle[] not null default '{}',
   secondary_muscles      muscle[] not null default '{}',
   movement_pattern       movement_pattern,
-  equipment              text[] not null default '{}',
   is_compound            boolean not null default false,
   load_type              load_type not null default 'weighted',
   default_load_modifier  load_modifier not null default 'absolute',
