@@ -7,7 +7,7 @@
 --
 -- Conventions baked in here:
 --   * All loads stored canonically in kg. Distances in meters. Durations in
---     seconds. Display-convert per users.unit_pref.
+--     seconds. Display-convert per users.unit_preference.
 --   * timestamptz everywhere, never timestamp.
 --   * Client-generated UUIDs (gen_random_uuid()) for offline-friendly sync.
 --   * Prescriptions are SNAPSHOTTED onto sessions at start time. Editing a
@@ -106,7 +106,7 @@ create table users (
   workos_user_id  text not null unique,   -- WorkOS identity, e.g. 'user_01H...'
   display_name    text not null,
   email           text unique,            -- mirrored from WorkOS; WorkOS stays authoritative
-  unit_pref       unit_system not null default 'imperial',
+  unit_preference unit_system not null default 'imperial',
   timezone        text not null default 'UTC',
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now(),

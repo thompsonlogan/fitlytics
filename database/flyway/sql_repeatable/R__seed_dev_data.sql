@@ -22,7 +22,7 @@ set search_path to fitlytics, public;
 -- workos_user_id, so this row becomes the canonical local mirror — the
 -- provisioning path on first auth resolves to it instead of creating a
 -- duplicate row with a different UUID.
-insert into users (id, workos_user_id, display_name, email, unit_pref, timezone) values
+insert into users (id, workos_user_id, display_name, email, unit_preference, timezone) values
   ('265f6d7d-c361-4189-ac41-3f053b2b217d', 'user_01KSD69HT48DQP44SCN92F9NSC', 'Logan Thompson', 'thompsonlogan78@gmail.com', 'imperial', 'UTC')
 on conflict (id) do nothing;
 

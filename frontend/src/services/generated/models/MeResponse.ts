@@ -60,7 +60,7 @@ export interface MeResponse {
      * @type {string}
      * @memberof MeResponse
      */
-    unitPref?: string;
+    unitPreference?: string;
     /**
      * 
      * @type {string}
@@ -92,7 +92,7 @@ export function MeResponseFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         'permissions': json['permissions'] == null ? undefined : json['permissions'],
         'role': json['role'] == null ? undefined : json['role'],
         'timezone': json['timezone'] == null ? undefined : json['timezone'],
-        'unitPref': json['unit_pref'] == null ? undefined : json['unit_pref'],
+        'unitPreference': json['unit_preference'] == null ? undefined : json['unit_preference'],
         'workosUserId': json['workos_user_id'] == null ? undefined : json['workos_user_id'],
     };
 }
@@ -114,7 +114,7 @@ export function MeResponseToJSONTyped(value?: MeResponse | null, ignoreDiscrimin
         'permissions': value['permissions'],
         'role': value['role'],
         'timezone': value['timezone'],
-        'unit_pref': value['unitPref'],
+        'unit_preference': value['unitPreference'],
         'workos_user_id': value['workosUserId'],
     };
 }
