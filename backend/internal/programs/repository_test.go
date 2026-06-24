@@ -190,10 +190,10 @@ func TestRepositoryGetProgramById_HappyPathPreloadsEntireAggregate(t *testing.T)
 			"id", "program_id", "sequence", "name", "notes", "created_at", "updated_at",
 		}).AddRow(weekID, programID, 1, nil, nil, now, now))
 
-	mock.ExpectQuery(`SELECT \* FROM "program_days" WHERE "program_days"\."week_id" = \$1`).
+	mock.ExpectQuery(`SELECT \* FROM "program_days" WHERE "program_days"\."program_week_id" = \$1`).
 		WithArgs(uuidArg(weekID)).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "week_id", "sequence", "name", "tag", "is_rest_day", "notes", "created_at", "updated_at",
+			"id", "program_week_id", "sequence", "name", "tag", "is_rest_day", "notes", "created_at", "updated_at",
 		}).AddRow(dayID, weekID, 1, "Day 1", nil, false, nil, now, now))
 
 	mock.ExpectQuery(`SELECT \* FROM "program_exercises" WHERE "program_exercises"\."day_id" = \$1`).

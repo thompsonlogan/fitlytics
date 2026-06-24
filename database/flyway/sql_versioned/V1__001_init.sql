@@ -198,7 +198,7 @@ create trigger program_weeks_updated_at before update on program_weeks
 
 create table program_days (
   id           uuid primary key default gen_random_uuid(),
-  week_id      uuid not null references program_weeks(id) on delete cascade,
+  program_week_id uuid not null references program_weeks(id) on delete cascade,
   sequence     int not null,                   -- day order within the week
   name         text not null,                  -- e.g. "Lower · Heavy"
   tag          text,                           -- e.g. "Day 1"
@@ -206,7 +206,7 @@ create table program_days (
   notes        text,
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now(),
-  unique (week_id, sequence)
+  unique (program_week_id, sequence)
 );
 create trigger program_days_updated_at before update on program_days
   for each row execute function set_updated_at();

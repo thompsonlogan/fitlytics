@@ -103,7 +103,7 @@ func (r *repository) StartSessionForDay(ctx context.Context, programID, programD
 		pd := q.ProgramDay
 		pw := q.ProgramWeek
 		day, err := pd.WithContext(ctx).
-			Join(&generated.ProgramWeek{}, pw.ID.EqCol(pd.WeekID)).
+			Join(&generated.ProgramWeek{}, pw.ID.EqCol(pd.ProgramWeekID)).
 			Where(pd.ID.Eq(programDayID), pw.ProgramID.Eq(programID)).
 			First()
 		if err != nil {
@@ -480,7 +480,7 @@ func (r *repository) FindCompletedDays(ctx context.Context, programID, ownerUser
 	err := s.WithContext(ctx).
 		Select(pw.Sequence.As("week_sequence"), pd.Sequence.As("day_sequence")).
 		Join(&generated.ProgramDay{}, pd.ID.EqCol(s.ProgramDayID)).
-		Join(&generated.ProgramWeek{}, pw.ID.EqCol(pd.WeekID)).
+		Join(&generated.ProgramWeek{}, pw.ID.EqCol(pd.ProgramWeekID)).
 		Where(s.UserID.Eq(ownerUserID), s.State.Eq("completed"), pw.ProgramID.Eq(programID)).
 		Group(pw.Sequence, pd.Sequence).
 		Order(pw.Sequence, pd.Sequence).

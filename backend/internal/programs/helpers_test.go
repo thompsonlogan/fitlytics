@@ -40,13 +40,13 @@ func fullProgram() *generated.Program {
 				Name:      strPtr("Week 1"),
 				Days: []generated.ProgramDay{
 					{
-						ID:        fixedID("day:1"),
-						WeekID:    fixedID("week:1"),
-						Sequence:  1,
-						Name:      "Day 1",
-						Tag:       strPtr("Day 1"),
-						IsRestDay: false,
-						Notes:     nil,
+						ID:            fixedID("day:1"),
+						ProgramWeekID: fixedID("week:1"),
+						Sequence:      1,
+						Name:          "Day 1",
+						Tag:           strPtr("Day 1"),
+						IsRestDay:     false,
+						Notes:         nil,
 						Exercises: []generated.ProgramExercise{
 							{
 								ID:          fixedID("pe:1"),
@@ -102,12 +102,12 @@ func fullProgram() *generated.Program {
 					},
 					{
 						// A rest day with no exercises — covers IsRestDay=true.
-						ID:        fixedID("day:2"),
-						WeekID:    fixedID("week:1"),
-						Sequence:  2,
-						Name:      "Rest",
-						Tag:       strPtr("OFF"),
-						IsRestDay: true,
+						ID:            fixedID("day:2"),
+						ProgramWeekID: fixedID("week:1"),
+						Sequence:      2,
+						Name:          "Rest",
+						Tag:           strPtr("OFF"),
+						IsRestDay:     true,
 					},
 				},
 			},

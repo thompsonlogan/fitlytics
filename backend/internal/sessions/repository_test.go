@@ -211,7 +211,7 @@ func TestRepositoryStartSessionForDay_SnapshotsProgramIntoNewSession(t *testing.
 	mock.ExpectQuery(`SELECT .* FROM "program_days" .*JOIN "program_weeks"`).
 		WithArgs(uuidArg(dayID), uuidArg(programID), 1).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "week_id", "sequence", "name", "is_rest_day", "created_at", "updated_at",
+			"id", "program_week_id", "sequence", "name", "is_rest_day", "created_at", "updated_at",
 		}).AddRow(dayID, weekID, 1, "Day 1", false, now, now))
 
 	// 3) Program exercises + preloaded set targets for the snapshot.
@@ -306,7 +306,7 @@ func TestRepositoryStartSessionForDay_ExpandsSetsCountIntoPerSetLogs(t *testing.
 	mock.ExpectQuery(`SELECT .* FROM "program_days" .*JOIN "program_weeks"`).
 		WithArgs(uuidArg(dayID), uuidArg(programID), 1).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "week_id", "sequence", "name", "is_rest_day", "created_at", "updated_at",
+			"id", "program_week_id", "sequence", "name", "is_rest_day", "created_at", "updated_at",
 		}).AddRow(dayID, weekID, 1, "Day 1", false, now, now))
 
 	mock.ExpectQuery(`SELECT \* FROM "program_exercises" WHERE`).

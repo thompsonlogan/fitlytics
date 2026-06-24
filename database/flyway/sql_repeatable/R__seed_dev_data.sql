@@ -65,7 +65,7 @@ insert into program_weeks (id, program_id, sequence, name) values
 on conflict (id) do nothing;
 
 -- 5. Days (same layout repeated for every week)
-insert into program_days (id, week_id, sequence, name, tag, is_rest_day) values
+insert into program_days (id, program_week_id, sequence, name, tag, is_rest_day) values
   ('78a3a15f-b735-4bf1-bdbc-ace8ac318e77', 'de77ee0a-ca34-4ce2-b1b0-ba5d6eae5ec4', 1, 'Day 1', 'Day 1', false),
   ('66a2d597-3968-4816-90e0-a02b0d8430d7', 'de77ee0a-ca34-4ce2-b1b0-ba5d6eae5ec4', 2, 'Rest', 'OFF', true),
   ('c826cd6f-21cb-492c-b181-194feb2a57ec', 'de77ee0a-ca34-4ce2-b1b0-ba5d6eae5ec4', 3, 'Day 2', 'Day 2', false),

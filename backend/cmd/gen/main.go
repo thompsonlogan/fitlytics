@@ -135,10 +135,8 @@ func run() error {
 	)
 
 	programWeek := g.GenerateModel("program_weeks",
-		// Same story: week_id -> WeekID, not ProgramWeekID.
-		gen.FieldRelate(field.HasMany, "Days", programDay, &field.RelateConfig{
-			GORMTag: field.GormTag{"foreignKey": []string{"WeekID"}},
-		}),
+		// week_id -> program_week_id matches GORM's default ProgramWeekID convention.
+		gen.FieldRelate(field.HasMany, "Days", programDay, nil),
 	)
 
 	program := g.GenerateModel("programs", softDelete,
