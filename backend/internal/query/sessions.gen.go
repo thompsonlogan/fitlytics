@@ -33,7 +33,6 @@ func newSession(db *gorm.DB, opts ...gen.DOOption) session {
 	_session.ProgramNameSnap = field.NewString(tableName, "program_name_snap")
 	_session.DayNameSnap = field.NewString(tableName, "day_name_snap")
 	_session.State = field.NewString(tableName, "state")
-	_session.ScheduledFor = field.NewTime(tableName, "scheduled_for")
 	_session.StartedAt = field.NewTime(tableName, "started_at")
 	_session.CompletedAt = field.NewTime(tableName, "completed_at")
 	_session.Notes = field.NewString(tableName, "notes")
@@ -66,7 +65,6 @@ type session struct {
 	ProgramNameSnap field.String
 	DayNameSnap     field.String
 	State           field.String
-	ScheduledFor    field.Time
 	StartedAt       field.Time
 	CompletedAt     field.Time
 	Notes           field.String
@@ -96,7 +94,6 @@ func (s *session) updateTableName(table string) *session {
 	s.ProgramNameSnap = field.NewString(table, "program_name_snap")
 	s.DayNameSnap = field.NewString(table, "day_name_snap")
 	s.State = field.NewString(table, "state")
-	s.ScheduledFor = field.NewTime(table, "scheduled_for")
 	s.StartedAt = field.NewTime(table, "started_at")
 	s.CompletedAt = field.NewTime(table, "completed_at")
 	s.Notes = field.NewString(table, "notes")
@@ -127,14 +124,13 @@ func (s *session) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (s *session) fillFieldMap() {
-	s.fieldMap = make(map[string]field.Expr, 14)
+	s.fieldMap = make(map[string]field.Expr, 13)
 	s.fieldMap["id"] = s.ID
 	s.fieldMap["user_id"] = s.UserID
 	s.fieldMap["program_day_id"] = s.ProgramDayID
 	s.fieldMap["program_name_snap"] = s.ProgramNameSnap
 	s.fieldMap["day_name_snap"] = s.DayNameSnap
 	s.fieldMap["state"] = s.State
-	s.fieldMap["scheduled_for"] = s.ScheduledFor
 	s.fieldMap["started_at"] = s.StartedAt
 	s.fieldMap["completed_at"] = s.CompletedAt
 	s.fieldMap["notes"] = s.Notes

@@ -34,7 +34,6 @@ type SetLog struct {
 	ActualLoadKg           *float64       `gorm:"column:actual_load_kg;type:numeric(7,2)" json:"actual_load_kg"`
 	ActualLoadModifier     string         `gorm:"column:actual_load_modifier;type:load_modifier;not null;default:absolute" json:"actual_load_modifier"`
 	ActualRpe              *float64       `gorm:"column:actual_rpe;type:numeric(3,1)" json:"actual_rpe"`
-	StartedAt              *time.Time     `gorm:"column:started_at;type:timestamp with time zone" json:"started_at"`
 	CompletedAt            *time.Time     `gorm:"column:completed_at;type:timestamp with time zone" json:"completed_at"`
 	State                  string         `gorm:"column:state;type:set_log_state;not null;default:pending" json:"state"`
 	CreatedAt              time.Time      `gorm:"column:created_at;type:timestamp with time zone;not null;default:now()" json:"created_at"`

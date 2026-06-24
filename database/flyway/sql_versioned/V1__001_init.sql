@@ -265,7 +265,6 @@ create table sessions (
   program_name_snap   text,
   day_name_snap       text,
   state               session_state not null default 'planned',
-  scheduled_for       date,
   started_at          timestamptz,
   completed_at        timestamptz,
   notes               text,
@@ -275,9 +274,6 @@ create table sessions (
 );
 create index sessions_user_recent_idx
   on sessions (user_id, coalesce(started_at, created_at) desc)
-  where deleted_at is null;
-create index sessions_user_scheduled_idx
-  on sessions (user_id, scheduled_for)
   where deleted_at is null;
 create trigger sessions_updated_at before update on sessions
   for each row execute function set_updated_at();
@@ -322,7 +318,6 @@ create table set_logs (
   actual_load_modifier      load_modifier not null default 'absolute',
   actual_rpe                numeric(3,1) check (actual_rpe is null or (actual_rpe >= 0 and actual_rpe <= 10)),
   -- timing & status
-  started_at                timestamptz,
   completed_at              timestamptz,
   state                     set_log_state not null default 'pending',
   created_at                timestamptz not null default now(),

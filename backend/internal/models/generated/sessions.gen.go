@@ -21,7 +21,6 @@ type Session struct {
 	ProgramNameSnap *string           `gorm:"column:program_name_snap;type:text" json:"program_name_snap"`
 	DayNameSnap     *string           `gorm:"column:day_name_snap;type:text" json:"day_name_snap"`
 	State           string            `gorm:"column:state;type:session_state;not null;default:planned" json:"state"`
-	ScheduledFor    *time.Time        `gorm:"column:scheduled_for;type:date" json:"scheduled_for"`
 	StartedAt       *time.Time        `gorm:"column:started_at;type:timestamp with time zone" json:"started_at"`
 	CompletedAt     *time.Time        `gorm:"column:completed_at;type:timestamp with time zone" json:"completed_at"`
 	Notes           *string           `gorm:"column:notes;type:text" json:"notes"`

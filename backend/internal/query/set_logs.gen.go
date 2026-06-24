@@ -46,7 +46,6 @@ func newSetLog(db *gorm.DB, opts ...gen.DOOption) setLog {
 	_setLog.ActualLoadKg = field.NewFloat64(tableName, "actual_load_kg")
 	_setLog.ActualLoadModifier = field.NewString(tableName, "actual_load_modifier")
 	_setLog.ActualRpe = field.NewFloat64(tableName, "actual_rpe")
-	_setLog.StartedAt = field.NewTime(tableName, "started_at")
 	_setLog.CompletedAt = field.NewTime(tableName, "completed_at")
 	_setLog.State = field.NewString(tableName, "state")
 	_setLog.CreatedAt = field.NewTime(tableName, "created_at")
@@ -81,7 +80,6 @@ type setLog struct {
 	ActualLoadKg           field.Float64
 	ActualLoadModifier     field.String
 	ActualRpe              field.Float64
-	StartedAt              field.Time
 	CompletedAt            field.Time
 	State                  field.String
 	CreatedAt              field.Time
@@ -122,7 +120,6 @@ func (s *setLog) updateTableName(table string) *setLog {
 	s.ActualLoadKg = field.NewFloat64(table, "actual_load_kg")
 	s.ActualLoadModifier = field.NewString(table, "actual_load_modifier")
 	s.ActualRpe = field.NewFloat64(table, "actual_rpe")
-	s.StartedAt = field.NewTime(table, "started_at")
 	s.CompletedAt = field.NewTime(table, "completed_at")
 	s.State = field.NewString(table, "state")
 	s.CreatedAt = field.NewTime(table, "created_at")
@@ -152,7 +149,7 @@ func (s *setLog) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (s *setLog) fillFieldMap() {
-	s.fieldMap = make(map[string]field.Expr, 25)
+	s.fieldMap = make(map[string]field.Expr, 24)
 	s.fieldMap["id"] = s.ID
 	s.fieldMap["session_exercise_id"] = s.SessionExerciseID
 	s.fieldMap["sequence"] = s.Sequence
@@ -172,7 +169,6 @@ func (s *setLog) fillFieldMap() {
 	s.fieldMap["actual_load_kg"] = s.ActualLoadKg
 	s.fieldMap["actual_load_modifier"] = s.ActualLoadModifier
 	s.fieldMap["actual_rpe"] = s.ActualRpe
-	s.fieldMap["started_at"] = s.StartedAt
 	s.fieldMap["completed_at"] = s.CompletedAt
 	s.fieldMap["state"] = s.State
 	s.fieldMap["created_at"] = s.CreatedAt
