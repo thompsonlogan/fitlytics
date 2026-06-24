@@ -28,7 +28,6 @@ type ProgramSetTarget struct {
 	PrescribedLoadModifier string    `gorm:"column:prescribed_load_modifier;type:load_modifier;not null;default:absolute" json:"prescribed_load_modifier"`
 	CapLoadKg              *float64  `gorm:"column:cap_load_kg;type:numeric(7,2)" json:"cap_load_kg"`
 	PrescribedRpe          *float64  `gorm:"column:prescribed_rpe;type:numeric(3,1)" json:"prescribed_rpe"`
-	Notes                  *string   `gorm:"column:notes;type:text" json:"notes"`
 	CreatedAt              time.Time `gorm:"column:created_at;type:timestamp with time zone;not null;default:now()" json:"created_at"`
 	UpdatedAt              time.Time `gorm:"column:updated_at;type:timestamp with time zone;not null;default:now()" json:"updated_at"`
 }

@@ -49,7 +49,6 @@ func newSetLog(db *gorm.DB, opts ...gen.DOOption) setLog {
 	_setLog.StartedAt = field.NewTime(tableName, "started_at")
 	_setLog.CompletedAt = field.NewTime(tableName, "completed_at")
 	_setLog.State = field.NewString(tableName, "state")
-	_setLog.Notes = field.NewString(tableName, "notes")
 	_setLog.CreatedAt = field.NewTime(tableName, "created_at")
 	_setLog.UpdatedAt = field.NewTime(tableName, "updated_at")
 	_setLog.DeletedAt = field.NewField(tableName, "deleted_at")
@@ -85,7 +84,6 @@ type setLog struct {
 	StartedAt              field.Time
 	CompletedAt            field.Time
 	State                  field.String
-	Notes                  field.String
 	CreatedAt              field.Time
 	UpdatedAt              field.Time
 	DeletedAt              field.Field
@@ -127,7 +125,6 @@ func (s *setLog) updateTableName(table string) *setLog {
 	s.StartedAt = field.NewTime(table, "started_at")
 	s.CompletedAt = field.NewTime(table, "completed_at")
 	s.State = field.NewString(table, "state")
-	s.Notes = field.NewString(table, "notes")
 	s.CreatedAt = field.NewTime(table, "created_at")
 	s.UpdatedAt = field.NewTime(table, "updated_at")
 	s.DeletedAt = field.NewField(table, "deleted_at")
@@ -155,7 +152,7 @@ func (s *setLog) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (s *setLog) fillFieldMap() {
-	s.fieldMap = make(map[string]field.Expr, 26)
+	s.fieldMap = make(map[string]field.Expr, 25)
 	s.fieldMap["id"] = s.ID
 	s.fieldMap["session_exercise_id"] = s.SessionExerciseID
 	s.fieldMap["sequence"] = s.Sequence
@@ -178,7 +175,6 @@ func (s *setLog) fillFieldMap() {
 	s.fieldMap["started_at"] = s.StartedAt
 	s.fieldMap["completed_at"] = s.CompletedAt
 	s.fieldMap["state"] = s.State
-	s.fieldMap["notes"] = s.Notes
 	s.fieldMap["created_at"] = s.CreatedAt
 	s.fieldMap["updated_at"] = s.UpdatedAt
 	s.fieldMap["deleted_at"] = s.DeletedAt

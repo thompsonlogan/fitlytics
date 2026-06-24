@@ -47,12 +47,6 @@ export interface ProgramExerciseResponse {
     id?: string;
     /**
      * 
-     * @type {string}
-     * @memberof ProgramExerciseResponse
-     */
-    notes?: string;
-    /**
-     * 
      * @type {number}
      * @memberof ProgramExerciseResponse
      */
@@ -97,7 +91,6 @@ export function ProgramExerciseResponseFromJSONTyped(json: any, ignoreDiscrimina
         'exerciseId': json['exercise_id'] == null ? undefined : json['exercise_id'],
         'exerciseName': json['exercise_name'] == null ? undefined : json['exercise_name'],
         'id': json['id'] == null ? undefined : json['id'],
-        'notes': json['notes'] == null ? undefined : json['notes'],
         'restSeconds': json['rest_seconds'] == null ? undefined : json['rest_seconds'],
         'sequence': json['sequence'] == null ? undefined : json['sequence'],
         'setTargets': json['set_targets'] == null ? undefined : ((json['set_targets'] as Array<any>).map(ProgramSetTargetResponseFromJSON)),
@@ -119,7 +112,6 @@ export function ProgramExerciseResponseToJSONTyped(value?: ProgramExerciseRespon
         'exercise_id': value['exerciseId'],
         'exercise_name': value['exerciseName'],
         'id': value['id'],
-        'notes': value['notes'],
         'rest_seconds': value['restSeconds'],
         'sequence': value['sequence'],
         'set_targets': value['setTargets'] == null ? undefined : ((value['setTargets'] as Array<any>).map(ProgramSetTargetResponseToJSON)),

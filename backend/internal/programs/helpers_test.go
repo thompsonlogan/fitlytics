@@ -38,7 +38,6 @@ func fullProgram() *generated.Program {
 				ProgramID: fixedID("program:1"),
 				Sequence:  1,
 				Name:      strPtr("Week 1"),
-				Notes:     strPtr("first week"),
 				Days: []generated.ProgramDay{
 					{
 						ID:        fixedID("day:1"),
@@ -56,7 +55,6 @@ func fullProgram() *generated.Program {
 								ExerciseID:  squatID,
 								SubText:     strPtr("Belt"),
 								RestSeconds: ptr[int32](180),
-								Notes:       nil,
 								SetTargets: []generated.ProgramSetTarget{
 									{
 										ID:                     fixedID("pst:1"),

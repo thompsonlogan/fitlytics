@@ -34,7 +34,6 @@ func newSessionExercise(db *gorm.DB, opts ...gen.DOOption) sessionExercise {
 	_sessionExercise.ExerciseNameSnap = field.NewString(tableName, "exercise_name_snap")
 	_sessionExercise.SubSnap = field.NewString(tableName, "sub_snap")
 	_sessionExercise.RestSecondsSnap = field.NewInt32(tableName, "rest_seconds_snap")
-	_sessionExercise.Notes = field.NewString(tableName, "notes")
 	_sessionExercise.CreatedAt = field.NewTime(tableName, "created_at")
 	_sessionExercise.UpdatedAt = field.NewTime(tableName, "updated_at")
 	_sessionExercise.SetLogs = sessionExerciseHasManySetLogs{
@@ -59,7 +58,6 @@ type sessionExercise struct {
 	ExerciseNameSnap field.String
 	SubSnap          field.String
 	RestSecondsSnap  field.Int32
-	Notes            field.String
 	CreatedAt        field.Time
 	UpdatedAt        field.Time
 	SetLogs          sessionExerciseHasManySetLogs
@@ -86,7 +84,6 @@ func (s *sessionExercise) updateTableName(table string) *sessionExercise {
 	s.ExerciseNameSnap = field.NewString(table, "exercise_name_snap")
 	s.SubSnap = field.NewString(table, "sub_snap")
 	s.RestSecondsSnap = field.NewInt32(table, "rest_seconds_snap")
-	s.Notes = field.NewString(table, "notes")
 	s.CreatedAt = field.NewTime(table, "created_at")
 	s.UpdatedAt = field.NewTime(table, "updated_at")
 
@@ -117,7 +114,7 @@ func (s *sessionExercise) GetFieldByName(fieldName string) (field.OrderExpr, boo
 }
 
 func (s *sessionExercise) fillFieldMap() {
-	s.fieldMap = make(map[string]field.Expr, 11)
+	s.fieldMap = make(map[string]field.Expr, 10)
 	s.fieldMap["id"] = s.ID
 	s.fieldMap["session_id"] = s.SessionID
 	s.fieldMap["sequence"] = s.Sequence
@@ -125,7 +122,6 @@ func (s *sessionExercise) fillFieldMap() {
 	s.fieldMap["exercise_name_snap"] = s.ExerciseNameSnap
 	s.fieldMap["sub_snap"] = s.SubSnap
 	s.fieldMap["rest_seconds_snap"] = s.RestSecondsSnap
-	s.fieldMap["notes"] = s.Notes
 	s.fieldMap["created_at"] = s.CreatedAt
 	s.fieldMap["updated_at"] = s.UpdatedAt
 

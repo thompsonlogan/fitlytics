@@ -43,7 +43,6 @@ func mapWeek(w generated.ProgramWeek, names map[uuid.UUID]string) ProgramWeekRes
 		ID:       w.ID,
 		Sequence: w.Sequence,
 		Name:     w.Name,
-		Notes:    w.Notes,
 		Days:     make([]ProgramDayResponse, 0, len(w.Days)),
 	}
 	for _, d := range w.Days {
@@ -76,7 +75,6 @@ func mapExercise(e generated.ProgramExercise, names map[uuid.UUID]string) Progra
 		ExerciseName: names[e.ExerciseID],
 		SubText:      e.SubText,
 		RestSeconds:  e.RestSeconds,
-		Notes:        e.Notes,
 		SetTargets:   make([]ProgramSetTargetResponse, 0, len(e.SetTargets)),
 	}
 	for _, t := range e.SetTargets {

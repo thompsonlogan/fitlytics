@@ -29,7 +29,6 @@ type ProgramWeekResponse struct {
 	ID       uuid.UUID            `json:"id"`
 	Sequence int32                `json:"sequence" example:"1"`
 	Name     *string              `json:"name,omitempty" example:"Week 1"`
-	Notes    *string              `json:"notes,omitempty"`
 	Days     []ProgramDayResponse `json:"days"`
 } // @name ProgramWeekResponse
 
@@ -50,7 +49,6 @@ type ProgramExerciseResponse struct {
 	ExerciseName string                     `json:"exercise_name" example:"Competition Squat"`
 	SubText      *string                    `json:"sub_text,omitempty"`
 	RestSeconds  *int32                     `json:"rest_seconds,omitempty"`
-	Notes        *string                    `json:"notes,omitempty"`
 	SetTargets   []ProgramSetTargetResponse `json:"set_targets"`
 } // @name ProgramExerciseResponse
 

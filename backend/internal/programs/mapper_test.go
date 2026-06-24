@@ -142,7 +142,6 @@ func TestMapExercise_AllFieldsAndEmptySetTargets(t *testing.T) {
 		ExerciseID:  exID,
 		SubText:     strPtr("Belt"),
 		RestSeconds: ptr[int32](90),
-		Notes:       strPtr("warm up first"),
 		SetTargets:  nil,
 	}
 	names := map[uuid.UUID]string{exID: "Squat"}
@@ -156,9 +155,6 @@ func TestMapExercise_AllFieldsAndEmptySetTargets(t *testing.T) {
 	}
 	if out.RestSeconds == nil || *out.RestSeconds != 90 {
 		t.Errorf("RestSeconds: %v", out.RestSeconds)
-	}
-	if out.Notes == nil || *out.Notes != "warm up first" {
-		t.Errorf("Notes: %v", out.Notes)
 	}
 	if out.SetTargets == nil || len(out.SetTargets) != 0 {
 		t.Errorf("SetTargets should be empty non-nil, got %v", out.SetTargets)

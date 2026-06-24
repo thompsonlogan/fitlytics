@@ -41,7 +41,6 @@ func newProgramSetTarget(db *gorm.DB, opts ...gen.DOOption) programSetTarget {
 	_programSetTarget.PrescribedLoadModifier = field.NewString(tableName, "prescribed_load_modifier")
 	_programSetTarget.CapLoadKg = field.NewFloat64(tableName, "cap_load_kg")
 	_programSetTarget.PrescribedRpe = field.NewFloat64(tableName, "prescribed_rpe")
-	_programSetTarget.Notes = field.NewString(tableName, "notes")
 	_programSetTarget.CreatedAt = field.NewTime(tableName, "created_at")
 	_programSetTarget.UpdatedAt = field.NewTime(tableName, "updated_at")
 
@@ -68,7 +67,6 @@ type programSetTarget struct {
 	PrescribedLoadModifier field.String
 	CapLoadKg              field.Float64
 	PrescribedRpe          field.Float64
-	Notes                  field.String
 	CreatedAt              field.Time
 	UpdatedAt              field.Time
 
@@ -101,7 +99,6 @@ func (p *programSetTarget) updateTableName(table string) *programSetTarget {
 	p.PrescribedLoadModifier = field.NewString(table, "prescribed_load_modifier")
 	p.CapLoadKg = field.NewFloat64(table, "cap_load_kg")
 	p.PrescribedRpe = field.NewFloat64(table, "prescribed_rpe")
-	p.Notes = field.NewString(table, "notes")
 	p.CreatedAt = field.NewTime(table, "created_at")
 	p.UpdatedAt = field.NewTime(table, "updated_at")
 
@@ -132,7 +129,7 @@ func (p *programSetTarget) GetFieldByName(fieldName string) (field.OrderExpr, bo
 }
 
 func (p *programSetTarget) fillFieldMap() {
-	p.fieldMap = make(map[string]field.Expr, 17)
+	p.fieldMap = make(map[string]field.Expr, 16)
 	p.fieldMap["id"] = p.ID
 	p.fieldMap["program_exercise_id"] = p.ProgramExerciseID
 	p.fieldMap["sequence"] = p.Sequence
@@ -147,7 +144,6 @@ func (p *programSetTarget) fillFieldMap() {
 	p.fieldMap["prescribed_load_modifier"] = p.PrescribedLoadModifier
 	p.fieldMap["cap_load_kg"] = p.CapLoadKg
 	p.fieldMap["prescribed_rpe"] = p.PrescribedRpe
-	p.fieldMap["notes"] = p.Notes
 	p.fieldMap["created_at"] = p.CreatedAt
 	p.fieldMap["updated_at"] = p.UpdatedAt
 }

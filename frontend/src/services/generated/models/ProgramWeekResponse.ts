@@ -47,12 +47,6 @@ export interface ProgramWeekResponse {
     name?: string;
     /**
      * 
-     * @type {string}
-     * @memberof ProgramWeekResponse
-     */
-    notes?: string;
-    /**
-     * 
      * @type {number}
      * @memberof ProgramWeekResponse
      */
@@ -79,7 +73,6 @@ export function ProgramWeekResponseFromJSONTyped(json: any, ignoreDiscriminator:
         'days': json['days'] == null ? undefined : ((json['days'] as Array<any>).map(ProgramDayResponseFromJSON)),
         'id': json['id'] == null ? undefined : json['id'],
         'name': json['name'] == null ? undefined : json['name'],
-        'notes': json['notes'] == null ? undefined : json['notes'],
         'sequence': json['sequence'] == null ? undefined : json['sequence'],
     };
 }
@@ -98,7 +91,6 @@ export function ProgramWeekResponseToJSONTyped(value?: ProgramWeekResponse | nul
         'days': value['days'] == null ? undefined : ((value['days'] as Array<any>).map(ProgramDayResponseToJSON)),
         'id': value['id'],
         'name': value['name'],
-        'notes': value['notes'],
         'sequence': value['sequence'],
     };
 }

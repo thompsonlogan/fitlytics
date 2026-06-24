@@ -189,7 +189,6 @@ create table program_weeks (
   program_id  uuid not null references programs(id) on delete cascade,
   sequence    int not null,                   -- week order within the program
   name        text,                           -- optional label, e.g. "Deload"
-  notes       text,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now(),
   unique (program_id, sequence)
@@ -219,7 +218,6 @@ create table program_exercises (
   exercise_id   uuid not null references exercises(id) on delete restrict,
   sub_text      text,                          -- "Belt + sleeves", "Conventional"
   rest_seconds  int check (rest_seconds is null or rest_seconds >= 0),
-  notes         text,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now(),
   unique (day_id, sequence)
@@ -246,7 +244,6 @@ create table program_set_targets (
   prescribed_load_modifier  load_modifier not null default 'absolute',
   cap_load_kg               numeric(7,2) check (cap_load_kg is null or cap_load_kg >= 0),
   prescribed_rpe            numeric(3,1) check (prescribed_rpe is null or (prescribed_rpe >= 0 and prescribed_rpe <= 10)),
-  notes                     text,
   created_at                timestamptz not null default now(),
   updated_at                timestamptz not null default now(),
   unique (program_exercise_id, sequence),
@@ -293,7 +290,6 @@ create table session_exercises (
   exercise_name_snap  text not null,           -- snapshot at session start
   sub_snap            text,
   rest_seconds_snap   int,
-  notes               text,
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now(),
   unique (session_id, sequence)
@@ -329,7 +325,6 @@ create table set_logs (
   started_at                timestamptz,
   completed_at              timestamptz,
   state                     set_log_state not null default 'pending',
-  notes                     text,
   created_at                timestamptz not null default now(),
   updated_at                timestamptz not null default now(),
   deleted_at                timestamptz
@@ -376,9 +371,6 @@ create unique index if not exists set_videos_setlog_uq
   where deleted_at is null;
 create index if not exists set_videos_user_idx
   on set_videos (user_id)
-  where deleted_at is null;
-create index if not exists set_videos_setlog_idx
-  on set_videos (set_log_id)
   where deleted_at is null;
 create trigger set_videos_updated_at before update on set_videos
   for each row execute function set_updated_at();

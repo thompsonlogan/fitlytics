@@ -33,7 +33,6 @@ func newProgramExercise(db *gorm.DB, opts ...gen.DOOption) programExercise {
 	_programExercise.ExerciseID = field.NewField(tableName, "exercise_id")
 	_programExercise.SubText = field.NewString(tableName, "sub_text")
 	_programExercise.RestSeconds = field.NewInt32(tableName, "rest_seconds")
-	_programExercise.Notes = field.NewString(tableName, "notes")
 	_programExercise.CreatedAt = field.NewTime(tableName, "created_at")
 	_programExercise.UpdatedAt = field.NewTime(tableName, "updated_at")
 	_programExercise.SetTargets = programExerciseHasManySetTargets{
@@ -57,7 +56,6 @@ type programExercise struct {
 	ExerciseID  field.Field
 	SubText     field.String
 	RestSeconds field.Int32
-	Notes       field.String
 	CreatedAt   field.Time
 	UpdatedAt   field.Time
 	SetTargets  programExerciseHasManySetTargets
@@ -83,7 +81,6 @@ func (p *programExercise) updateTableName(table string) *programExercise {
 	p.ExerciseID = field.NewField(table, "exercise_id")
 	p.SubText = field.NewString(table, "sub_text")
 	p.RestSeconds = field.NewInt32(table, "rest_seconds")
-	p.Notes = field.NewString(table, "notes")
 	p.CreatedAt = field.NewTime(table, "created_at")
 	p.UpdatedAt = field.NewTime(table, "updated_at")
 
@@ -114,14 +111,13 @@ func (p *programExercise) GetFieldByName(fieldName string) (field.OrderExpr, boo
 }
 
 func (p *programExercise) fillFieldMap() {
-	p.fieldMap = make(map[string]field.Expr, 10)
+	p.fieldMap = make(map[string]field.Expr, 9)
 	p.fieldMap["id"] = p.ID
 	p.fieldMap["day_id"] = p.DayID
 	p.fieldMap["sequence"] = p.Sequence
 	p.fieldMap["exercise_id"] = p.ExerciseID
 	p.fieldMap["sub_text"] = p.SubText
 	p.fieldMap["rest_seconds"] = p.RestSeconds
-	p.fieldMap["notes"] = p.Notes
 	p.fieldMap["created_at"] = p.CreatedAt
 	p.fieldMap["updated_at"] = p.UpdatedAt
 

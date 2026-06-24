@@ -21,7 +21,6 @@ type SessionExercise struct {
 	ExerciseNameSnap string    `gorm:"column:exercise_name_snap;type:text;not null" json:"exercise_name_snap"`
 	SubSnap          *string   `gorm:"column:sub_snap;type:text" json:"sub_snap"`
 	RestSecondsSnap  *int32    `gorm:"column:rest_seconds_snap;type:integer" json:"rest_seconds_snap"`
-	Notes            *string   `gorm:"column:notes;type:text" json:"notes"`
 	CreatedAt        time.Time `gorm:"column:created_at;type:timestamp with time zone;not null;default:now()" json:"created_at"`
 	UpdatedAt        time.Time `gorm:"column:updated_at;type:timestamp with time zone;not null;default:now()" json:"updated_at"`
 	SetLogs          []SetLog  `json:"set_logs"`
