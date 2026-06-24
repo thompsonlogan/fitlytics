@@ -22,15 +22,11 @@ type SetLog struct {
 	SetType                string         `gorm:"column:set_type;type:set_type;not null;default:working" json:"set_type"`
 	RepsTargetMin          *int32         `gorm:"column:reps_target_min;type:integer" json:"reps_target_min"`
 	RepsTargetMax          *int32         `gorm:"column:reps_target_max;type:integer" json:"reps_target_max"`
-	DurationTargetSec      *int32         `gorm:"column:duration_target_sec;type:integer" json:"duration_target_sec"`
-	DistanceTargetM        *float64       `gorm:"column:distance_target_m;type:numeric(10,2)" json:"distance_target_m"`
 	PrescribedLoadKg       *float64       `gorm:"column:prescribed_load_kg;type:numeric(7,2)" json:"prescribed_load_kg"`
 	PrescribedLoadModifier string         `gorm:"column:prescribed_load_modifier;type:load_modifier;not null;default:absolute" json:"prescribed_load_modifier"`
 	PrescribedRpe          *float64       `gorm:"column:prescribed_rpe;type:numeric(3,1)" json:"prescribed_rpe"`
 	IntensityText          *string        `gorm:"column:intensity_text;type:text" json:"intensity_text"`
 	RepsActual             *int32         `gorm:"column:reps_actual;type:integer" json:"reps_actual"`
-	DurationActualSec      *int32         `gorm:"column:duration_actual_sec;type:integer" json:"duration_actual_sec"`
-	DistanceActualM        *float64       `gorm:"column:distance_actual_m;type:numeric(10,2)" json:"distance_actual_m"`
 	ActualLoadKg           *float64       `gorm:"column:actual_load_kg;type:numeric(7,2)" json:"actual_load_kg"`
 	ActualLoadModifier     string         `gorm:"column:actual_load_modifier;type:load_modifier;not null;default:absolute" json:"actual_load_modifier"`
 	ActualRpe              *float64       `gorm:"column:actual_rpe;type:numeric(3,1)" json:"actual_rpe"`

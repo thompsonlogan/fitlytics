@@ -199,21 +199,21 @@ func TestRepositoryGetProgramById_HappyPathPreloadsEntireAggregate(t *testing.T)
 	mock.ExpectQuery(`SELECT \* FROM "program_exercises" WHERE "program_exercises"\."day_id" = \$1`).
 		WithArgs(uuidArg(dayID)).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "day_id", "sequence", "exercise_id", "sub_text", "rest_seconds", "notes", "extras", "created_at", "updated_at",
-		}).AddRow(peID, dayID, 1, exID, nil, nil, nil, []byte("{}"), now, now))
+			"id", "day_id", "sequence", "exercise_id", "sub_text", "rest_seconds", "created_at", "updated_at",
+		}).AddRow(peID, dayID, 1, exID, nil, nil, now, now))
 
 	mock.ExpectQuery(`SELECT \* FROM "program_set_targets" WHERE "program_set_targets"\."program_exercise_id" = \$1`).
 		WithArgs(uuidArg(peID)).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "program_exercise_id", "sequence", "set_type", "sets_count",
-			"reps_min", "reps_max", "duration_target_sec", "distance_target_m",
+			"reps_min", "reps_max",
 			"intensity_text", "prescribed_load_kg", "prescribed_load_modifier",
-			"cap_load_kg", "prescribed_rpe", "notes", "extras", "created_at", "updated_at",
+			"cap_load_kg", "prescribed_rpe", "created_at", "updated_at",
 		}).AddRow(
 			pstID, peID, 1, "working", 1,
-			nil, nil, nil, nil,
+			nil, nil,
 			nil, nil, "absolute",
-			nil, nil, nil, []byte("{}"), now, now,
+			nil, nil, now, now,
 		))
 
 	prog, err := NewRepository(db).GetProgramById(context.Background(), programID, ownerID)

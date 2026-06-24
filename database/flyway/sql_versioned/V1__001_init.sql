@@ -61,11 +61,11 @@ create type load_modifier as enum (
 );
 
 create type load_type as enum (
-  'weighted', 'bodyweight', 'timed', 'distance'
+  'weighted', 'bodyweight'
 );
 
 create type set_type as enum (
-  'warmup', 'working', 'amrap', 'drop', 'timed', 'distance'
+  'warmup', 'working', 'amrap', 'drop'
 );
 
 create type session_state as enum (
@@ -237,8 +237,6 @@ create table program_set_targets (
   sets_count                int not null default 1 check (sets_count > 0),
   reps_min                  int check (reps_min is null or reps_min >= 0),
   reps_max                  int check (reps_max is null or reps_max >= 0),
-  duration_target_sec       int check (duration_target_sec is null or duration_target_sec >= 0),
-  distance_target_m         numeric(10,2) check (distance_target_m is null or distance_target_m >= 0),
   intensity_text            text,             -- free-form display: "0–1 RIR", "285lb (0.95)"
   prescribed_load_kg        numeric(7,2) check (prescribed_load_kg is null or prescribed_load_kg >= 0),
   prescribed_load_modifier  load_modifier not null default 'absolute',
@@ -304,16 +302,12 @@ create table set_logs (
   -- prescription snapshot
   reps_target_min           int,
   reps_target_max           int,
-  duration_target_sec       int,
-  distance_target_m         numeric(10,2),
   prescribed_load_kg        numeric(7,2),
   prescribed_load_modifier  load_modifier not null default 'absolute',
   prescribed_rpe            numeric(3,1),
   intensity_text            text,
   -- actuals
   reps_actual               int check (reps_actual is null or reps_actual >= 0),
-  duration_actual_sec       int check (duration_actual_sec is null or duration_actual_sec >= 0),
-  distance_actual_m         numeric(10,2) check (distance_actual_m is null or distance_actual_m >= 0),
   actual_load_kg            numeric(7,2) check (actual_load_kg is null or actual_load_kg >= 0),
   actual_load_modifier      load_modifier not null default 'absolute',
   actual_rpe                numeric(3,1) check (actual_rpe is null or (actual_rpe >= 0 and actual_rpe <= 10)),

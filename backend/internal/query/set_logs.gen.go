@@ -34,15 +34,11 @@ func newSetLog(db *gorm.DB, opts ...gen.DOOption) setLog {
 	_setLog.SetType = field.NewString(tableName, "set_type")
 	_setLog.RepsTargetMin = field.NewInt32(tableName, "reps_target_min")
 	_setLog.RepsTargetMax = field.NewInt32(tableName, "reps_target_max")
-	_setLog.DurationTargetSec = field.NewInt32(tableName, "duration_target_sec")
-	_setLog.DistanceTargetM = field.NewFloat64(tableName, "distance_target_m")
 	_setLog.PrescribedLoadKg = field.NewFloat64(tableName, "prescribed_load_kg")
 	_setLog.PrescribedLoadModifier = field.NewString(tableName, "prescribed_load_modifier")
 	_setLog.PrescribedRpe = field.NewFloat64(tableName, "prescribed_rpe")
 	_setLog.IntensityText = field.NewString(tableName, "intensity_text")
 	_setLog.RepsActual = field.NewInt32(tableName, "reps_actual")
-	_setLog.DurationActualSec = field.NewInt32(tableName, "duration_actual_sec")
-	_setLog.DistanceActualM = field.NewFloat64(tableName, "distance_actual_m")
 	_setLog.ActualLoadKg = field.NewFloat64(tableName, "actual_load_kg")
 	_setLog.ActualLoadModifier = field.NewString(tableName, "actual_load_modifier")
 	_setLog.ActualRpe = field.NewFloat64(tableName, "actual_rpe")
@@ -68,15 +64,11 @@ type setLog struct {
 	SetType                field.String
 	RepsTargetMin          field.Int32
 	RepsTargetMax          field.Int32
-	DurationTargetSec      field.Int32
-	DistanceTargetM        field.Float64
 	PrescribedLoadKg       field.Float64
 	PrescribedLoadModifier field.String
 	PrescribedRpe          field.Float64
 	IntensityText          field.String
 	RepsActual             field.Int32
-	DurationActualSec      field.Int32
-	DistanceActualM        field.Float64
 	ActualLoadKg           field.Float64
 	ActualLoadModifier     field.String
 	ActualRpe              field.Float64
@@ -108,15 +100,11 @@ func (s *setLog) updateTableName(table string) *setLog {
 	s.SetType = field.NewString(table, "set_type")
 	s.RepsTargetMin = field.NewInt32(table, "reps_target_min")
 	s.RepsTargetMax = field.NewInt32(table, "reps_target_max")
-	s.DurationTargetSec = field.NewInt32(table, "duration_target_sec")
-	s.DistanceTargetM = field.NewFloat64(table, "distance_target_m")
 	s.PrescribedLoadKg = field.NewFloat64(table, "prescribed_load_kg")
 	s.PrescribedLoadModifier = field.NewString(table, "prescribed_load_modifier")
 	s.PrescribedRpe = field.NewFloat64(table, "prescribed_rpe")
 	s.IntensityText = field.NewString(table, "intensity_text")
 	s.RepsActual = field.NewInt32(table, "reps_actual")
-	s.DurationActualSec = field.NewInt32(table, "duration_actual_sec")
-	s.DistanceActualM = field.NewFloat64(table, "distance_actual_m")
 	s.ActualLoadKg = field.NewFloat64(table, "actual_load_kg")
 	s.ActualLoadModifier = field.NewString(table, "actual_load_modifier")
 	s.ActualRpe = field.NewFloat64(table, "actual_rpe")
@@ -149,7 +137,7 @@ func (s *setLog) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (s *setLog) fillFieldMap() {
-	s.fieldMap = make(map[string]field.Expr, 24)
+	s.fieldMap = make(map[string]field.Expr, 20)
 	s.fieldMap["id"] = s.ID
 	s.fieldMap["session_exercise_id"] = s.SessionExerciseID
 	s.fieldMap["sequence"] = s.Sequence
@@ -157,15 +145,11 @@ func (s *setLog) fillFieldMap() {
 	s.fieldMap["set_type"] = s.SetType
 	s.fieldMap["reps_target_min"] = s.RepsTargetMin
 	s.fieldMap["reps_target_max"] = s.RepsTargetMax
-	s.fieldMap["duration_target_sec"] = s.DurationTargetSec
-	s.fieldMap["distance_target_m"] = s.DistanceTargetM
 	s.fieldMap["prescribed_load_kg"] = s.PrescribedLoadKg
 	s.fieldMap["prescribed_load_modifier"] = s.PrescribedLoadModifier
 	s.fieldMap["prescribed_rpe"] = s.PrescribedRpe
 	s.fieldMap["intensity_text"] = s.IntensityText
 	s.fieldMap["reps_actual"] = s.RepsActual
-	s.fieldMap["duration_actual_sec"] = s.DurationActualSec
-	s.fieldMap["distance_actual_m"] = s.DistanceActualM
 	s.fieldMap["actual_load_kg"] = s.ActualLoadKg
 	s.fieldMap["actual_load_modifier"] = s.ActualLoadModifier
 	s.fieldMap["actual_rpe"] = s.ActualRpe

@@ -34,8 +34,6 @@ func newProgramSetTarget(db *gorm.DB, opts ...gen.DOOption) programSetTarget {
 	_programSetTarget.SetsCount = field.NewInt32(tableName, "sets_count")
 	_programSetTarget.RepsMin = field.NewInt32(tableName, "reps_min")
 	_programSetTarget.RepsMax = field.NewInt32(tableName, "reps_max")
-	_programSetTarget.DurationTargetSec = field.NewInt32(tableName, "duration_target_sec")
-	_programSetTarget.DistanceTargetM = field.NewFloat64(tableName, "distance_target_m")
 	_programSetTarget.IntensityText = field.NewString(tableName, "intensity_text")
 	_programSetTarget.PrescribedLoadKg = field.NewFloat64(tableName, "prescribed_load_kg")
 	_programSetTarget.PrescribedLoadModifier = field.NewString(tableName, "prescribed_load_modifier")
@@ -60,8 +58,6 @@ type programSetTarget struct {
 	SetsCount              field.Int32
 	RepsMin                field.Int32
 	RepsMax                field.Int32
-	DurationTargetSec      field.Int32
-	DistanceTargetM        field.Float64
 	IntensityText          field.String
 	PrescribedLoadKg       field.Float64
 	PrescribedLoadModifier field.String
@@ -92,8 +88,6 @@ func (p *programSetTarget) updateTableName(table string) *programSetTarget {
 	p.SetsCount = field.NewInt32(table, "sets_count")
 	p.RepsMin = field.NewInt32(table, "reps_min")
 	p.RepsMax = field.NewInt32(table, "reps_max")
-	p.DurationTargetSec = field.NewInt32(table, "duration_target_sec")
-	p.DistanceTargetM = field.NewFloat64(table, "distance_target_m")
 	p.IntensityText = field.NewString(table, "intensity_text")
 	p.PrescribedLoadKg = field.NewFloat64(table, "prescribed_load_kg")
 	p.PrescribedLoadModifier = field.NewString(table, "prescribed_load_modifier")
@@ -129,7 +123,7 @@ func (p *programSetTarget) GetFieldByName(fieldName string) (field.OrderExpr, bo
 }
 
 func (p *programSetTarget) fillFieldMap() {
-	p.fieldMap = make(map[string]field.Expr, 16)
+	p.fieldMap = make(map[string]field.Expr, 14)
 	p.fieldMap["id"] = p.ID
 	p.fieldMap["program_exercise_id"] = p.ProgramExerciseID
 	p.fieldMap["sequence"] = p.Sequence
@@ -137,8 +131,6 @@ func (p *programSetTarget) fillFieldMap() {
 	p.fieldMap["sets_count"] = p.SetsCount
 	p.fieldMap["reps_min"] = p.RepsMin
 	p.fieldMap["reps_max"] = p.RepsMax
-	p.fieldMap["duration_target_sec"] = p.DurationTargetSec
-	p.fieldMap["distance_target_m"] = p.DistanceTargetM
 	p.fieldMap["intensity_text"] = p.IntensityText
 	p.fieldMap["prescribed_load_kg"] = p.PrescribedLoadKg
 	p.fieldMap["prescribed_load_modifier"] = p.PrescribedLoadModifier

@@ -21,8 +21,6 @@ type ProgramSetTarget struct {
 	SetsCount              int32     `gorm:"column:sets_count;type:integer;not null;default:1" json:"sets_count"`
 	RepsMin                *int32    `gorm:"column:reps_min;type:integer" json:"reps_min"`
 	RepsMax                *int32    `gorm:"column:reps_max;type:integer" json:"reps_max"`
-	DurationTargetSec      *int32    `gorm:"column:duration_target_sec;type:integer" json:"duration_target_sec"`
-	DistanceTargetM        *float64  `gorm:"column:distance_target_m;type:numeric(10,2)" json:"distance_target_m"`
 	IntensityText          *string   `gorm:"column:intensity_text;type:text" json:"intensity_text"`
 	PrescribedLoadKg       *float64  `gorm:"column:prescribed_load_kg;type:numeric(7,2)" json:"prescribed_load_kg"`
 	PrescribedLoadModifier string    `gorm:"column:prescribed_load_modifier;type:load_modifier;not null;default:absolute" json:"prescribed_load_modifier"`
