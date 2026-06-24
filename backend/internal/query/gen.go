@@ -29,7 +29,6 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		SetLog:           newSetLog(db, opts...),
 		SetVideo:         newSetVideo(db, opts...),
 		User:             newUser(db, opts...),
-		UserMetric:       newUserMetric(db, opts...),
 	}
 }
 
@@ -47,7 +46,6 @@ type Query struct {
 	SetLog           setLog
 	SetVideo         setVideo
 	User             user
-	UserMetric       userMetric
 }
 
 func (q *Query) Available() bool { return q.db != nil }
@@ -66,7 +64,6 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		SetLog:           q.SetLog.clone(db),
 		SetVideo:         q.SetVideo.clone(db),
 		User:             q.User.clone(db),
-		UserMetric:       q.UserMetric.clone(db),
 	}
 }
 
@@ -92,7 +89,6 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		SetLog:           q.SetLog.replaceDB(db),
 		SetVideo:         q.SetVideo.replaceDB(db),
 		User:             q.User.replaceDB(db),
-		UserMetric:       q.UserMetric.replaceDB(db),
 	}
 }
 
@@ -108,7 +104,6 @@ type queryCtx struct {
 	SetLog           *setLogDo
 	SetVideo         *setVideoDo
 	User             *userDo
-	UserMetric       *userMetricDo
 }
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
@@ -124,7 +119,6 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		SetLog:           q.SetLog.WithContext(ctx),
 		SetVideo:         q.SetVideo.WithContext(ctx),
 		User:             q.User.WithContext(ctx),
-		UserMetric:       q.UserMetric.WithContext(ctx),
 	}
 }
 

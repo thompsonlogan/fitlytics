@@ -102,7 +102,6 @@ func run() error {
 	// Tables without inbound nav fields can be generated first / independently.
 	exercise := g.GenerateModel("exercises", softDelete)
 	user := g.GenerateModel("users", softDelete)
-	userMetric := g.GenerateModel("user_metrics")
 
 	// ── Session tree: Session → SessionExercise → SetLog ─────────────────────
 	setLog := g.GenerateModel("set_logs", softDelete)
@@ -147,7 +146,7 @@ func run() error {
 	)
 
 	g.ApplyBasic(
-		exercise, user, userMetric,
+		exercise, user,
 		setLog, setVideo, sessionExercise, session,
 		programSetTarget, programExercise, programDay, programWeek, program,
 	)

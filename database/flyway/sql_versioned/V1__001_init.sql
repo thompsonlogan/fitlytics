@@ -371,29 +371,6 @@ create trigger set_videos_updated_at before update on set_videos
   for each row execute function set_updated_at();
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- User metrics sidecar (bodyweight, sleep, subjective wellness)
--- Allocated v1 even if you don't populate it; backfilling joins later is
--- much worse than carrying empty rows now.
--- ─────────────────────────────────────────────────────────────────────────────
-
-create table user_metrics (
-  id             uuid primary key default gen_random_uuid(),
-  user_id        uuid not null references users(id) on delete cascade,
-  recorded_at    timestamptz not null default now(),
-  bodyweight_kg  numeric(5,2) check (bodyweight_kg is null or bodyweight_kg > 0),
-  sleep_hours    numeric(4,2) check (sleep_hours is null or (sleep_hours >= 0 and sleep_hours <= 24)),
-  sleep_score    int check (sleep_score is null or sleep_score between 0 and 100),
-  soreness       int check (soreness is null or soreness between 0 and 10),
-  fatigue        int check (fatigue is null or fatigue between 0 and 10),
-  notes          text,
-  created_at     timestamptz not null default now(),
-  updated_at     timestamptz not null default now()
-);
-create index user_metrics_user_time_idx on user_metrics (user_id, recorded_at desc);
-create trigger user_metrics_updated_at before update on user_metrics
-  for each row execute function set_updated_at();
-
--- ─────────────────────────────────────────────────────────────────────────────
 -- Pin search_path for every future connection (app, gen, psql) so unqualified
 -- references resolve to `fitlytics` first, with `public` available for pgcrypto.
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -410,7 +387,7 @@ alter database fitlytics set search_path = fitlytics, public;
 -- policies — enforcement lives entirely in the app layer.
 --
 -- Ownership rules the app layer MUST enforce on every query:
---   * programs, sessions, user_metrics       -> filter by owner_user_id / user_id
+--   * programs, sessions                     -> filter by owner_user_id / user_id
 --   * program_weeks/days/exercises/targets    -> reachable only via a program the
 --                                                caller owns (join up to programs)
 --   * session_exercises, set_logs             -> reachable only via a session the
