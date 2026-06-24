@@ -19,6 +19,7 @@ type Exercise struct {
 	ID                  uuid.UUID      `gorm:"column:id;type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	CanonicalID         *uuid.UUID     `gorm:"column:canonical_id;type:uuid" json:"canonical_id"`
 	CreatedByUserID     *uuid.UUID     `gorm:"column:created_by_user_id;type:uuid" json:"created_by_user_id"`
+	IsCanonical         bool           `gorm:"column:is_canonical;type:boolean;not null" json:"is_canonical"`
 	Name                string         `gorm:"column:name;type:text;not null" json:"name"`
 	Slug                *string        `gorm:"column:slug;type:text" json:"slug"`
 	PrimaryMuscles      pq.StringArray `gorm:"column:primary_muscles;type:muscle[];not null;default:{}" json:"primary_muscles"`

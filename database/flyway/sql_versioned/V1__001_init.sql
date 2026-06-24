@@ -117,8 +117,8 @@ create trigger users_updated_at before update on users
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Exercises (canonical + user-contributed in one table)
---   Canonical:  created_by_user_id IS NULL, canonical_id IS NULL, slug set
---   User-made:  created_by_user_id = <user>, canonical_id either null
+--   Canonical:  is_canonical = true, canonical_id IS NULL, slug set (created_by_user_id NULL)
+--   User-made:  is_canonical = false, created_by_user_id = <user>, canonical_id either null
 --               (unmapped) or pointing at the canonical row.
 --   Analytics rollup key: coalesce(canonical_id, id)
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -127,6 +127,7 @@ create table exercises (
   id                     uuid primary key default gen_random_uuid(),
   canonical_id           uuid references exercises(id) on delete set null,
   created_by_user_id     uuid references users(id) on delete set null,
+  is_canonical           boolean not null default false,
   name                   text not null,
   slug                   text,
   primary_muscles        muscle[] not null default '{}',
@@ -142,15 +143,15 @@ create table exercises (
   deleted_at             timestamptz,
   constraint exercises_no_self_canonical check (canonical_id is null or canonical_id <> id),
   constraint exercises_canonical_has_slug check (
-    created_by_user_id is not null or slug is not null
+    not is_canonical or slug is not null
   )
 );
 
--- Canonical entries (created_by_user_id IS NULL) get a globally unique slug.
+-- Canonical entries (is_canonical = true) get a globally unique slug.
 -- User entries are unconstrained by slug.
 create unique index exercises_slug_canonical_uq
   on exercises (slug)
-  where created_by_user_id is null;
+  where is_canonical;
 
 create index exercises_canonical_id_idx on exercises (canonical_id);
 create index exercises_created_by_idx on exercises (created_by_user_id);
@@ -386,7 +387,7 @@ alter database fitlytics set search_path = fitlytics, public;
 --                                                caller owns (join up to programs)
 --   * session_exercises, set_logs             -> reachable only via a session the
 --                                                caller owns (join up to sessions)
---   * exercises  SELECT -> canonical rows (created_by_user_id IS NULL) are
+--   * exercises  SELECT -> canonical rows (is_canonical = true) are
 --                          readable by everyone; user rows only by their creator
 --                exercises  WRITE  -> only the caller's own user rows
 --
