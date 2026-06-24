@@ -114,7 +114,7 @@ func (r *repository) StartSessionForDay(ctx context.Context, programID, programD
 		pe := q.ProgramExercise
 		pExercises, err := pe.WithContext(ctx).
 			Preload(pe.SetTargets).
-			Where(pe.DayID.Eq(programDayID)).
+			Where(pe.ProgramDayID.Eq(programDayID)).
 			Order(pe.Sequence).
 			Find()
 		if err != nil {

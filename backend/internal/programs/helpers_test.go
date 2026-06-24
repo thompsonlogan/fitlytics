@@ -49,12 +49,12 @@ func fullProgram() *generated.Program {
 						Notes:         nil,
 						Exercises: []generated.ProgramExercise{
 							{
-								ID:          fixedID("pe:1"),
-								DayID:       fixedID("day:1"),
-								Sequence:    1,
-								ExerciseID:  squatID,
-								SubText:     strPtr("Belt"),
-								RestSeconds: ptr[int32](180),
+								ID:           fixedID("pe:1"),
+								ProgramDayID: fixedID("day:1"),
+								Sequence:     1,
+								ExerciseID:   squatID,
+								SubText:      strPtr("Belt"),
+								RestSeconds:  ptr[int32](180),
 								SetTargets: []generated.ProgramSetTarget{
 									{
 										ID:                     fixedID("pst:1"),
@@ -75,10 +75,10 @@ func fullProgram() *generated.Program {
 							{
 								// Second exercise re-uses squatID to exercise the
 								// dedup branch in collectExerciseIDs.
-								ID:         fixedID("pe:2"),
-								DayID:      fixedID("day:1"),
-								Sequence:   2,
-								ExerciseID: squatID,
+								ID:           fixedID("pe:2"),
+								ProgramDayID: fixedID("day:1"),
+								Sequence:     2,
+								ExerciseID:   squatID,
 								SetTargets: []generated.ProgramSetTarget{
 									{
 										ID:                     fixedID("pst:2"),
@@ -93,10 +93,10 @@ func fullProgram() *generated.Program {
 							{
 								// Third exercise has no set targets — exercises
 								// the empty-children branches in mapExercise.
-								ID:         fixedID("pe:3"),
-								DayID:      fixedID("day:1"),
-								Sequence:   3,
-								ExerciseID: benchID,
+								ID:           fixedID("pe:3"),
+								ProgramDayID: fixedID("day:1"),
+								Sequence:     3,
+								ExerciseID:   benchID,
 							},
 						},
 					},

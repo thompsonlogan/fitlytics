@@ -137,7 +137,7 @@ update program_days set notes = E'Full rest day — stay non-sedentary.\n20–40
   where id = '66a2d597-3968-4816-90e0-a02b0d8430d7' and notes is null;
 
 -- 6. Program exercises (one row per (week, day, contiguous exercise block))
-insert into program_exercises (id, day_id, sequence, exercise_id, sub_text, rest_seconds) values
+insert into program_exercises (id, program_day_id, sequence, exercise_id, sub_text, rest_seconds) values
   ('a4346111-d645-425f-917b-20d67fbf455b', '78a3a15f-b735-4bf1-bdbc-ace8ac318e77', 1, '704b039d-895c-476b-80ed-991010629bb2', null, null),
   ('f25b11ce-5400-4d76-b324-c08f35a77e66', '78a3a15f-b735-4bf1-bdbc-ace8ac318e77', 2, '2f1678ce-4c33-467b-8f5b-2d3fe99900dd', null, null),
   ('f24d606d-61be-49c7-b072-43f46add96f7', '78a3a15f-b735-4bf1-bdbc-ace8ac318e77', 3, 'f1dadafd-14bf-4b7b-9abf-fecc2aa8560f', null, null),

@@ -23,7 +23,7 @@ type ProgramDay struct {
 	Notes         *string           `gorm:"column:notes;type:text" json:"notes"`
 	CreatedAt     time.Time         `gorm:"column:created_at;type:timestamp with time zone;not null;default:now()" json:"created_at"`
 	UpdatedAt     time.Time         `gorm:"column:updated_at;type:timestamp with time zone;not null;default:now()" json:"updated_at"`
-	Exercises     []ProgramExercise `gorm:"foreignKey:DayID" json:"exercises"`
+	Exercises     []ProgramExercise `json:"exercises"`
 }
 
 // TableName ProgramDay's table name

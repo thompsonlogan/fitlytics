@@ -28,7 +28,7 @@ func newProgramExercise(db *gorm.DB, opts ...gen.DOOption) programExercise {
 	tableName := _programExercise.programExerciseDo.TableName()
 	_programExercise.ALL = field.NewAsterisk(tableName)
 	_programExercise.ID = field.NewField(tableName, "id")
-	_programExercise.DayID = field.NewField(tableName, "day_id")
+	_programExercise.ProgramDayID = field.NewField(tableName, "program_day_id")
 	_programExercise.Sequence = field.NewInt32(tableName, "sequence")
 	_programExercise.ExerciseID = field.NewField(tableName, "exercise_id")
 	_programExercise.SubText = field.NewString(tableName, "sub_text")
@@ -49,16 +49,16 @@ func newProgramExercise(db *gorm.DB, opts ...gen.DOOption) programExercise {
 type programExercise struct {
 	programExerciseDo programExerciseDo
 
-	ALL         field.Asterisk
-	ID          field.Field
-	DayID       field.Field
-	Sequence    field.Int32
-	ExerciseID  field.Field
-	SubText     field.String
-	RestSeconds field.Int32
-	CreatedAt   field.Time
-	UpdatedAt   field.Time
-	SetTargets  programExerciseHasManySetTargets
+	ALL          field.Asterisk
+	ID           field.Field
+	ProgramDayID field.Field
+	Sequence     field.Int32
+	ExerciseID   field.Field
+	SubText      field.String
+	RestSeconds  field.Int32
+	CreatedAt    field.Time
+	UpdatedAt    field.Time
+	SetTargets   programExerciseHasManySetTargets
 
 	fieldMap map[string]field.Expr
 }
@@ -76,7 +76,7 @@ func (p programExercise) As(alias string) *programExercise {
 func (p *programExercise) updateTableName(table string) *programExercise {
 	p.ALL = field.NewAsterisk(table)
 	p.ID = field.NewField(table, "id")
-	p.DayID = field.NewField(table, "day_id")
+	p.ProgramDayID = field.NewField(table, "program_day_id")
 	p.Sequence = field.NewInt32(table, "sequence")
 	p.ExerciseID = field.NewField(table, "exercise_id")
 	p.SubText = field.NewString(table, "sub_text")
@@ -113,7 +113,7 @@ func (p *programExercise) GetFieldByName(fieldName string) (field.OrderExpr, boo
 func (p *programExercise) fillFieldMap() {
 	p.fieldMap = make(map[string]field.Expr, 9)
 	p.fieldMap["id"] = p.ID
-	p.fieldMap["day_id"] = p.DayID
+	p.fieldMap["program_day_id"] = p.ProgramDayID
 	p.fieldMap["sequence"] = p.Sequence
 	p.fieldMap["exercise_id"] = p.ExerciseID
 	p.fieldMap["sub_text"] = p.SubText

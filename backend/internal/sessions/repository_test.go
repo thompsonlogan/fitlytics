@@ -218,7 +218,7 @@ func TestRepositoryStartSessionForDay_SnapshotsProgramIntoNewSession(t *testing.
 	mock.ExpectQuery(`SELECT \* FROM "program_exercises" WHERE`).
 		WithArgs(uuidArg(dayID)).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "day_id", "sequence", "exercise_id", "sub_text", "rest_seconds", "created_at", "updated_at",
+			"id", "program_day_id", "sequence", "exercise_id", "sub_text", "rest_seconds", "created_at", "updated_at",
 		}).AddRow(peID, dayID, 1, exID, "Belt", 180, now, now))
 
 	mock.ExpectQuery(`SELECT \* FROM "program_set_targets"`).
@@ -312,7 +312,7 @@ func TestRepositoryStartSessionForDay_ExpandsSetsCountIntoPerSetLogs(t *testing.
 	mock.ExpectQuery(`SELECT \* FROM "program_exercises" WHERE`).
 		WithArgs(uuidArg(dayID)).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "day_id", "sequence", "exercise_id", "sub_text", "rest_seconds", "created_at", "updated_at",
+			"id", "program_day_id", "sequence", "exercise_id", "sub_text", "rest_seconds", "created_at", "updated_at",
 		}).AddRow(peID, dayID, 1, exID, nil, nil, now, now))
 
 	// One block prescribing two sets.

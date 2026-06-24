@@ -127,11 +127,8 @@ func run() error {
 	)
 
 	programDay := g.GenerateModel("program_days",
-		// Child FK column is day_id -> DayID, which doesn't match GORM's default
-		// convention of ProgramDayID; override explicitly.
-		gen.FieldRelate(field.HasMany, "Exercises", programExercise, &field.RelateConfig{
-			GORMTag: field.GormTag{"foreignKey": []string{"DayID"}},
-		}),
+		// day_id -> program_day_id matches GORM's default ProgramDayID convention.
+		gen.FieldRelate(field.HasMany, "Exercises", programExercise, nil),
 	)
 
 	programWeek := g.GenerateModel("program_weeks",

@@ -213,14 +213,14 @@ create trigger program_days_updated_at before update on program_days
 
 create table program_exercises (
   id            uuid primary key default gen_random_uuid(),
-  day_id        uuid not null references program_days(id) on delete cascade,
+  program_day_id uuid not null references program_days(id) on delete cascade,
   sequence      int not null,
   exercise_id   uuid not null references exercises(id) on delete restrict,
   sub_text      text,                          -- "Belt + sleeves", "Conventional"
   rest_seconds  int check (rest_seconds is null or rest_seconds >= 0),
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now(),
-  unique (day_id, sequence)
+  unique (program_day_id, sequence)
 );
 create index program_exercises_exercise_idx on program_exercises (exercise_id);
 create trigger program_exercises_updated_at before update on program_exercises
