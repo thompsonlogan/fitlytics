@@ -38,7 +38,9 @@ export interface SetLogResponse {
      */
     actualRpe?: number;
     /**
-     * 
+     * BlockSequence is the originating program_set_target.sequence. Set logs that
+     * share a block_sequence are the individual sets of one prescribed block, so
+     * the frontend groups them back under a single table row.
      * @type {number}
      * @memberof SetLogResponse
      */

@@ -121,7 +121,7 @@ func (r *repository) StartSessionForDay(ctx context.Context, programID, programD
 			return fmt.Errorf("load program exercises: %w", err)
 		}
 
-		// Bulk-fetch exercise names for the name_snap field.
+		// Bulk-fetch exercise names for the name_snapshot field.
 		nameByID := make(map[uuid.UUID]string)
 		if len(pExercises) > 0 {
 			ids := make([]uuid.UUID, 0, len(pExercises))
@@ -154,12 +154,12 @@ func (r *repository) StartSessionForDay(ctx context.Context, programID, programD
 		// 4) Create the session row.
 		now := time.Now()
 		session := generated.Session{
-			UserID:          ownerUserID,
-			ProgramDayID:    &programDayID,
-			ProgramNameSnap: &program.Name,
-			DayNameSnap:     &day.Name,
-			State:           "planned",
-			StartedAt:       &now,
+			UserID:              ownerUserID,
+			ProgramDayID:        &programDayID,
+			ProgramNameSnapshot: &program.Name,
+			DayNameSnapshot:     &day.Name,
+			State:               "planned",
+			StartedAt:           &now,
 		}
 		if err := s.WithContext(ctx).Create(&session); err != nil {
 			return fmt.Errorf("create session: %w", err)
@@ -176,12 +176,12 @@ func (r *repository) StartSessionForDay(ctx context.Context, programID, programD
 		sessionExercises := make([]*generated.SessionExercise, len(pExercises))
 		for i, p := range pExercises {
 			sessionExercises[i] = &generated.SessionExercise{
-				SessionID:        session.ID,
-				Sequence:         p.Sequence,
-				ExerciseID:       p.ExerciseID,
-				ExerciseNameSnap: nameByID[p.ExerciseID],
-				SubSnap:          p.SubText,
-				RestSecondsSnap:  p.RestSeconds,
+				SessionID:            session.ID,
+				Sequence:             p.Sequence,
+				ExerciseID:           p.ExerciseID,
+				ExerciseNameSnapshot: nameByID[p.ExerciseID],
+				SubSnapshot:          p.SubText,
+				RestSecondsSnapshot:  p.RestSeconds,
 			}
 		}
 		if len(sessionExercises) > 0 {

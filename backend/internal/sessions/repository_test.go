@@ -60,7 +60,7 @@ func TestRepositoryGetCurrentSessionByDay_HappyPathSortsTree(t *testing.T) {
 	// Preload exercises — returned out of sequence order to prove the sort.
 	mock.ExpectQuery(`SELECT \* FROM "session_exercises"`).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "session_id", "sequence", "exercise_id", "exercise_name_snap",
+			"id", "session_id", "sequence", "exercise_id", "exercise_name_snapshot",
 		}).
 			AddRow(ex2, sessionID, 2, uuid.New(), "Bench").
 			AddRow(ex1, sessionID, 1, uuid.New(), "Squat"))
@@ -153,7 +153,7 @@ func TestRepositoryStartSessionForDay_ReusesExistingSession(t *testing.T) {
 
 	mock.ExpectQuery(`SELECT \* FROM "session_exercises"`).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "session_id", "sequence", "exercise_id", "exercise_name_snap",
+			"id", "session_id", "sequence", "exercise_id", "exercise_name_snapshot",
 		}).AddRow(exID, sessionID, 1, uuid.New(), "Squat"))
 
 	mock.ExpectQuery(`SELECT \* FROM "set_logs"`).
@@ -226,7 +226,7 @@ func TestRepositoryStartSessionForDay_SnapshotsProgramIntoNewSession(t *testing.
 			"id", "program_exercise_id", "sequence", "set_type", "sets_count", "prescribed_load_modifier", "created_at", "updated_at",
 		}).AddRow(pstID, peID, 1, "working", 1, "absolute", now, now))
 
-	// 3b) Bulk exercise-name lookup for name_snap.
+	// 3b) Bulk exercise-name lookup for name_snapshot.
 	mock.ExpectQuery(`SELECT "exercises"\."id","exercises"\."name" FROM "exercises"`).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(exID, "Squat"))
 
@@ -248,7 +248,7 @@ func TestRepositoryStartSessionForDay_SnapshotsProgramIntoNewSession(t *testing.
 		}).AddRow(newSessionID, ownerID, dayID, "planned", now, now))
 	mock.ExpectQuery(`SELECT \* FROM "session_exercises"`).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "session_id", "sequence", "exercise_id", "exercise_name_snap",
+			"id", "session_id", "sequence", "exercise_id", "exercise_name_snapshot",
 		}).AddRow(newSeID, newSessionID, 1, exID, "Squat"))
 	mock.ExpectQuery(`SELECT \* FROM "set_logs"`).
 		WillReturnRows(sqlmock.NewRows([]string{
@@ -267,8 +267,8 @@ func TestRepositoryStartSessionForDay_SnapshotsProgramIntoNewSession(t *testing.
 	if len(session.Exercises) != 1 || len(session.Exercises[0].SetLogs) != 1 {
 		t.Errorf("snapshot tree shape: %+v", session)
 	}
-	if session.Exercises[0].ExerciseNameSnap != "Squat" {
-		t.Errorf("exercise name snapshot: %q", session.Exercises[0].ExerciseNameSnap)
+	if session.Exercises[0].ExerciseNameSnapshot != "Squat" {
+		t.Errorf("exercise name snapshot: %q", session.Exercises[0].ExerciseNameSnapshot)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("unmet expectations: %v", err)
@@ -340,7 +340,7 @@ func TestRepositoryStartSessionForDay_ExpandsSetsCountIntoPerSetLogs(t *testing.
 		}).AddRow(newSessionID, ownerID, dayID, "planned", now, now))
 	mock.ExpectQuery(`SELECT \* FROM "session_exercises"`).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "session_id", "sequence", "exercise_id", "exercise_name_snap",
+			"id", "session_id", "sequence", "exercise_id", "exercise_name_snapshot",
 		}).AddRow(newSeID, newSessionID, 1, exID, "Squat"))
 	mock.ExpectQuery(`SELECT \* FROM "set_logs"`).
 		WillReturnRows(sqlmock.NewRows([]string{
@@ -425,7 +425,7 @@ func TestRepositoryUpdateSetLog_CompletesSessionWhenNoPending(t *testing.T) {
 	mock.ExpectQuery(`SELECT \* FROM "session_exercises" WHERE .* LIMIT`).
 		WithArgs(uuidArg(seID), uuidArg(sessionID), 1).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "session_id", "sequence", "exercise_id", "exercise_name_snap",
+			"id", "session_id", "sequence", "exercise_id", "exercise_name_snapshot",
 		}).AddRow(seID, sessionID, 1, uuid.New(), "Squat"))
 
 	mock.ExpectQuery(`SELECT \* FROM "sessions" WHERE .* LIMIT`).

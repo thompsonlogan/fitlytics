@@ -279,7 +279,7 @@ func TestRepositoryVerifySetLogOwned_HappyPath(t *testing.T) {
 	mock.ExpectQuery(`SELECT \* FROM "session_exercises" WHERE`).
 		WithArgs(uuidArg(seID), uuidArg(sessionID), 1).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "session_id", "sequence", "exercise_id", "exercise_name_snap",
+			"id", "session_id", "sequence", "exercise_id", "exercise_name_snapshot",
 		}).AddRow(seID, sessionID, 1, uuid.New(), "Squat"))
 
 	// Probe 3: session by (id, user_id).
@@ -319,7 +319,7 @@ func TestRepositoryVerifySetLogOwned_ForeignSessionIsNotFound(t *testing.T) {
 	mock.ExpectQuery(`SELECT \* FROM "session_exercises" WHERE`).
 		WithArgs(uuidArg(seID), uuidArg(sessionID), 1).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "session_id", "sequence", "exercise_id", "exercise_name_snap",
+			"id", "session_id", "sequence", "exercise_id", "exercise_name_snapshot",
 		}).AddRow(seID, sessionID, 1, uuid.New(), "Squat"))
 
 	// Probe 3: sessions returns empty → not-found.

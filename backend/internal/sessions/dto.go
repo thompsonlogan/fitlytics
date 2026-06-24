@@ -7,14 +7,14 @@ import (
 )
 
 type SessionResponse struct {
-	ID              uuid.UUID  `json:"id"`
-	UserID          uuid.UUID  `json:"user_id"`
-	ProgramDayID    *uuid.UUID `json:"program_day_id,omitempty"`
-	ProgramNameSnap *string    `json:"program_name_snap,omitempty"`
-	DayNameSnap     *string    `json:"day_name_snap,omitempty"`
-	State           string     `json:"state" example:"in_progress"`
-	StartedAt       *time.Time `json:"started_at,omitempty"`
-	CompletedAt     *time.Time `json:"completed_at,omitempty"`
+	ID                  uuid.UUID  `json:"id"`
+	UserID              uuid.UUID  `json:"user_id"`
+	ProgramDayID        *uuid.UUID `json:"program_day_id,omitempty"`
+	ProgramNameSnapshot *string    `json:"program_name_snapshot,omitempty"`
+	DayNameSnapshot     *string    `json:"day_name_snapshot,omitempty"`
+	State               string     `json:"state" example:"in_progress"`
+	StartedAt           *time.Time `json:"started_at,omitempty"`
+	CompletedAt         *time.Time `json:"completed_at,omitempty"`
 	// Notes is the athlete's own free-text note for this workout ("Your notes"
 	// in the UI). Distinct from the program day's coach note, which is
 	// prescription-side and read-only.
@@ -31,13 +31,13 @@ type UpdateSessionRequest struct {
 } // @name UpdateSessionRequest
 
 type SessionExerciseResponse struct {
-	ID               uuid.UUID        `json:"id"`
-	Sequence         int32            `json:"sequence"`
-	ExerciseID       uuid.UUID        `json:"exercise_id"`
-	ExerciseNameSnap string           `json:"exercise_name_snap"`
-	SubSnap          *string          `json:"sub_snap,omitempty"`
-	RestSecondsSnap  *int32           `json:"rest_seconds_snap,omitempty"`
-	SetLogs          []SetLogResponse `json:"set_logs"`
+	ID                   uuid.UUID        `json:"id"`
+	Sequence             int32            `json:"sequence"`
+	ExerciseID           uuid.UUID        `json:"exercise_id"`
+	ExerciseNameSnapshot string           `json:"exercise_name_snapshot"`
+	SubSnapshot          *string          `json:"sub_snapshot,omitempty"`
+	RestSecondsSnapshot  *int32           `json:"rest_seconds_snapshot,omitempty"`
+	SetLogs              []SetLogResponse `json:"set_logs"`
 } // @name SessionExerciseResponse
 
 type SetLogResponse struct {

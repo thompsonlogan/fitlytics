@@ -21,6 +21,7 @@ models/SessionExerciseResponse.ts
 models/SessionResponse.ts
 models/SetLogResponse.ts
 models/StoragePresignedUpload.ts
+models/UpdateSessionRequest.ts
 models/UpdateSetLogRequest.ts
 models/UpdateVideoRequest.ts
 models/VideoResponse.ts

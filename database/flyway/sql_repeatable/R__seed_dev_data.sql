@@ -569,7 +569,7 @@ on conflict (id) do nothing;
 --    by clicking, not something pre-applied.
 --    Driven by the 'Load Used' and 'Last Set RPE' columns from sheet 1.
 insert into sessions
-  (id, user_id, program_day_id, program_name_snap, day_name_snap, state,
+  (id, user_id, program_day_id, program_name_snapshot, day_name_snapshot, state,
    started_at, completed_at, notes)
 values
   ('89489b1f-6ad2-4314-88ba-abc8fb40957f', '265f6d7d-c361-4189-ac41-3f053b2b217d', '78a3a15f-b735-4bf1-bdbc-ace8ac318e77', 'Logan PL — May/June 2026 Block', 'Day 1', 'completed', '2026-05-04 17:30:00+00', '2026-05-04 18:45:00+00', 'Felt strong — bar speed crisp on the openers. Right hip a touch tight, foam-rolled after.'),
@@ -579,7 +579,7 @@ values
 on conflict (id) do nothing;
 
 insert into session_exercises
-  (id, session_id, sequence, exercise_id, exercise_name_snap, sub_snap, rest_seconds_snap)
+  (id, session_id, sequence, exercise_id, exercise_name_snapshot, sub_snapshot, rest_seconds_snapshot)
 values
   ('b6d3a424-65ad-43ee-a5c8-977eb3e4b34c', '89489b1f-6ad2-4314-88ba-abc8fb40957f', 1, '704b039d-895c-476b-80ed-991010629bb2', 'Comp Squat', null, null),
   ('55e30a78-252d-4704-b3d0-0204212ef90c', '89489b1f-6ad2-4314-88ba-abc8fb40957f', 2, '2f1678ce-4c33-467b-8f5b-2d3fe99900dd', 'Comp Deadlift', null, null),

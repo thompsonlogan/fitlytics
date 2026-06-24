@@ -17,7 +17,7 @@ describe("actualVolume", () => {
           id: "e1",
           sequence: 1,
           exerciseId: "x",
-          exerciseNameSnap: "Squat",
+          exerciseNameSnapshot: "Squat",
           setLogs: [
             { id: "s1", sequence: 1, setType: "working", actualLoadKg: 100, repsActual: 5, state: "completed" },
             { id: "s2", sequence: 2, setType: "working", actualLoadKg: 100, repsActual: 3, state: "completed" },
@@ -36,7 +36,7 @@ describe("actualVolume", () => {
           id: "e1",
           sequence: 1,
           exerciseId: "x",
-          exerciseNameSnap: "Squat",
+          exerciseNameSnapshot: "Squat",
           setLogs: [
             { id: "s1", sequence: 1, setType: "working", actualLoadKg: 100, repsActual: 5, state: "completed" },
             { id: "s2", sequence: 2, setType: "working", repsActual: 3, state: "pending" },

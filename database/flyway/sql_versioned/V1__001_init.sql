@@ -260,8 +260,8 @@ create table sessions (
   id                  uuid primary key default gen_random_uuid(),
   user_id             uuid not null references users(id) on delete cascade,
   program_day_id      uuid references program_days(id) on delete set null,  -- nullable for ad-hoc sessions
-  program_name_snap   text,
-  day_name_snap       text,
+  program_name_snapshot   text,
+  day_name_snapshot       text,
   state               session_state not null default 'planned',
   started_at          timestamptz,
   completed_at        timestamptz,
@@ -281,9 +281,9 @@ create table session_exercises (
   session_id          uuid not null references sessions(id) on delete cascade,
   sequence            int not null,
   exercise_id         uuid not null references exercises(id) on delete restrict,
-  exercise_name_snap  text not null,           -- snapshot at session start
-  sub_snap            text,
-  rest_seconds_snap   int,
+  exercise_name_snapshot  text not null,           -- snapshot at session start
+  sub_snapshot            text,
+  rest_seconds_snapshot   int,
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now(),
   unique (session_id, sequence)

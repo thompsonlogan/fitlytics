@@ -15,19 +15,19 @@ const TableNameSession = "sessions"
 
 // Session mapped from table <sessions>
 type Session struct {
-	ID              uuid.UUID         `gorm:"column:id;type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	UserID          uuid.UUID         `gorm:"column:user_id;type:uuid;not null" json:"user_id"`
-	ProgramDayID    *uuid.UUID        `gorm:"column:program_day_id;type:uuid" json:"program_day_id"`
-	ProgramNameSnap *string           `gorm:"column:program_name_snap;type:text" json:"program_name_snap"`
-	DayNameSnap     *string           `gorm:"column:day_name_snap;type:text" json:"day_name_snap"`
-	State           string            `gorm:"column:state;type:session_state;not null;default:planned" json:"state"`
-	StartedAt       *time.Time        `gorm:"column:started_at;type:timestamp with time zone" json:"started_at"`
-	CompletedAt     *time.Time        `gorm:"column:completed_at;type:timestamp with time zone" json:"completed_at"`
-	Notes           *string           `gorm:"column:notes;type:text" json:"notes"`
-	CreatedAt       time.Time         `gorm:"column:created_at;type:timestamp with time zone;not null;default:now()" json:"created_at"`
-	UpdatedAt       time.Time         `gorm:"column:updated_at;type:timestamp with time zone;not null;default:now()" json:"updated_at"`
-	DeletedAt       gorm.DeletedAt    `gorm:"column:deleted_at;type:timestamp with time zone" json:"deleted_at"`
-	Exercises       []SessionExercise `json:"exercises"`
+	ID                  uuid.UUID         `gorm:"column:id;type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	UserID              uuid.UUID         `gorm:"column:user_id;type:uuid;not null" json:"user_id"`
+	ProgramDayID        *uuid.UUID        `gorm:"column:program_day_id;type:uuid" json:"program_day_id"`
+	ProgramNameSnapshot *string           `gorm:"column:program_name_snapshot;type:text" json:"program_name_snapshot"`
+	DayNameSnapshot     *string           `gorm:"column:day_name_snapshot;type:text" json:"day_name_snapshot"`
+	State               string            `gorm:"column:state;type:session_state;not null;default:planned" json:"state"`
+	StartedAt           *time.Time        `gorm:"column:started_at;type:timestamp with time zone" json:"started_at"`
+	CompletedAt         *time.Time        `gorm:"column:completed_at;type:timestamp with time zone" json:"completed_at"`
+	Notes               *string           `gorm:"column:notes;type:text" json:"notes"`
+	CreatedAt           time.Time         `gorm:"column:created_at;type:timestamp with time zone;not null;default:now()" json:"created_at"`
+	UpdatedAt           time.Time         `gorm:"column:updated_at;type:timestamp with time zone;not null;default:now()" json:"updated_at"`
+	DeletedAt           gorm.DeletedAt    `gorm:"column:deleted_at;type:timestamp with time zone" json:"deleted_at"`
+	Exercises           []SessionExercise `json:"exercises"`
 }
 
 // TableName Session's table name
