@@ -220,7 +220,6 @@ create table program_exercises (
   sub_text      text,                          -- "Belt + sleeves", "Conventional"
   rest_seconds  int check (rest_seconds is null or rest_seconds >= 0),
   notes         text,
-  extras        jsonb not null default '{}'::jsonb,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now(),
   unique (day_id, sequence)
@@ -248,7 +247,6 @@ create table program_set_targets (
   cap_load_kg               numeric(7,2) check (cap_load_kg is null or cap_load_kg >= 0),
   prescribed_rpe            numeric(3,1) check (prescribed_rpe is null or (prescribed_rpe >= 0 and prescribed_rpe <= 10)),
   notes                     text,
-  extras                    jsonb not null default '{}'::jsonb,
   created_at                timestamptz not null default now(),
   updated_at                timestamptz not null default now(),
   unique (program_exercise_id, sequence),
@@ -274,7 +272,6 @@ create table sessions (
   started_at          timestamptz,
   completed_at        timestamptz,
   notes               text,
-  extras              jsonb not null default '{}'::jsonb,
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now(),
   deleted_at          timestamptz
@@ -297,7 +294,6 @@ create table session_exercises (
   sub_snap            text,
   rest_seconds_snap   int,
   notes               text,
-  extras              jsonb not null default '{}'::jsonb,
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now(),
   unique (session_id, sequence)
@@ -334,7 +330,6 @@ create table set_logs (
   completed_at              timestamptz,
   state                     set_log_state not null default 'pending',
   notes                     text,
-  extras                    jsonb not null default '{}'::jsonb,
   created_at                timestamptz not null default now(),
   updated_at                timestamptz not null default now(),
   deleted_at                timestamptz
@@ -404,7 +399,6 @@ create table user_metrics (
   soreness       int check (soreness is null or soreness between 0 and 10),
   fatigue        int check (fatigue is null or fatigue between 0 and 10),
   notes          text,
-  extras         jsonb not null default '{}'::jsonb,
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now()
 );

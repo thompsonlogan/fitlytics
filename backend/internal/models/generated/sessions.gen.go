@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/thompsonlogan/fitlytics/backend/internal/models"
 	"gorm.io/gorm"
 )
 
@@ -26,7 +25,6 @@ type Session struct {
 	StartedAt       *time.Time        `gorm:"column:started_at;type:timestamp with time zone" json:"started_at"`
 	CompletedAt     *time.Time        `gorm:"column:completed_at;type:timestamp with time zone" json:"completed_at"`
 	Notes           *string           `gorm:"column:notes;type:text" json:"notes"`
-	Extras          models.JSONB      `gorm:"column:extras;type:jsonb;not null;default:{}" json:"extras"`
 	CreatedAt       time.Time         `gorm:"column:created_at;type:timestamp with time zone;not null;default:now()" json:"created_at"`
 	UpdatedAt       time.Time         `gorm:"column:updated_at;type:timestamp with time zone;not null;default:now()" json:"updated_at"`
 	DeletedAt       gorm.DeletedAt    `gorm:"column:deleted_at;type:timestamp with time zone" json:"deleted_at"`

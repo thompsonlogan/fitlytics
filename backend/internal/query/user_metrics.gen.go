@@ -36,7 +36,6 @@ func newUserMetric(db *gorm.DB, opts ...gen.DOOption) userMetric {
 	_userMetric.Soreness = field.NewInt32(tableName, "soreness")
 	_userMetric.Fatigue = field.NewInt32(tableName, "fatigue")
 	_userMetric.Notes = field.NewString(tableName, "notes")
-	_userMetric.Extras = field.NewField(tableName, "extras")
 	_userMetric.CreatedAt = field.NewTime(tableName, "created_at")
 	_userMetric.UpdatedAt = field.NewTime(tableName, "updated_at")
 
@@ -58,7 +57,6 @@ type userMetric struct {
 	Soreness     field.Int32
 	Fatigue      field.Int32
 	Notes        field.String
-	Extras       field.Field
 	CreatedAt    field.Time
 	UpdatedAt    field.Time
 
@@ -86,7 +84,6 @@ func (u *userMetric) updateTableName(table string) *userMetric {
 	u.Soreness = field.NewInt32(table, "soreness")
 	u.Fatigue = field.NewInt32(table, "fatigue")
 	u.Notes = field.NewString(table, "notes")
-	u.Extras = field.NewField(table, "extras")
 	u.CreatedAt = field.NewTime(table, "created_at")
 	u.UpdatedAt = field.NewTime(table, "updated_at")
 
@@ -115,7 +112,7 @@ func (u *userMetric) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (u *userMetric) fillFieldMap() {
-	u.fieldMap = make(map[string]field.Expr, 12)
+	u.fieldMap = make(map[string]field.Expr, 11)
 	u.fieldMap["id"] = u.ID
 	u.fieldMap["user_id"] = u.UserID
 	u.fieldMap["recorded_at"] = u.RecordedAt
@@ -125,7 +122,6 @@ func (u *userMetric) fillFieldMap() {
 	u.fieldMap["soreness"] = u.Soreness
 	u.fieldMap["fatigue"] = u.Fatigue
 	u.fieldMap["notes"] = u.Notes
-	u.fieldMap["extras"] = u.Extras
 	u.fieldMap["created_at"] = u.CreatedAt
 	u.fieldMap["updated_at"] = u.UpdatedAt
 }
