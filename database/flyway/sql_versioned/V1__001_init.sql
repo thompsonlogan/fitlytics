@@ -170,6 +170,30 @@ create trigger exercises_updated_at before update on exercises
   for each row execute function set_updated_at();
 
 -- ─────────────────────────────────────────────────────────────────────────────
+-- Equipment (controlled vocabulary; a lookup table, not an enum, because
+-- equipment is an open set. Canonical-only for v1 — user-created equipment
+-- (is_canonical / created_by_user_id) can be added later, mirroring exercises.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+create table equipment (
+  id          uuid primary key default gen_random_uuid(),
+  slug        text not null unique,
+  name        text not null,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+create trigger equipment_updated_at before update on equipment
+  for each row execute function set_updated_at();
+
+-- Join table: which equipment an exercise uses (many-to-many).
+create table exercise_equipment (
+  exercise_id   uuid not null references exercises(id) on delete cascade,
+  equipment_id  uuid not null references equipment(id) on delete cascade,
+  primary key (exercise_id, equipment_id)
+);
+create index exercise_equipment_equipment_idx on exercise_equipment (equipment_id);
+
+-- ─────────────────────────────────────────────────────────────────────────────
 -- Programs (reusable templates)
 -- Hierarchy: program → week → day → exercise → set target
 -- A program runs as an ordered list of weeks; each week is an ordered list of

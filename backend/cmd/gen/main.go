@@ -104,6 +104,8 @@ func run() error {
 	// composite FK; Postgres rejects writes to it, so keep it out of the model.
 	exercise := g.GenerateModel("exercises", softDelete, gen.FieldIgnore("canonical_ref_flag"))
 	user := g.GenerateModel("users", softDelete)
+	equipment := g.GenerateModel("equipment")
+	exerciseEquipment := g.GenerateModel("exercise_equipment")
 
 	// ── Session tree: Session → SessionExercise → SetLog ─────────────────────
 	setLog := g.GenerateModel("set_logs", softDelete)
@@ -143,7 +145,7 @@ func run() error {
 	)
 
 	g.ApplyBasic(
-		exercise, user,
+		exercise, user, equipment, exerciseEquipment,
 		setLog, setVideo, sessionExercise, session,
 		programSetTarget, programExercise, programDay, programWeek, program,
 	)

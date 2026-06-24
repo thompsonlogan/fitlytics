@@ -17,53 +17,59 @@ import (
 
 func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 	return &Query{
-		db:               db,
-		Exercise:         newExercise(db, opts...),
-		Program:          newProgram(db, opts...),
-		ProgramDay:       newProgramDay(db, opts...),
-		ProgramExercise:  newProgramExercise(db, opts...),
-		ProgramSetTarget: newProgramSetTarget(db, opts...),
-		ProgramWeek:      newProgramWeek(db, opts...),
-		Session:          newSession(db, opts...),
-		SessionExercise:  newSessionExercise(db, opts...),
-		SetLog:           newSetLog(db, opts...),
-		SetVideo:         newSetVideo(db, opts...),
-		User:             newUser(db, opts...),
+		db:                db,
+		Equipment:         newEquipment(db, opts...),
+		Exercise:          newExercise(db, opts...),
+		ExerciseEquipment: newExerciseEquipment(db, opts...),
+		Program:           newProgram(db, opts...),
+		ProgramDay:        newProgramDay(db, opts...),
+		ProgramExercise:   newProgramExercise(db, opts...),
+		ProgramSetTarget:  newProgramSetTarget(db, opts...),
+		ProgramWeek:       newProgramWeek(db, opts...),
+		Session:           newSession(db, opts...),
+		SessionExercise:   newSessionExercise(db, opts...),
+		SetLog:            newSetLog(db, opts...),
+		SetVideo:          newSetVideo(db, opts...),
+		User:              newUser(db, opts...),
 	}
 }
 
 type Query struct {
 	db *gorm.DB
 
-	Exercise         exercise
-	Program          program
-	ProgramDay       programDay
-	ProgramExercise  programExercise
-	ProgramSetTarget programSetTarget
-	ProgramWeek      programWeek
-	Session          session
-	SessionExercise  sessionExercise
-	SetLog           setLog
-	SetVideo         setVideo
-	User             user
+	Equipment         equipment
+	Exercise          exercise
+	ExerciseEquipment exerciseEquipment
+	Program           program
+	ProgramDay        programDay
+	ProgramExercise   programExercise
+	ProgramSetTarget  programSetTarget
+	ProgramWeek       programWeek
+	Session           session
+	SessionExercise   sessionExercise
+	SetLog            setLog
+	SetVideo          setVideo
+	User              user
 }
 
 func (q *Query) Available() bool { return q.db != nil }
 
 func (q *Query) clone(db *gorm.DB) *Query {
 	return &Query{
-		db:               db,
-		Exercise:         q.Exercise.clone(db),
-		Program:          q.Program.clone(db),
-		ProgramDay:       q.ProgramDay.clone(db),
-		ProgramExercise:  q.ProgramExercise.clone(db),
-		ProgramSetTarget: q.ProgramSetTarget.clone(db),
-		ProgramWeek:      q.ProgramWeek.clone(db),
-		Session:          q.Session.clone(db),
-		SessionExercise:  q.SessionExercise.clone(db),
-		SetLog:           q.SetLog.clone(db),
-		SetVideo:         q.SetVideo.clone(db),
-		User:             q.User.clone(db),
+		db:                db,
+		Equipment:         q.Equipment.clone(db),
+		Exercise:          q.Exercise.clone(db),
+		ExerciseEquipment: q.ExerciseEquipment.clone(db),
+		Program:           q.Program.clone(db),
+		ProgramDay:        q.ProgramDay.clone(db),
+		ProgramExercise:   q.ProgramExercise.clone(db),
+		ProgramSetTarget:  q.ProgramSetTarget.clone(db),
+		ProgramWeek:       q.ProgramWeek.clone(db),
+		Session:           q.Session.clone(db),
+		SessionExercise:   q.SessionExercise.clone(db),
+		SetLog:            q.SetLog.clone(db),
+		SetVideo:          q.SetVideo.clone(db),
+		User:              q.User.clone(db),
 	}
 }
 
@@ -77,48 +83,54 @@ func (q *Query) WriteDB() *Query {
 
 func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 	return &Query{
-		db:               db,
-		Exercise:         q.Exercise.replaceDB(db),
-		Program:          q.Program.replaceDB(db),
-		ProgramDay:       q.ProgramDay.replaceDB(db),
-		ProgramExercise:  q.ProgramExercise.replaceDB(db),
-		ProgramSetTarget: q.ProgramSetTarget.replaceDB(db),
-		ProgramWeek:      q.ProgramWeek.replaceDB(db),
-		Session:          q.Session.replaceDB(db),
-		SessionExercise:  q.SessionExercise.replaceDB(db),
-		SetLog:           q.SetLog.replaceDB(db),
-		SetVideo:         q.SetVideo.replaceDB(db),
-		User:             q.User.replaceDB(db),
+		db:                db,
+		Equipment:         q.Equipment.replaceDB(db),
+		Exercise:          q.Exercise.replaceDB(db),
+		ExerciseEquipment: q.ExerciseEquipment.replaceDB(db),
+		Program:           q.Program.replaceDB(db),
+		ProgramDay:        q.ProgramDay.replaceDB(db),
+		ProgramExercise:   q.ProgramExercise.replaceDB(db),
+		ProgramSetTarget:  q.ProgramSetTarget.replaceDB(db),
+		ProgramWeek:       q.ProgramWeek.replaceDB(db),
+		Session:           q.Session.replaceDB(db),
+		SessionExercise:   q.SessionExercise.replaceDB(db),
+		SetLog:            q.SetLog.replaceDB(db),
+		SetVideo:          q.SetVideo.replaceDB(db),
+		User:              q.User.replaceDB(db),
 	}
 }
 
 type queryCtx struct {
-	Exercise         *exerciseDo
-	Program          *programDo
-	ProgramDay       *programDayDo
-	ProgramExercise  *programExerciseDo
-	ProgramSetTarget *programSetTargetDo
-	ProgramWeek      *programWeekDo
-	Session          *sessionDo
-	SessionExercise  *sessionExerciseDo
-	SetLog           *setLogDo
-	SetVideo         *setVideoDo
-	User             *userDo
+	Equipment         *equipmentDo
+	Exercise          *exerciseDo
+	ExerciseEquipment *exerciseEquipmentDo
+	Program           *programDo
+	ProgramDay        *programDayDo
+	ProgramExercise   *programExerciseDo
+	ProgramSetTarget  *programSetTargetDo
+	ProgramWeek       *programWeekDo
+	Session           *sessionDo
+	SessionExercise   *sessionExerciseDo
+	SetLog            *setLogDo
+	SetVideo          *setVideoDo
+	User              *userDo
 }
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
 	return &queryCtx{
-		Exercise:         q.Exercise.WithContext(ctx),
-		Program:          q.Program.WithContext(ctx),
-		ProgramDay:       q.ProgramDay.WithContext(ctx),
-		ProgramExercise:  q.ProgramExercise.WithContext(ctx),
-		ProgramSetTarget: q.ProgramSetTarget.WithContext(ctx),
-		ProgramWeek:      q.ProgramWeek.WithContext(ctx),
-		Session:          q.Session.WithContext(ctx),
-		SessionExercise:  q.SessionExercise.WithContext(ctx),
-		SetLog:           q.SetLog.WithContext(ctx),
-		SetVideo:         q.SetVideo.WithContext(ctx),
-		User:             q.User.WithContext(ctx),
+		Equipment:         q.Equipment.WithContext(ctx),
+		Exercise:          q.Exercise.WithContext(ctx),
+		ExerciseEquipment: q.ExerciseEquipment.WithContext(ctx),
+		Program:           q.Program.WithContext(ctx),
+		ProgramDay:        q.ProgramDay.WithContext(ctx),
+		ProgramExercise:   q.ProgramExercise.WithContext(ctx),
+		ProgramSetTarget:  q.ProgramSetTarget.WithContext(ctx),
+		ProgramWeek:       q.ProgramWeek.WithContext(ctx),
+		Session:           q.Session.WithContext(ctx),
+		SessionExercise:   q.SessionExercise.WithContext(ctx),
+		SetLog:            q.SetLog.WithContext(ctx),
+		SetVideo:          q.SetVideo.WithContext(ctx),
+		User:              q.User.WithContext(ctx),
 	}
 }
 
