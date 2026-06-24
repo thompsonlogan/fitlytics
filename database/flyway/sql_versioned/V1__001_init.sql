@@ -125,7 +125,12 @@ create trigger users_updated_at before update on users
 
 create table exercises (
   id                     uuid primary key default gen_random_uuid(),
+  -- Simple FK gives ON DELETE SET NULL (the composite FK below can't, since it
+  -- includes a generated column); the composite FK adds the canonical-only rule.
   canonical_id           uuid references exercises(id) on delete set null,
+  -- Mirrors "canonical_id is set" so the composite FK below can force
+  -- canonical_id to reference a row with is_canonical = true.
+  canonical_ref_flag     boolean generated always as (case when canonical_id is null then null else true end) stored,
   created_by_user_id     uuid references users(id) on delete set null,
   is_canonical           boolean not null default false,
   name                   text not null,
@@ -142,9 +147,13 @@ create table exercises (
   updated_at             timestamptz not null default now(),
   deleted_at             timestamptz,
   constraint exercises_no_self_canonical check (canonical_id is null or canonical_id <> id),
+  constraint exercises_canonical_not_nested check (not (is_canonical and canonical_id is not null)),
   constraint exercises_canonical_has_slug check (
     not is_canonical or slug is not null
-  )
+  ),
+  constraint exercises_id_canonical_uq unique (id, is_canonical),
+  constraint exercises_canonical_ref foreign key (canonical_id, canonical_ref_flag)
+    references exercises (id, is_canonical)
 );
 
 -- Canonical entries (is_canonical = true) get a globally unique slug.
