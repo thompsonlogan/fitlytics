@@ -17,6 +17,8 @@ const TableNameSetLog = "set_logs"
 type SetLog struct {
 	ID                     uuid.UUID      `gorm:"column:id;type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	SessionExerciseID      uuid.UUID      `gorm:"column:session_exercise_id;type:uuid;not null" json:"session_exercise_id"`
+	UserID                 uuid.UUID      `gorm:"column:user_id;type:uuid;not null" json:"user_id"`
+	ExerciseID             uuid.UUID      `gorm:"column:exercise_id;type:uuid;not null" json:"exercise_id"`
 	Sequence               int32          `gorm:"column:sequence;type:integer;not null" json:"sequence"`
 	GroupID                *uuid.UUID     `gorm:"column:group_id;type:uuid" json:"group_id"`
 	SetType                string         `gorm:"column:set_type;type:set_type;not null;default:working" json:"set_type"`

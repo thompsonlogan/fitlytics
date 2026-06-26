@@ -340,6 +340,11 @@ create trigger session_exercises_updated_at before update on session_exercises
 create table set_logs (
   id                        uuid primary key default gen_random_uuid(),
   session_exercise_id       uuid not null references session_exercises(id) on delete cascade,
+  -- Denormalized analytical dimensions, immutable after insert (owner + lift), so
+  -- analytics don't need to join up to sessions / session_exercises. Their
+  -- consistency + immutability is trigger-enforced in a later step.
+  user_id                   uuid not null references users(id) on delete cascade,
+  exercise_id               uuid not null references exercises(id) on delete restrict,
   sequence                  int not null,
   group_id                  uuid,   -- snapshot of program_set_groups.id; null for ad-hoc sets (not an FK)
   set_type                  set_type not null default 'working',
@@ -368,6 +373,14 @@ create index set_logs_active_seq_idx
 create index if not exists set_logs_group_idx
   on set_logs (session_exercise_id, group_id, sequence)
   where deleted_at is null;
+-- Composite unique on (id, user_id) so set_videos can use a (set_log_id, user_id)
+-- composite FK to guarantee a video's owner matches its set's owner (later step).
+create unique index set_logs_id_user_uq on set_logs (id, user_id);
+-- Partial composite index for the core analytics path: a user's completed sets
+-- of a given lift over time. (Not "covering" — add INCLUDE once queries are fixed.)
+create index set_logs_user_exercise_completed_idx
+  on set_logs (user_id, exercise_id, completed_at desc)
+  where deleted_at is null and state = 'completed';
 create trigger set_logs_updated_at before update on set_logs
   for each row execute function set_updated_at();
 

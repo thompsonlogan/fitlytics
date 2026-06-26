@@ -208,6 +208,8 @@ func (r *repository) StartSessionForDay(ctx context.Context, programID, programD
 				for _, ps := range sets {
 					setLogs = append(setLogs, &generated.SetLog{
 						SessionExerciseID:      seID,
+						UserID:                 ownerUserID,
+						ExerciseID:             p.ExerciseID,
 						Sequence:               seq,
 						GroupID:                &groupID,
 						SetType:                ps.SetType,

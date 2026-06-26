@@ -29,6 +29,8 @@ func newSetLog(db *gorm.DB, opts ...gen.DOOption) setLog {
 	_setLog.ALL = field.NewAsterisk(tableName)
 	_setLog.ID = field.NewField(tableName, "id")
 	_setLog.SessionExerciseID = field.NewField(tableName, "session_exercise_id")
+	_setLog.UserID = field.NewField(tableName, "user_id")
+	_setLog.ExerciseID = field.NewField(tableName, "exercise_id")
 	_setLog.Sequence = field.NewInt32(tableName, "sequence")
 	_setLog.GroupID = field.NewField(tableName, "group_id")
 	_setLog.SetType = field.NewString(tableName, "set_type")
@@ -59,6 +61,8 @@ type setLog struct {
 	ALL                    field.Asterisk
 	ID                     field.Field
 	SessionExerciseID      field.Field
+	UserID                 field.Field
+	ExerciseID             field.Field
 	Sequence               field.Int32
 	GroupID                field.Field
 	SetType                field.String
@@ -95,6 +99,8 @@ func (s *setLog) updateTableName(table string) *setLog {
 	s.ALL = field.NewAsterisk(table)
 	s.ID = field.NewField(table, "id")
 	s.SessionExerciseID = field.NewField(table, "session_exercise_id")
+	s.UserID = field.NewField(table, "user_id")
+	s.ExerciseID = field.NewField(table, "exercise_id")
 	s.Sequence = field.NewInt32(table, "sequence")
 	s.GroupID = field.NewField(table, "group_id")
 	s.SetType = field.NewString(table, "set_type")
@@ -137,9 +143,11 @@ func (s *setLog) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (s *setLog) fillFieldMap() {
-	s.fieldMap = make(map[string]field.Expr, 20)
+	s.fieldMap = make(map[string]field.Expr, 22)
 	s.fieldMap["id"] = s.ID
 	s.fieldMap["session_exercise_id"] = s.SessionExerciseID
+	s.fieldMap["user_id"] = s.UserID
+	s.fieldMap["exercise_id"] = s.ExerciseID
 	s.fieldMap["sequence"] = s.Sequence
 	s.fieldMap["group_id"] = s.GroupID
 	s.fieldMap["set_type"] = s.SetType
