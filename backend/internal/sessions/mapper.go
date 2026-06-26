@@ -43,7 +43,7 @@ func mapSetLog(l generated.SetLog) SetLogResponse {
 	return SetLogResponse{
 		ID:                     l.ID,
 		Sequence:               l.Sequence,
-		BlockSequence:          l.BlockSequence,
+		GroupID:                l.GroupID,
 		SetType:                l.SetType,
 		RepsTargetMin:          l.RepsTargetMin,
 		RepsTargetMax:          l.RepsTargetMax,

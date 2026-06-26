@@ -123,11 +123,18 @@ func run() error {
 		gen.FieldRelate(field.HasMany, "Exercises", sessionExercise, nil),
 	)
 
-	// ── Program tree: Program → Week → Day → Exercise → SetTarget ────────────
-	programSetTarget := g.GenerateModel("program_set_targets")
+	// ── Program tree: Program → Week → Day → Exercise → Group → Set ──────────
+	programSet := g.GenerateModel("program_sets")
+
+	programSetGroup := g.GenerateModel("program_set_groups",
+		// Child FK column is group_id -> GroupID, not the convention ProgramSetGroupID.
+		gen.FieldRelate(field.HasMany, "Sets", programSet, &field.RelateConfig{
+			GORMTag: field.GormTag{"foreignKey": []string{"GroupID"}},
+		}),
+	)
 
 	programExercise := g.GenerateModel("program_exercises",
-		gen.FieldRelate(field.HasMany, "SetTargets", programSetTarget, nil),
+		gen.FieldRelate(field.HasMany, "Groups", programSetGroup, nil),
 	)
 
 	programDay := g.GenerateModel("program_days",
@@ -147,7 +154,7 @@ func run() error {
 	g.ApplyBasic(
 		exercise, user, equipment, exerciseEquipment,
 		setLog, setVideo, sessionExercise, session,
-		programSetTarget, programExercise, programDay, programWeek, program,
+		programSet, programSetGroup, programExercise, programDay, programWeek, program,
 	)
 	g.Execute()
 	return nil

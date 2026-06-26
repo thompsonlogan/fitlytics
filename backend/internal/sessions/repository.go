@@ -110,10 +110,11 @@ func (r *repository) StartSessionForDay(ctx context.Context, programID, programD
 			return err
 		}
 
-		// 3) Pull the program exercises + set targets for the snapshot.
+		// 3) Pull the program exercises + set groups/sets for the snapshot.
 		pe := q.ProgramExercise
 		pExercises, err := pe.WithContext(ctx).
-			Preload(pe.SetTargets).
+			Preload(pe.Groups).
+			Preload(pe.Groups.Sets).
 			Where(pe.ProgramDayID.Eq(programDayID)).
 			Order(pe.Sequence).
 			Find()
@@ -194,24 +195,28 @@ func (r *repository) StartSessionForDay(ctx context.Context, programID, programD
 		for i, p := range pExercises {
 			seID := sessionExercises[i].ID
 			seq := int32(1)
-			for _, pst := range p.SetTargets {
-				blockSeq := pst.Sequence
-				count := pst.SetsCount
-				if count < 1 {
-					count = 1
-				}
-				for k := int32(0); k < count; k++ {
+			groups := p.Groups
+			slices.SortFunc(groups, func(a, b generated.ProgramSetGroup) int {
+				return cmp.Compare(a.Sequence, b.Sequence)
+			})
+			for gi := range groups {
+				groupID := groups[gi].ID
+				sets := groups[gi].Sets
+				slices.SortFunc(sets, func(a, b generated.ProgramSet) int {
+					return cmp.Compare(a.Sequence, b.Sequence)
+				})
+				for _, ps := range sets {
 					setLogs = append(setLogs, &generated.SetLog{
 						SessionExerciseID:      seID,
 						Sequence:               seq,
-						BlockSequence:          &blockSeq,
-						SetType:                pst.SetType,
-						RepsTargetMin:          pst.RepsMin,
-						RepsTargetMax:          pst.RepsMax,
-						PrescribedLoadKg:       pst.PrescribedLoadKg,
-						PrescribedLoadModifier: pst.PrescribedLoadModifier,
-						PrescribedRpe:          pst.PrescribedRpe,
-						IntensityText:          pst.IntensityText,
+						GroupID:                &groupID,
+						SetType:                ps.SetType,
+						RepsTargetMin:          ps.RepsMin,
+						RepsTargetMax:          ps.RepsMax,
+						PrescribedLoadKg:       ps.PrescribedLoadKg,
+						PrescribedLoadModifier: ps.PrescribedLoadModifier,
+						PrescribedRpe:          ps.PrescribedRpe,
+						IntensityText:          ps.IntensityText,
 						ActualLoadModifier:     "absolute",
 						State:                  "pending",
 					})

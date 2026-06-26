@@ -16,89 +16,83 @@ import { mapValues } from '../runtime';
 /**
  * 
  * @export
- * @interface ProgramSetTargetResponse
+ * @interface ProgramSetResponse
  */
-export interface ProgramSetTargetResponse {
+export interface ProgramSetResponse {
     /**
      * 
      * @type {number}
-     * @memberof ProgramSetTargetResponse
+     * @memberof ProgramSetResponse
      */
     capLoadKg?: number;
     /**
      * 
      * @type {string}
-     * @memberof ProgramSetTargetResponse
+     * @memberof ProgramSetResponse
      */
     id?: string;
     /**
      * 
      * @type {string}
-     * @memberof ProgramSetTargetResponse
+     * @memberof ProgramSetResponse
      */
     intensityText?: string;
     /**
      * 
      * @type {number}
-     * @memberof ProgramSetTargetResponse
+     * @memberof ProgramSetResponse
      */
     prescribedLoadKg?: number;
     /**
      * 
      * @type {string}
-     * @memberof ProgramSetTargetResponse
+     * @memberof ProgramSetResponse
      */
     prescribedLoadModifier?: string;
     /**
      * 
      * @type {number}
-     * @memberof ProgramSetTargetResponse
+     * @memberof ProgramSetResponse
      */
     prescribedRpe?: number;
     /**
      * 
      * @type {number}
-     * @memberof ProgramSetTargetResponse
+     * @memberof ProgramSetResponse
      */
     repsMax?: number;
     /**
      * 
      * @type {number}
-     * @memberof ProgramSetTargetResponse
+     * @memberof ProgramSetResponse
      */
     repsMin?: number;
     /**
      * 
      * @type {number}
-     * @memberof ProgramSetTargetResponse
+     * @memberof ProgramSetResponse
      */
     sequence?: number;
     /**
      * 
      * @type {string}
-     * @memberof ProgramSetTargetResponse
+     * @memberof ProgramSetResponse
      */
     setType?: string;
-    /**
-     * 
-     * @type {number}
-     * @memberof ProgramSetTargetResponse
-     */
-    setsCount?: number;
 }
 
 /**
- * Check if a given object implements the ProgramSetTargetResponse interface.
+ * Check if a given object implements the ProgramSetResponse interface.
  */
-export function instanceOfProgramSetTargetResponse(value: object): value is ProgramSetTargetResponse {
+export function instanceOfProgramSetResponse(value: object): value is ProgramSetResponse {
     return true;
 }
 
-export function ProgramSetTargetResponseFromJSON(json: any): ProgramSetTargetResponse {
-    return ProgramSetTargetResponseFromJSONTyped(json, false);
+export function ProgramSetResponseFromJSON(json: any): ProgramSetResponse {
+    return ProgramSetResponseFromJSONTyped(json, false);
 }
 
-export function ProgramSetTargetResponseFromJSONTyped(json: any, ignoreDiscriminator: boolean): ProgramSetTargetResponse {
+export function ProgramSetResponseFromJSONTyped(json: any, ignoreDiscriminator: boolean): ProgramSetResponse {
     if (json == null) {
         return json;
     }
@@ -114,15 +108,14 @@ export function ProgramSetTargetResponseFromJSONTyped(json: any, ignoreDiscrimin
         'repsMin': json['reps_min'] == null ? undefined : json['reps_min'],
         'sequence': json['sequence'] == null ? undefined : json['sequence'],
         'setType': json['set_type'] == null ? undefined : json['set_type'],
-        'setsCount': json['sets_count'] == null ? undefined : json['sets_count'],
     };
 }
 
-export function ProgramSetTargetResponseToJSON(json: any): ProgramSetTargetResponse {
-    return ProgramSetTargetResponseToJSONTyped(json, false);
+export function ProgramSetResponseToJSON(json: any): ProgramSetResponse {
+    return ProgramSetResponseToJSONTyped(json, false);
 }
 
-export function ProgramSetTargetResponseToJSONTyped(value?: ProgramSetTargetResponse | null, ignoreDiscriminator: boolean = false): any {
+export function ProgramSetResponseToJSONTyped(value?: ProgramSetResponse | null, ignoreDiscriminator: boolean = false): any {
     if (value == null) {
         return value;
     }
@@ -139,7 +132,6 @@ export function ProgramSetTargetResponseToJSONTyped(value?: ProgramSetTargetResp
         'reps_min': value['repsMin'],
         'sequence': value['sequence'],
         'set_type': value['setType'],
-        'sets_count': value['setsCount'],
     };
 }
 

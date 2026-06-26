@@ -1,29 +1,27 @@
 import { describe, expect, it } from "vitest"
 
-import { mapDay, mapExercise, mapProgram, mapSetTarget, mapWeek } from "./program-mapper"
+import { mapDay, mapExercise, mapGroup, mapProgram, mapWeek } from "./program-mapper"
 import type {
   ProgramDayResponse,
   ProgramExerciseResponse,
   ProgramResponse,
-  ProgramSetTargetResponse,
+  ProgramSetGroupResponse,
   ProgramWeekResponse,
 } from "@/services/generated"
 
-// ─── mapSetTarget ──────────────────────────────────────────────────────────
+// ─── mapGroup ──────────────────────────────────────────────────────────────
 
-describe("mapSetTarget", () => {
-  it("converts cap kg → lb (rounded) and copies sets/rpe", () => {
-    // 129.27 kg → 285 lb per the seed data convention.
-    const input: ProgramSetTargetResponse = {
-      setsCount: 2,
-      repsMin: 3,
-      repsMax: 5,
-      intensityText: "285lb (0.95)",
-      capLoadKg: 129.27,
-      prescribedRpe: 8,
+describe("mapGroup", () => {
+  it("converts cap kg → lb (rounded), counts sets, copies rpe/intensity", () => {
+    // 129.27 kg → 285 lb per the seed data convention. Prescription from set[0].
+    const input: ProgramSetGroupResponse = {
+      sets: [
+        { repsMin: 3, repsMax: 5, intensityText: "285lb (0.95)", capLoadKg: 129.27, prescribedRpe: 8 },
+        { repsMin: 3, repsMax: 5, intensityText: "285lb (0.95)", capLoadKg: 129.27, prescribedRpe: 8 },
+      ],
     }
 
-    const out = mapSetTarget(input)
+    const out = mapGroup(input)
 
     expect(out.sets).toBe(2)
     expect(out.cap).toBe(285)
@@ -32,54 +30,45 @@ describe("mapSetTarget", () => {
   })
 
   it("formats reps as a single value when min == max", () => {
-    const out = mapSetTarget({ setsCount: 1, repsMin: 3, repsMax: 3 })
-    expect(out.reps).toBe("3")
+    expect(mapGroup({ sets: [{ repsMin: 3, repsMax: 3 }] }).reps).toBe("3")
   })
 
   it("formats reps as an en-dash range when min < max", () => {
-    const out = mapSetTarget({ setsCount: 1, repsMin: 6, repsMax: 10 })
-    expect(out.reps).toBe("6–10")
+    expect(mapGroup({ sets: [{ repsMin: 6, repsMax: 10 }] }).reps).toBe("6–10")
   })
 
   it("emits empty reps when neither min nor max is set", () => {
-    const out = mapSetTarget({ setsCount: 1 })
-    expect(out.reps).toBe("")
+    expect(mapGroup({ sets: [{}] }).reps).toBe("")
   })
 
   it("returns cap='' when capLoadKg is missing (preserves table placeholder)", () => {
-    const out = mapSetTarget({ setsCount: 1 })
-    expect(out.cap).toBe("")
+    expect(mapGroup({ sets: [{}] }).cap).toBe("")
   })
 
   it("leaves `used` blank — actuals come from session set_logs, not prescription", () => {
-    const out = mapSetTarget({ setsCount: 1, prescribedLoadKg: 129.27 })
-    expect(out.used).toBe("")
+    expect(mapGroup({ sets: [{ prescribedLoadKg: 129.27 }] }).used).toBe("")
   })
 
   it("converts prescribedLoadKg → lb for the side panel's planned stats", () => {
     // 129.27 kg → 285 lb.
-    const out = mapSetTarget({ setsCount: 1, prescribedLoadKg: 129.27 })
-    expect(out.prescribedLoad).toBe(285)
+    expect(mapGroup({ sets: [{ prescribedLoadKg: 129.27 }] }).prescribedLoad).toBe(285)
   })
 
   it("leaves prescribedLoad null when no absolute load is prescribed", () => {
-    const out = mapSetTarget({ setsCount: 1, intensityText: "0-1RIR" })
-    expect(out.prescribedLoad).toBeNull()
+    expect(mapGroup({ sets: [{ intensityText: "0-1RIR" }] }).prescribedLoad).toBeNull()
   })
 
-  it("threads through the set target id (still useful as a stable row key)", () => {
-    const out = mapSetTarget({ id: "pst-123", setsCount: 1 })
-    expect(out.id).toBe("pst-123")
+  it("threads through the group id (a stable row key)", () => {
+    expect(mapGroup({ id: "psg-123", sets: [{}] }).id).toBe("psg-123")
   })
 
   it("defaults rpe to null when not prescribed", () => {
-    const out = mapSetTarget({ setsCount: 1 })
-    expect(out.rpe).toBeNull()
+    expect(mapGroup({ sets: [{}] }).rpe).toBeNull()
   })
 
-  it("defaults setsCount to 0 when missing (avoids NaN math downstream)", () => {
-    const out = mapSetTarget({})
-    expect(out.sets).toBe(0)
+  it("defaults sets count to 0 when the group has no sets", () => {
+    expect(mapGroup({ sets: [] }).sets).toBe(0)
+    expect(mapGroup({}).sets).toBe(0)
   })
 })
 
@@ -90,7 +79,7 @@ describe("mapExercise", () => {
     const e: ProgramExerciseResponse = {
       exerciseName: "Squat",
       restSeconds: 180,
-      setTargets: [],
+      groups: [],
     }
     expect(mapExercise(e).rest).toBe(3)
   })
@@ -111,12 +100,17 @@ describe("mapExercise", () => {
     expect(mapExercise({ exerciseName: "x" }).sub).toBeUndefined()
   })
 
-  it("maps every set target into the blocks array", () => {
+  it("maps every group into the blocks array (block.sets = set count)", () => {
     const out = mapExercise({
       exerciseName: "Squat",
-      setTargets: [
-        { setsCount: 1, repsMin: 3, repsMax: 3 },
-        { setsCount: 2, repsMin: 5, repsMax: 5 },
+      groups: [
+        { sets: [{ repsMin: 3, repsMax: 3 }] },
+        {
+          sets: [
+            { repsMin: 5, repsMax: 5 },
+            { repsMin: 5, repsMax: 5 },
+          ],
+        },
       ],
     })
     expect(out.blocks.map((b) => b.sets)).toEqual([1, 2])
@@ -150,7 +144,7 @@ describe("mapDay", () => {
       name: "Day 1",
       tag: "Day 1",
       isRestDay: false,
-      exercises: [{ exerciseName: "Squat", setTargets: [{ setsCount: 1 }] }],
+      exercises: [{ exerciseName: "Squat", groups: [{ sets: [{}] }] }],
     }
     const out = mapDay(d)
     expect(out.off).toBeFalsy()
@@ -233,14 +227,17 @@ describe("mapProgram", () => {
                   exerciseName: "Comp Squat",
                   subText: "Belt + sleeves",
                   restSeconds: 180,
-                  setTargets: [
+                  groups: [
                     {
-                      setsCount: 1,
-                      repsMin: 3,
-                      repsMax: 3,
-                      intensityText: "300lb",
-                      capLoadKg: 136.08,
-                      prescribedRpe: 8,
+                      sets: [
+                        {
+                          repsMin: 3,
+                          repsMax: 3,
+                          intensityText: "300lb",
+                          capLoadKg: 136.08,
+                          prescribedRpe: 8,
+                        },
+                      ],
                     },
                   ],
                 },

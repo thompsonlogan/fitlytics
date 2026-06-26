@@ -43,11 +43,11 @@ type SessionExerciseResponse struct {
 type SetLogResponse struct {
 	ID       uuid.UUID `json:"id"`
 	Sequence int32     `json:"sequence"`
-	// BlockSequence is the originating program_set_target.sequence. Set logs that
-	// share a block_sequence are the individual sets of one prescribed block, so
-	// the frontend groups them back under a single table row.
-	BlockSequence *int32 `json:"block_sequence,omitempty"`
-	SetType       string `json:"set_type" example:"working"`
+	// GroupID is the snapshot of the originating program_set_group.id. Set logs
+	// that share a group_id are the individual sets of one prescribed block, so
+	// the frontend groups them back under a single table row. Null for ad-hoc sets.
+	GroupID *uuid.UUID `json:"group_id,omitempty"`
+	SetType string     `json:"set_type" example:"working"`
 	// prescription snapshot
 	RepsTargetMin          *int32   `json:"reps_target_min,omitempty"`
 	RepsTargetMax          *int32   `json:"reps_target_max,omitempty"`

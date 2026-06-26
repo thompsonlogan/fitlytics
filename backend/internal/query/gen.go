@@ -24,7 +24,8 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		Program:           newProgram(db, opts...),
 		ProgramDay:        newProgramDay(db, opts...),
 		ProgramExercise:   newProgramExercise(db, opts...),
-		ProgramSetTarget:  newProgramSetTarget(db, opts...),
+		ProgramSet:        newProgramSet(db, opts...),
+		ProgramSetGroup:   newProgramSetGroup(db, opts...),
 		ProgramWeek:       newProgramWeek(db, opts...),
 		Session:           newSession(db, opts...),
 		SessionExercise:   newSessionExercise(db, opts...),
@@ -43,7 +44,8 @@ type Query struct {
 	Program           program
 	ProgramDay        programDay
 	ProgramExercise   programExercise
-	ProgramSetTarget  programSetTarget
+	ProgramSet        programSet
+	ProgramSetGroup   programSetGroup
 	ProgramWeek       programWeek
 	Session           session
 	SessionExercise   sessionExercise
@@ -63,7 +65,8 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		Program:           q.Program.clone(db),
 		ProgramDay:        q.ProgramDay.clone(db),
 		ProgramExercise:   q.ProgramExercise.clone(db),
-		ProgramSetTarget:  q.ProgramSetTarget.clone(db),
+		ProgramSet:        q.ProgramSet.clone(db),
+		ProgramSetGroup:   q.ProgramSetGroup.clone(db),
 		ProgramWeek:       q.ProgramWeek.clone(db),
 		Session:           q.Session.clone(db),
 		SessionExercise:   q.SessionExercise.clone(db),
@@ -90,7 +93,8 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		Program:           q.Program.replaceDB(db),
 		ProgramDay:        q.ProgramDay.replaceDB(db),
 		ProgramExercise:   q.ProgramExercise.replaceDB(db),
-		ProgramSetTarget:  q.ProgramSetTarget.replaceDB(db),
+		ProgramSet:        q.ProgramSet.replaceDB(db),
+		ProgramSetGroup:   q.ProgramSetGroup.replaceDB(db),
 		ProgramWeek:       q.ProgramWeek.replaceDB(db),
 		Session:           q.Session.replaceDB(db),
 		SessionExercise:   q.SessionExercise.replaceDB(db),
@@ -107,7 +111,8 @@ type queryCtx struct {
 	Program           *programDo
 	ProgramDay        *programDayDo
 	ProgramExercise   *programExerciseDo
-	ProgramSetTarget  *programSetTargetDo
+	ProgramSet        *programSetDo
+	ProgramSetGroup   *programSetGroupDo
 	ProgramWeek       *programWeekDo
 	Session           *sessionDo
 	SessionExercise   *sessionExerciseDo
@@ -124,7 +129,8 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		Program:           q.Program.WithContext(ctx),
 		ProgramDay:        q.ProgramDay.WithContext(ctx),
 		ProgramExercise:   q.ProgramExercise.WithContext(ctx),
-		ProgramSetTarget:  q.ProgramSetTarget.WithContext(ctx),
+		ProgramSet:        q.ProgramSet.WithContext(ctx),
+		ProgramSetGroup:   q.ProgramSetGroup.WithContext(ctx),
 		ProgramWeek:       q.ProgramWeek.WithContext(ctx),
 		Session:           q.Session.WithContext(ctx),
 		SessionExercise:   q.SessionExercise.WithContext(ctx),

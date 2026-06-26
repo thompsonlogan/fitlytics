@@ -49,22 +49,21 @@ function is4xx(err: unknown): err is ResponseError {
 
 // buildBlockIndex groups each session exercise's per-set logs back under their
 // block row, keyed in the same shape as WorkoutRow.key (`${exIdx}-${blIdx}`,
-// 0-based). One program block ("2 × 5") expands into multiple set_logs that
-// share a `blockSequence`; we group by it, preserving the set order the backend
-// already sorted by. Logs without a blockSequence (pre-expansion sessions) each
-// form their own block so older data keeps rendering 1:1.
+// 0-based). The sets of one program block ("2 × 5") snapshot a shared `groupId`;
+// we group by it, preserving the set order the backend already sorted by. Logs
+// without a groupId (ad-hoc sets) each form their own block so they render 1:1.
 export function buildBlockIndex(
   session: SessionResponse | null | undefined
 ): Map<string, SetLogResponse[]> {
   const out = new Map<string, SetLogResponse[]>()
   if (!session?.exercises) return out
   session.exercises.forEach((exercise, exIdx) => {
-    const groups = new Map<number, SetLogResponse[]>()
-    const order: number[] = [] // distinct block keys in first-seen (== ascending) order
-    let synthetic = -1
+    const groups = new Map<string, SetLogResponse[]>()
+    const order: string[] = [] // distinct block keys in first-seen (== ascending) order
+    let synthetic = 0
     for (const log of exercise.setLogs ?? []) {
-      // Null blockSequence → unique negative key so each log stands alone.
-      const blockKey = log.blockSequence ?? synthetic--
+      // Null groupId → unique synthetic key so each log stands alone.
+      const blockKey = log.groupId ?? `__nogroup_${synthetic++}`
       let group = groups.get(blockKey)
       if (!group) {
         group = []

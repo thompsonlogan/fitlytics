@@ -186,7 +186,8 @@ func TestRepositoryStartSessionForDay_SnapshotsProgramIntoNewSession(t *testing.
 	dayID := uuid.New()
 	weekID := uuid.New()
 	peID := uuid.New()
-	pstID := uuid.New()
+	groupID := uuid.New()
+	setID := uuid.New()
 	exID := uuid.New()
 	newSessionID := uuid.New()
 	newSeID := uuid.New()
@@ -214,17 +215,21 @@ func TestRepositoryStartSessionForDay_SnapshotsProgramIntoNewSession(t *testing.
 			"id", "program_week_id", "sequence", "name", "is_rest_day", "created_at", "updated_at",
 		}).AddRow(dayID, weekID, 1, "Day 1", false, now, now))
 
-	// 3) Program exercises + preloaded set targets for the snapshot.
+	// 3) Program exercises + preloaded set groups/sets for the snapshot.
 	mock.ExpectQuery(`SELECT \* FROM "program_exercises" WHERE`).
 		WithArgs(uuidArg(dayID)).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "program_day_id", "sequence", "exercise_id", "sub_text", "rest_seconds", "created_at", "updated_at",
 		}).AddRow(peID, dayID, 1, exID, "Belt", 180, now, now))
 
-	mock.ExpectQuery(`SELECT \* FROM "program_set_targets"`).
+	mock.ExpectQuery(`SELECT \* FROM "program_set_groups"`).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "program_exercise_id", "sequence", "set_type", "sets_count", "prescribed_load_modifier", "created_at", "updated_at",
-		}).AddRow(pstID, peID, 1, "working", 1, "absolute", now, now))
+			"id", "program_exercise_id", "sequence", "created_at", "updated_at",
+		}).AddRow(groupID, peID, 1, now, now))
+	mock.ExpectQuery(`SELECT \* FROM "program_sets"`).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "group_id", "sequence", "set_type", "prescribed_load_modifier", "created_at", "updated_at",
+		}).AddRow(setID, groupID, 1, "working", "absolute", now, now))
 
 	// 3b) Bulk exercise-name lookup for name_snapshot.
 	mock.ExpectQuery(`SELECT "exercises"\."id","exercises"\."name" FROM "exercises"`).
@@ -275,7 +280,7 @@ func TestRepositoryStartSessionForDay_SnapshotsProgramIntoNewSession(t *testing.
 	}
 }
 
-func TestRepositoryStartSessionForDay_ExpandsSetsCountIntoPerSetLogs(t *testing.T) {
+func TestRepositoryStartSessionForDay_SnapshotsGroupSetsIntoPerSetLogs(t *testing.T) {
 	db, mock := newMockDB(t)
 
 	ownerID := uuid.New()
@@ -283,7 +288,9 @@ func TestRepositoryStartSessionForDay_ExpandsSetsCountIntoPerSetLogs(t *testing.
 	dayID := uuid.New()
 	weekID := uuid.New()
 	peID := uuid.New()
-	pstID := uuid.New()
+	groupID := uuid.New()
+	setID1 := uuid.New()
+	setID2 := uuid.New()
 	exID := uuid.New()
 	newSessionID := uuid.New()
 	newSeID := uuid.New()
@@ -315,11 +322,17 @@ func TestRepositoryStartSessionForDay_ExpandsSetsCountIntoPerSetLogs(t *testing.
 			"id", "program_day_id", "sequence", "exercise_id", "sub_text", "rest_seconds", "created_at", "updated_at",
 		}).AddRow(peID, dayID, 1, exID, nil, nil, now, now))
 
-	// One block prescribing two sets.
-	mock.ExpectQuery(`SELECT \* FROM "program_set_targets"`).
+	// One group of two sets.
+	mock.ExpectQuery(`SELECT \* FROM "program_set_groups"`).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "program_exercise_id", "sequence", "set_type", "sets_count", "prescribed_load_modifier", "created_at", "updated_at",
-		}).AddRow(pstID, peID, 1, "working", 2, "absolute", now, now))
+			"id", "program_exercise_id", "sequence", "created_at", "updated_at",
+		}).AddRow(groupID, peID, 1, now, now))
+	mock.ExpectQuery(`SELECT \* FROM "program_sets"`).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "group_id", "sequence", "set_type", "prescribed_load_modifier", "created_at", "updated_at",
+		}).
+			AddRow(setID1, groupID, 1, "working", "absolute", now, now).
+			AddRow(setID2, groupID, 2, "working", "absolute", now, now))
 
 	mock.ExpectQuery(`SELECT "exercises"\."id","exercises"\."name" FROM "exercises"`).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(exID, "Squat"))
@@ -344,10 +357,10 @@ func TestRepositoryStartSessionForDay_ExpandsSetsCountIntoPerSetLogs(t *testing.
 		}).AddRow(newSeID, newSessionID, 1, exID, "Squat"))
 	mock.ExpectQuery(`SELECT \* FROM "set_logs"`).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "session_exercise_id", "sequence", "block_sequence", "set_type", "state",
+			"id", "session_exercise_id", "sequence", "group_id", "set_type", "state",
 		}).
-			AddRow(logID1, newSeID, 1, 1, "working", "pending").
-			AddRow(logID2, newSeID, 2, 1, "working", "pending"))
+			AddRow(logID1, newSeID, 1, groupID, "working", "pending").
+			AddRow(logID2, newSeID, 2, groupID, "working", "pending"))
 
 	mock.ExpectCommit()
 
@@ -360,8 +373,8 @@ func TestRepositoryStartSessionForDay_ExpandsSetsCountIntoPerSetLogs(t *testing.
 	}
 	logs := session.Exercises[0].SetLogs
 	for i, l := range logs {
-		if l.BlockSequence == nil || *l.BlockSequence != 1 {
-			t.Errorf("set log %d: expected block_sequence 1, got %v", i, l.BlockSequence)
+		if l.GroupID == nil || *l.GroupID != groupID {
+			t.Errorf("set log %d: expected group_id %v, got %v", i, groupID, l.GroupID)
 		}
 		if l.Sequence != int32(i+1) {
 			t.Errorf("set log %d: expected sequence %d, got %d", i, i+1, l.Sequence)

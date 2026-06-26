@@ -259,15 +259,26 @@ create index program_exercises_exercise_idx on program_exercises (exercise_id);
 create trigger program_exercises_updated_at before update on program_exercises
   for each row execute function set_updated_at();
 
--- A program_set_target represents one "block" of prescribed sets that share
--- the same target params (e.g. "2 sets of 5 @ 285lb RPE 8"). When the user
--- starts a session, expand each target into sets_count individual set_logs.
-create table program_set_targets (
+-- Program sets are normalized one-row-per-set. A program_set_group is one
+-- "block" of sets the editor collapses into a single "2×5" row; a program_set
+-- is one prescribed set. At session start each program_set snapshots into
+-- exactly one set_log (1:1, no sets_count expansion).
+create table program_set_groups (
+  id                   uuid primary key default gen_random_uuid(),
+  program_exercise_id  uuid not null references program_exercises(id) on delete cascade,
+  sequence             int not null check (sequence > 0),   -- group display order within the exercise
+  created_at           timestamptz not null default now(),
+  updated_at           timestamptz not null default now(),
+  unique (program_exercise_id, sequence)
+);
+create trigger program_set_groups_updated_at before update on program_set_groups
+  for each row execute function set_updated_at();
+
+create table program_sets (
   id                        uuid primary key default gen_random_uuid(),
-  program_exercise_id       uuid not null references program_exercises(id) on delete cascade,
-  sequence                  int not null,
+  group_id                  uuid not null references program_set_groups(id) on delete cascade,
+  sequence                  int not null check (sequence > 0),   -- set order within the group
   set_type                  set_type not null default 'working',
-  sets_count                int not null default 1 check (sets_count > 0),
   reps_min                  int check (reps_min is null or reps_min >= 0),
   reps_max                  int check (reps_max is null or reps_max >= 0),
   intensity_text            text,             -- free-form display: "0–1 RIR", "285lb (0.95)"
@@ -277,10 +288,10 @@ create table program_set_targets (
   prescribed_rpe            numeric(3,1) check (prescribed_rpe is null or (prescribed_rpe >= 0 and prescribed_rpe <= 10)),
   created_at                timestamptz not null default now(),
   updated_at                timestamptz not null default now(),
-  unique (program_exercise_id, sequence),
-  constraint reps_range_ok check (reps_min is null or reps_max is null or reps_max >= reps_min)
+  unique (group_id, sequence),
+  constraint program_sets_reps_range_ok check (reps_min is null or reps_max is null or reps_max >= reps_min)
 );
-create trigger program_set_targets_updated_at before update on program_set_targets
+create trigger program_sets_updated_at before update on program_sets
   for each row execute function set_updated_at();
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -330,7 +341,7 @@ create table set_logs (
   id                        uuid primary key default gen_random_uuid(),
   session_exercise_id       uuid not null references session_exercises(id) on delete cascade,
   sequence                  int not null,
-  block_sequence            int,
+  group_id                  uuid,   -- snapshot of program_set_groups.id; null for ad-hoc sets (not an FK)
   set_type                  set_type not null default 'working',
   -- prescription snapshot
   reps_target_min           int,
@@ -354,8 +365,8 @@ create table set_logs (
 create index set_logs_active_seq_idx
   on set_logs (session_exercise_id, sequence)
   where deleted_at is null;
-create index if not exists set_logs_block_idx
-  on set_logs (session_exercise_id, block_sequence, sequence)
+create index if not exists set_logs_group_idx
+  on set_logs (session_exercise_id, group_id, sequence)
   where deleted_at is null;
 create trigger set_logs_updated_at before update on set_logs
   for each row execute function set_updated_at();

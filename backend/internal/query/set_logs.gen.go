@@ -30,7 +30,7 @@ func newSetLog(db *gorm.DB, opts ...gen.DOOption) setLog {
 	_setLog.ID = field.NewField(tableName, "id")
 	_setLog.SessionExerciseID = field.NewField(tableName, "session_exercise_id")
 	_setLog.Sequence = field.NewInt32(tableName, "sequence")
-	_setLog.BlockSequence = field.NewInt32(tableName, "block_sequence")
+	_setLog.GroupID = field.NewField(tableName, "group_id")
 	_setLog.SetType = field.NewString(tableName, "set_type")
 	_setLog.RepsTargetMin = field.NewInt32(tableName, "reps_target_min")
 	_setLog.RepsTargetMax = field.NewInt32(tableName, "reps_target_max")
@@ -60,7 +60,7 @@ type setLog struct {
 	ID                     field.Field
 	SessionExerciseID      field.Field
 	Sequence               field.Int32
-	BlockSequence          field.Int32
+	GroupID                field.Field
 	SetType                field.String
 	RepsTargetMin          field.Int32
 	RepsTargetMax          field.Int32
@@ -96,7 +96,7 @@ func (s *setLog) updateTableName(table string) *setLog {
 	s.ID = field.NewField(table, "id")
 	s.SessionExerciseID = field.NewField(table, "session_exercise_id")
 	s.Sequence = field.NewInt32(table, "sequence")
-	s.BlockSequence = field.NewInt32(table, "block_sequence")
+	s.GroupID = field.NewField(table, "group_id")
 	s.SetType = field.NewString(table, "set_type")
 	s.RepsTargetMin = field.NewInt32(table, "reps_target_min")
 	s.RepsTargetMax = field.NewInt32(table, "reps_target_max")
@@ -141,7 +141,7 @@ func (s *setLog) fillFieldMap() {
 	s.fieldMap["id"] = s.ID
 	s.fieldMap["session_exercise_id"] = s.SessionExerciseID
 	s.fieldMap["sequence"] = s.Sequence
-	s.fieldMap["block_sequence"] = s.BlockSequence
+	s.fieldMap["group_id"] = s.GroupID
 	s.fieldMap["set_type"] = s.SetType
 	s.fieldMap["reps_target_min"] = s.RepsTargetMin
 	s.fieldMap["reps_target_max"] = s.RepsTargetMax

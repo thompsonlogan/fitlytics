@@ -35,10 +35,15 @@ func newProgramExercise(db *gorm.DB, opts ...gen.DOOption) programExercise {
 	_programExercise.RestSeconds = field.NewInt32(tableName, "rest_seconds")
 	_programExercise.CreatedAt = field.NewTime(tableName, "created_at")
 	_programExercise.UpdatedAt = field.NewTime(tableName, "updated_at")
-	_programExercise.SetTargets = programExerciseHasManySetTargets{
+	_programExercise.Groups = programExerciseHasManyGroups{
 		db: db.Session(&gorm.Session{}),
 
-		RelationField: field.NewRelation("SetTargets", "generated.ProgramSetTarget"),
+		RelationField: field.NewRelation("Groups", "generated.ProgramSetGroup"),
+		Sets: struct {
+			field.RelationField
+		}{
+			RelationField: field.NewRelation("Groups.Sets", "generated.ProgramSet"),
+		},
 	}
 
 	_programExercise.fillFieldMap()
@@ -58,7 +63,7 @@ type programExercise struct {
 	RestSeconds  field.Int32
 	CreatedAt    field.Time
 	UpdatedAt    field.Time
-	SetTargets   programExerciseHasManySetTargets
+	Groups       programExerciseHasManyGroups
 
 	fieldMap map[string]field.Expr
 }
@@ -125,24 +130,28 @@ func (p *programExercise) fillFieldMap() {
 
 func (p programExercise) clone(db *gorm.DB) programExercise {
 	p.programExerciseDo.ReplaceConnPool(db.Statement.ConnPool)
-	p.SetTargets.db = db.Session(&gorm.Session{Initialized: true})
-	p.SetTargets.db.Statement.ConnPool = db.Statement.ConnPool
+	p.Groups.db = db.Session(&gorm.Session{Initialized: true})
+	p.Groups.db.Statement.ConnPool = db.Statement.ConnPool
 	return p
 }
 
 func (p programExercise) replaceDB(db *gorm.DB) programExercise {
 	p.programExerciseDo.ReplaceDB(db)
-	p.SetTargets.db = db.Session(&gorm.Session{})
+	p.Groups.db = db.Session(&gorm.Session{})
 	return p
 }
 
-type programExerciseHasManySetTargets struct {
+type programExerciseHasManyGroups struct {
 	db *gorm.DB
 
 	field.RelationField
+
+	Sets struct {
+		field.RelationField
+	}
 }
 
-func (a programExerciseHasManySetTargets) Where(conds ...field.Expr) *programExerciseHasManySetTargets {
+func (a programExerciseHasManyGroups) Where(conds ...field.Expr) *programExerciseHasManyGroups {
 	if len(conds) == 0 {
 		return &a
 	}
@@ -155,32 +164,32 @@ func (a programExerciseHasManySetTargets) Where(conds ...field.Expr) *programExe
 	return &a
 }
 
-func (a programExerciseHasManySetTargets) WithContext(ctx context.Context) *programExerciseHasManySetTargets {
+func (a programExerciseHasManyGroups) WithContext(ctx context.Context) *programExerciseHasManyGroups {
 	a.db = a.db.WithContext(ctx)
 	return &a
 }
 
-func (a programExerciseHasManySetTargets) Session(session *gorm.Session) *programExerciseHasManySetTargets {
+func (a programExerciseHasManyGroups) Session(session *gorm.Session) *programExerciseHasManyGroups {
 	a.db = a.db.Session(session)
 	return &a
 }
 
-func (a programExerciseHasManySetTargets) Model(m *generated.ProgramExercise) *programExerciseHasManySetTargetsTx {
-	return &programExerciseHasManySetTargetsTx{a.db.Model(m).Association(a.Name())}
+func (a programExerciseHasManyGroups) Model(m *generated.ProgramExercise) *programExerciseHasManyGroupsTx {
+	return &programExerciseHasManyGroupsTx{a.db.Model(m).Association(a.Name())}
 }
 
-func (a programExerciseHasManySetTargets) Unscoped() *programExerciseHasManySetTargets {
+func (a programExerciseHasManyGroups) Unscoped() *programExerciseHasManyGroups {
 	a.db = a.db.Unscoped()
 	return &a
 }
 
-type programExerciseHasManySetTargetsTx struct{ tx *gorm.Association }
+type programExerciseHasManyGroupsTx struct{ tx *gorm.Association }
 
-func (a programExerciseHasManySetTargetsTx) Find() (result []*generated.ProgramSetTarget, err error) {
+func (a programExerciseHasManyGroupsTx) Find() (result []*generated.ProgramSetGroup, err error) {
 	return result, a.tx.Find(&result)
 }
 
-func (a programExerciseHasManySetTargetsTx) Append(values ...*generated.ProgramSetTarget) (err error) {
+func (a programExerciseHasManyGroupsTx) Append(values ...*generated.ProgramSetGroup) (err error) {
 	targetValues := make([]interface{}, len(values))
 	for i, v := range values {
 		targetValues[i] = v
@@ -188,7 +197,7 @@ func (a programExerciseHasManySetTargetsTx) Append(values ...*generated.ProgramS
 	return a.tx.Append(targetValues...)
 }
 
-func (a programExerciseHasManySetTargetsTx) Replace(values ...*generated.ProgramSetTarget) (err error) {
+func (a programExerciseHasManyGroupsTx) Replace(values ...*generated.ProgramSetGroup) (err error) {
 	targetValues := make([]interface{}, len(values))
 	for i, v := range values {
 		targetValues[i] = v
@@ -196,7 +205,7 @@ func (a programExerciseHasManySetTargetsTx) Replace(values ...*generated.Program
 	return a.tx.Replace(targetValues...)
 }
 
-func (a programExerciseHasManySetTargetsTx) Delete(values ...*generated.ProgramSetTarget) (err error) {
+func (a programExerciseHasManyGroupsTx) Delete(values ...*generated.ProgramSetGroup) (err error) {
 	targetValues := make([]interface{}, len(values))
 	for i, v := range values {
 		targetValues[i] = v
@@ -204,15 +213,15 @@ func (a programExerciseHasManySetTargetsTx) Delete(values ...*generated.ProgramS
 	return a.tx.Delete(targetValues...)
 }
 
-func (a programExerciseHasManySetTargetsTx) Clear() error {
+func (a programExerciseHasManyGroupsTx) Clear() error {
 	return a.tx.Clear()
 }
 
-func (a programExerciseHasManySetTargetsTx) Count() int64 {
+func (a programExerciseHasManyGroupsTx) Count() int64 {
 	return a.tx.Count()
 }
 
-func (a programExerciseHasManySetTargetsTx) Unscoped() *programExerciseHasManySetTargetsTx {
+func (a programExerciseHasManyGroupsTx) Unscoped() *programExerciseHasManyGroupsTx {
 	a.tx = a.tx.Unscoped()
 	return &a
 }

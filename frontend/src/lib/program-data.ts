@@ -4,7 +4,7 @@
 // side-panel, sub-bar) operates on this type only.
 
 export type SetBlock = {
-  // id is the backing program_set_targets UUID. Needed so per-cell edits in
+  // id is the backing program_set_groups UUID. Needed so per-cell edits in
   // the workout table can PATCH the right row. Empty string only on rows that
   // weren't loaded from the API (defensive — should never happen in prod).
   id: string

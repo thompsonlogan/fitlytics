@@ -14,7 +14,8 @@ models/ProblemDetails.ts
 models/ProgramDayResponse.ts
 models/ProgramExerciseResponse.ts
 models/ProgramResponse.ts
-models/ProgramSetTargetResponse.ts
+models/ProgramSetGroupResponse.ts
+models/ProgramSetResponse.ts
 models/ProgramSummaryResponse.ts
 models/ProgramWeekResponse.ts
 models/SessionExerciseResponse.ts

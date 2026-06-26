@@ -39,15 +39,26 @@ func newProgramWeek(db *gorm.DB, opts ...gen.DOOption) programWeek {
 		RelationField: field.NewRelation("Days", "generated.ProgramDay"),
 		Exercises: struct {
 			field.RelationField
-			SetTargets struct {
+			Groups struct {
 				field.RelationField
+				Sets struct {
+					field.RelationField
+				}
 			}
 		}{
 			RelationField: field.NewRelation("Days.Exercises", "generated.ProgramExercise"),
-			SetTargets: struct {
+			Groups: struct {
 				field.RelationField
+				Sets struct {
+					field.RelationField
+				}
 			}{
-				RelationField: field.NewRelation("Days.Exercises.SetTargets", "generated.ProgramSetTarget"),
+				RelationField: field.NewRelation("Days.Exercises.Groups", "generated.ProgramSetGroup"),
+				Sets: struct {
+					field.RelationField
+				}{
+					RelationField: field.NewRelation("Days.Exercises.Groups.Sets", "generated.ProgramSet"),
+				},
 			},
 		},
 	}
@@ -146,8 +157,11 @@ type programWeekHasManyDays struct {
 
 	Exercises struct {
 		field.RelationField
-		SetTargets struct {
+		Groups struct {
 			field.RelationField
+			Sets struct {
+				field.RelationField
+			}
 		}
 	}
 }

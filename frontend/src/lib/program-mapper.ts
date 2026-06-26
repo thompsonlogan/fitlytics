@@ -2,7 +2,7 @@ import type {
   ProgramDayResponse,
   ProgramExerciseResponse,
   ProgramResponse,
-  ProgramSetTargetResponse,
+  ProgramSetGroupResponse,
   ProgramWeekResponse,
 } from "@/services/generated"
 
@@ -33,28 +33,33 @@ function formatReps(min: number | null | undefined, max: number | null | undefin
   return String(lo ?? hi)
 }
 
-// mapSetTarget converts one prescribed set-block (e.g. "2 sets of 2 reps at
-// 285lb RPE 5") into the SetBlock the workout table renders.
+// mapGroup converts one prescribed set group (e.g. "2 sets of 2 reps at 285lb
+// RPE 5") into the SetBlock the workout table renders. A group is a run of
+// normalized one-per-row sets sharing a prescription; the block count is the
+// number of sets and the displayed prescription comes from the first set.
 //
 // Prescription-only fields land here. Actuals ("Load Used", "Last Set RPE",
 // completion) come from session set_logs and are merged in at the table level.
-export function mapSetTarget(t: ProgramSetTargetResponse): SetBlock {
-  const capLb = t.capLoadKg != null ? KG_TO_LB(t.capLoadKg) : ""
+export function mapGroup(g: ProgramSetGroupResponse): SetBlock {
+  const sets = g.sets ?? []
+  const first = sets[0]
+  const capLb = first?.capLoadKg != null ? KG_TO_LB(first.capLoadKg) : ""
 
   return {
-    id: t.id ?? "",
-    sets: t.setsCount ?? 0,
-    reps: formatReps(t.repsMin, t.repsMax),
-    intensity: t.intensityText ?? "",
+    id: g.id ?? "",
+    sets: sets.length,
+    reps: formatReps(first?.repsMin, first?.repsMax),
+    intensity: first?.intensityText ?? "",
     cap: capLb,
     used: "",
-    rpe: t.prescribedRpe ?? null,
-    prescribedLoad: t.prescribedLoadKg != null ? KG_TO_LB(t.prescribedLoadKg) : null,
+    rpe: first?.prescribedRpe ?? null,
+    prescribedLoad: first?.prescribedLoadKg != null ? KG_TO_LB(first.prescribedLoadKg) : null,
   }
 }
 
 // mapExercise composes one exercise card (one row group in the table). The
-// backend already orders set_targets by sequence so we don't re-sort here.
+// backend already orders groups (and the sets within them) by sequence so we
+// don't re-sort here.
 export function mapExercise(e: ProgramExerciseResponse): Exercise {
   const restMin =
     e.restSeconds != null && e.restSeconds > 0 ? Math.round(e.restSeconds / 60) : REST_DEFAULT_MIN
@@ -63,7 +68,7 @@ export function mapExercise(e: ProgramExerciseResponse): Exercise {
     name: e.exerciseName ?? "",
     rest: restMin,
     sub: e.subText ?? undefined,
-    blocks: (e.setTargets ?? []).map(mapSetTarget),
+    blocks: (e.groups ?? []).map(mapGroup),
   }
 }
 

@@ -173,7 +173,8 @@ func TestRepositoryGetProgramById_HappyPathPreloadsEntireAggregate(t *testing.T)
 	weekID := uuid.New()
 	dayID := uuid.New()
 	peID := uuid.New()
-	pstID := uuid.New()
+	groupID := uuid.New()
+	setID := uuid.New()
 	exID := uuid.New()
 	now := time.Now()
 
@@ -202,15 +203,21 @@ func TestRepositoryGetProgramById_HappyPathPreloadsEntireAggregate(t *testing.T)
 			"id", "program_day_id", "sequence", "exercise_id", "sub_text", "rest_seconds", "created_at", "updated_at",
 		}).AddRow(peID, dayID, 1, exID, nil, nil, now, now))
 
-	mock.ExpectQuery(`SELECT \* FROM "program_set_targets" WHERE "program_set_targets"\."program_exercise_id" = \$1`).
+	mock.ExpectQuery(`SELECT \* FROM "program_set_groups" WHERE "program_set_groups"\."program_exercise_id" = \$1`).
 		WithArgs(uuidArg(peID)).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "program_exercise_id", "sequence", "set_type", "sets_count",
+			"id", "program_exercise_id", "sequence", "created_at", "updated_at",
+		}).AddRow(groupID, peID, 1, now, now))
+
+	mock.ExpectQuery(`SELECT \* FROM "program_sets" WHERE "program_sets"\."group_id" = \$1`).
+		WithArgs(uuidArg(groupID)).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "group_id", "sequence", "set_type",
 			"reps_min", "reps_max",
 			"intensity_text", "prescribed_load_kg", "prescribed_load_modifier",
 			"cap_load_kg", "prescribed_rpe", "created_at", "updated_at",
 		}).AddRow(
-			pstID, peID, 1, "working", 1,
+			setID, groupID, 1, "working",
 			nil, nil,
 			nil, nil, "absolute",
 			nil, nil, now, now,
@@ -225,7 +232,7 @@ func TestRepositoryGetProgramById_HappyPathPreloadsEntireAggregate(t *testing.T)
 	}
 	if len(prog.Weeks) != 1 || len(prog.Weeks[0].Days) != 1 ||
 		len(prog.Weeks[0].Days[0].Exercises) != 1 ||
-		len(prog.Weeks[0].Days[0].Exercises[0].SetTargets) != 1 {
+		len(prog.Weeks[0].Days[0].Exercises[0].Groups) != 1 {
 		t.Errorf("tree shape: %+v", prog)
 	}
 

@@ -10,15 +10,14 @@ import (
 	"github.com/google/uuid"
 )
 
-const TableNameProgramSetTarget = "program_set_targets"
+const TableNameProgramSet = "program_sets"
 
-// ProgramSetTarget mapped from table <program_set_targets>
-type ProgramSetTarget struct {
+// ProgramSet mapped from table <program_sets>
+type ProgramSet struct {
 	ID                     uuid.UUID `gorm:"column:id;type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	ProgramExerciseID      uuid.UUID `gorm:"column:program_exercise_id;type:uuid;not null" json:"program_exercise_id"`
+	GroupID                uuid.UUID `gorm:"column:group_id;type:uuid;not null" json:"group_id"`
 	Sequence               int32     `gorm:"column:sequence;type:integer;not null" json:"sequence"`
 	SetType                string    `gorm:"column:set_type;type:set_type;not null;default:working" json:"set_type"`
-	SetsCount              int32     `gorm:"column:sets_count;type:integer;not null;default:1" json:"sets_count"`
 	RepsMin                *int32    `gorm:"column:reps_min;type:integer" json:"reps_min"`
 	RepsMax                *int32    `gorm:"column:reps_max;type:integer" json:"reps_max"`
 	IntensityText          *string   `gorm:"column:intensity_text;type:text" json:"intensity_text"`
@@ -30,7 +29,7 @@ type ProgramSetTarget struct {
 	UpdatedAt              time.Time `gorm:"column:updated_at;type:timestamp with time zone;not null;default:now()" json:"updated_at"`
 }
 
-// TableName ProgramSetTarget's table name
-func (*ProgramSetTarget) TableName() string {
-	return TableNameProgramSetTarget
+// TableName ProgramSet's table name
+func (*ProgramSet) TableName() string {
+	return TableNameProgramSet
 }
