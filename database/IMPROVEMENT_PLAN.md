@@ -117,10 +117,11 @@ editable/deletable; the session must freeze the value). Group ids therefore **in
 across sessions** and are **not unique** in `set_logs`; the session view collapses sets sharing a
 snapshotted `group_id`.
 
-**Editor work:** define grouped **insert / delete / reorder / split / merge** — now operating on
-`program_set_groups` (create/reorder/delete groups) and `program_sets` (add/remove/reorder sets
-within a group). Reads return sets grouped by `group_id`; set-count change = insert/delete rows in
-a group; a diverging set moves to its own group.
+**Out of scope — this plan is data-design cleanup only, no UI changes.** A program *editor*
+(grouped insert/delete/reorder/split/merge on `program_set_groups`/`program_sets`) is a future
+product feature, not part of this plan; the normalization just makes it possible. Programs stay
+read-only here. (Frontend touches in this plan are limited to keeping the existing client/mapper
+working against changed API shapes.)
 
 ---
 
@@ -431,9 +432,8 @@ and the branch is never half-broken. Each step carries its own verification test
 - [ ] **C3** — Equipment lookup (`equipment` + `exercise_equipment` + codegen + seed conversion; drop `equipment text[]`). · ~160 → **split: (a) tables + codegen, (b) seed conversion + drop old column + frontend.**
 
 ### D — Program-set normalization
-- [ ] **D1** — `program_set_groups` + `program_sets` (replace `program_set_targets`) + codegen + read mapping + the `program_set_targets`→`program_sets` / `block_sequence`→`group_id` renames. · ~150 → **split: (a) tables + codegen, (b) read DTO/mapper/frontend reads.**
-- [ ] **D2** — Snapshot writer: 1:1 `program_sets` → `set_logs` (remove `sets_count` expansion). · ~60 · *edits `StartSessionForDay`*
-- [ ] **D3** — Frontend editor: grouped insert/delete/reorder/split/merge. · **large — its own sub-sequence of commits, not one step.**
+- [x] **D** — `program_set_groups` + `program_sets` (replace `program_set_targets`); `block_sequence`→`group_id`; snapshot writer 1:1; read DTO/mapper + regenerated client. Done as one atomic commit (schema/read/writer are compile-coupled).
+- ~~D3 — set-editor UI~~ — **out of scope** (UI feature; this plan is data-design only).
 
 ### E — Analytics denormalization
 - [ ] **E1** — `set_logs.user_id` + `exercise_id` (NOT NULL FK); populate in snapshot + seed; partial composite index; `unique(set_logs.id, user_id)`. · ~100 · *edits `StartSessionForDay`*
