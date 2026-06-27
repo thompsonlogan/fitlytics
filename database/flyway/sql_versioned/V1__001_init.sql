@@ -409,18 +409,23 @@ create trigger set_logs_updated_at before update on set_logs
 
 create table if not exists set_videos (
   id             uuid primary key default gen_random_uuid(),
-  set_log_id     uuid not null references set_logs(id) on delete cascade,
-  user_id        uuid not null references users(id) on delete cascade,
-  status         text not null default 'pending',
+  set_log_id     uuid not null,
+  user_id        uuid not null,
+  status         text not null default 'pending' check (status in ('pending', 'ready', 'failed')),
   storage_key    text not null,
   content_type   text,
   size_bytes     bigint check (size_bytes is null or size_bytes >= 0),
-  duration_sec   numeric,                 -- client-reported hint; not authoritative
+  duration_sec   numeric check (duration_sec is null or duration_sec >= 0),  -- client hint; not authoritative
   original_name  text,
   note           text,
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now(),
-  deleted_at     timestamptz
+  deleted_at     timestamptz,
+  -- Composite FK guarantees a video's owner matches its set's owner (and that the
+  -- set_log exists). Replaces the separate set_log_id/user_id FKs; cascades on
+  -- set_log deletion, and transitively on user deletion via set_logs.user_id.
+  constraint set_videos_setlog_owner_fk foreign key (set_log_id, user_id)
+    references set_logs (id, user_id) on delete cascade
 );
 create unique index if not exists set_videos_setlog_uq
   on set_videos (set_log_id)
