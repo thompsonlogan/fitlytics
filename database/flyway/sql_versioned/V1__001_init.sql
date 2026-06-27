@@ -354,11 +354,11 @@ create table set_logs (
   group_id                  uuid,   -- snapshot of program_set_groups.id; null for ad-hoc sets (not an FK)
   set_type                  set_type not null default 'working',
   -- prescription snapshot
-  reps_target_min           int,
-  reps_target_max           int,
-  prescribed_load_kg        numeric(7,2),
+  reps_target_min           int check (reps_target_min is null or reps_target_min >= 0),
+  reps_target_max           int check (reps_target_max is null or reps_target_max >= 0),
+  prescribed_load_kg        numeric(7,2) check (prescribed_load_kg is null or prescribed_load_kg >= 0),
   prescribed_load_modifier  load_modifier not null default 'absolute',
-  prescribed_rpe            numeric(3,1),
+  prescribed_rpe            numeric(3,1) check (prescribed_rpe is null or (prescribed_rpe >= 0 and prescribed_rpe <= 10)),
   intensity_text            text,
   -- actuals
   reps_actual               int check (reps_actual is null or reps_actual >= 0),
@@ -372,6 +372,7 @@ create table set_logs (
   updated_at                timestamptz not null default now(),
   deleted_at                timestamptz,
   constraint set_logs_completed_has_at check (state <> 'completed' or completed_at is not null),
+  constraint set_logs_reps_range_ok check (reps_target_min is null or reps_target_max is null or reps_target_max >= reps_target_min),
   -- Guarantees exercise_id matches the owning session_exercise's exercise_id
   -- (declarative, no trigger; pairs with unique(id, exercise_id) on session_exercises).
   constraint set_logs_exercise_matches_se foreign key (session_exercise_id, exercise_id)
