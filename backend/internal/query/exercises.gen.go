@@ -29,6 +29,7 @@ func newExercise(db *gorm.DB, opts ...gen.DOOption) exercise {
 	_exercise.ALL = field.NewAsterisk(tableName)
 	_exercise.ID = field.NewField(tableName, "id")
 	_exercise.CanonicalID = field.NewField(tableName, "canonical_id")
+	_exercise.CanonicalRefFlag = field.NewBool(tableName, "canonical_ref_flag")
 	_exercise.CreatedByUserID = field.NewField(tableName, "created_by_user_id")
 	_exercise.IsCanonical = field.NewBool(tableName, "is_canonical")
 	_exercise.Name = field.NewString(tableName, "name")
@@ -55,6 +56,7 @@ type exercise struct {
 	ALL                 field.Asterisk
 	ID                  field.Field
 	CanonicalID         field.Field
+	CanonicalRefFlag    field.Bool
 	CreatedByUserID     field.Field
 	IsCanonical         field.Bool
 	Name                field.String
@@ -87,6 +89,7 @@ func (e *exercise) updateTableName(table string) *exercise {
 	e.ALL = field.NewAsterisk(table)
 	e.ID = field.NewField(table, "id")
 	e.CanonicalID = field.NewField(table, "canonical_id")
+	e.CanonicalRefFlag = field.NewBool(table, "canonical_ref_flag")
 	e.CreatedByUserID = field.NewField(table, "created_by_user_id")
 	e.IsCanonical = field.NewBool(table, "is_canonical")
 	e.Name = field.NewString(table, "name")
@@ -125,9 +128,10 @@ func (e *exercise) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (e *exercise) fillFieldMap() {
-	e.fieldMap = make(map[string]field.Expr, 16)
+	e.fieldMap = make(map[string]field.Expr, 17)
 	e.fieldMap["id"] = e.ID
 	e.fieldMap["canonical_id"] = e.CanonicalID
+	e.fieldMap["canonical_ref_flag"] = e.CanonicalRefFlag
 	e.fieldMap["created_by_user_id"] = e.CreatedByUserID
 	e.fieldMap["is_canonical"] = e.IsCanonical
 	e.fieldMap["name"] = e.Name

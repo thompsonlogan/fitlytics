@@ -100,9 +100,7 @@ func run() error {
 	// each aggregate tree, then pass everything to ApplyBasic.
 
 	// Tables without inbound nav fields can be generated first / independently.
-	// canonical_ref_flag is a generated column used only by the canonical-ref
-	// composite FK; Postgres rejects writes to it, so keep it out of the model.
-	exercise := g.GenerateModel("exercises", softDelete, gen.FieldIgnore("canonical_ref_flag"))
+	exercise := g.GenerateModel("exercises", softDelete)
 	user := g.GenerateModel("users", softDelete)
 	equipment := g.GenerateModel("equipment")
 	exerciseEquipment := g.GenerateModel("exercise_equipment")
