@@ -201,7 +201,11 @@ join. Fix it now.
 
 ---
 
-## 6. Program runs + scheduling
+## 6. Program runs + scheduling — ⚠️ DEFERRED (not MVP)
+
+> Deferred: run-tracking for repeating programs is feature scope, not data-design cleanup. The MVP
+> uses `program_day_id` + newest-wins; sequence-driven scheduling stands without a movable anchor.
+> The design below is retained for when this is built.
 
 ### `program_runs`
 
@@ -288,7 +292,10 @@ values but allows the FK `SET NULL` transitions.
 
 ---
 
-## 7. Hard-delete programs
+## 7. Hard-delete programs — ⚠️ DEFERRED (with F)
+
+> Deferred: Item 2's soft-delete/cascade mismatch is latent today (programs have no delete path), so
+> `programs.deleted_at` stays unused for now. Revisit when a program-delete feature exists.
 
 - **Hard-delete** program templates; cascading FKs remove weeks/days/exercises/sets.
 - `program_runs.program_id → NULL` (runs survive as historical records);
@@ -391,8 +398,8 @@ Required tests proving the constraints actually hold, against a clean database:
 | 3 | Normalize program sets | med | one-row-per-set + `program_set_groups` (FK ownership/order) |
 | 4 | Canonical model + equipment lookup | med | composite-FK rules, ownership-on-delete, equipment tables |
 | 5 | Analytics denormalization | med | denormalized ids + declarative composite-FK consistency (no triggers) |
-| 6 | Program runs + scheduling | high | runs survive deletion; active-run model; consistency triad |
-| 7 | Hard-delete programs | low | cascade; snapshots + surviving runs preserve history |
+| ~~6~~ | Program runs + scheduling | — | **DEFERRED (not MVP)** — feature scope |
+| ~~7~~ | Hard-delete programs | — | **DEFERRED (with F)** — latent; no program-delete path in MVP |
 | 8 | Integrity constraints | med | session/set/video, timestamp semantics, corrected load-type |
 | 9 | Decimal precision | deferred | keep `numeric`; exact math in SQL |
 | 10 | RLS | deferred | app filters now; future project |
@@ -440,14 +447,19 @@ and the branch is never half-broken. Each step carries its own verification test
 - ~~D3 — set-editor UI~~ — **out of scope** (UI feature; this plan is data-design only).
 
 ### E — Analytics denormalization
-- [ ] **E1** — `set_logs.user_id` + `exercise_id` (NOT NULL FK); populate in snapshot + seed; partial composite index; `unique(set_logs.id, user_id)`. · ~100 · *edits `StartSessionForDay`*
+- [x] **E1** — `set_logs.user_id` + `exercise_id` (NOT NULL FK); populate in snapshot + seed; partial composite index; `unique(set_logs.id, user_id)`.
 - [x] **E2** — `exercise_id` consistency via composite FK (`unique(id, exercise_id)` on session_exercises + `set_logs (session_exercise_id, exercise_id)` FK); `user_id` + immutability as documented app invariants. **No triggers.**
 
-### F — Program runs + triad (most coupled)
-- [ ] **F1** — `program_runs` table + codegen; `sessions.program_run_id` (nullable); FKs + uniques. · ~120
-- [ ] **F2** — Active-run lifecycle (resolve/create/resume) in `StartSessionForDay`; re-key `GetCurrentSessionByDay` on `(run, day)`. · ~120 · *edits `StartSessionForDay`*
-- [ ] **F3** — Session consistency trigger + tests (incl. real-cascade `DELETE FROM programs`). · ~100
-- [ ] **F4** — Hard-delete programs: drop `programs.deleted_at`, FK actions, remove soft-delete paths. · ~80
+### F — Program runs + triad — ⚠️ DEFERRED (not MVP)
+Run-tracking for *repeating* programs is feature scope, not data-design cleanup, and the MVP doesn't
+need it (sessions work via `program_day_id` + newest-wins). Deferred as a separate future effort,
+with its dependents:
+- ~~F1~~ `program_runs` table + `sessions.program_run_id`.
+- ~~F2~~ active-run lifecycle in `StartSessionForDay`; re-key current-session on `(run, day)`.
+- ~~F3~~ the session run/day/owner consistency triad.
+- ~~F4~~ hard-delete programs (Item 2's soft-delete/cascade mismatch). Latent today — programs have
+  no delete path — so deferred too; `programs.deleted_at` stays unused for now, revisited when a
+  program-delete feature exists. Sequence-driven scheduling stands (newest-wins; no movable anchor).
 
 ### G — Integrity + video
 - [ ] **G1** — Session/set CHECKs (`sequence > 0`, `state ⇒ completed_at`, unique active seq) + timestamp app rules. · ~80
