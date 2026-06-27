@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -66,6 +67,13 @@ func (r *repository) GetCurrentSessionByDay(ctx context.Context, programDayID, o
 
 	sortSessionTree(session)
 	return session, nil
+}
+
+// isUniqueViolation reports whether err (possibly wrapped) is a Postgres
+// unique-constraint violation on the named constraint. Matched by name so it
+// stays independent of the SQL driver's concrete error type.
+func isUniqueViolation(err error, constraint string) bool {
+	return err != nil && strings.Contains(err.Error(), constraint)
 }
 
 func (r *repository) StartSessionForDay(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*generated.Session, error) {
@@ -246,6 +254,11 @@ func (r *repository) StartSessionForDay(ctx context.Context, programID, programD
 		return nil
 	})
 	if err != nil {
+		// A concurrent first-start committed the session before us and our insert
+		// hit sessions_active_day_uq; load and return the winner's row.
+		if isUniqueViolation(err, "sessions_active_day_uq") {
+			return r.GetCurrentSessionByDay(ctx, programDayID, ownerUserID)
+		}
 		return nil, err
 	}
 	return &out, nil

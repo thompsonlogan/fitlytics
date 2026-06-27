@@ -2,8 +2,10 @@
 --
 -- Target: PostgreSQL 15+. Applied by Flyway from database/docker-compose.yml.
 -- All objects live in the `fitlytics` schema; pgcrypto is installed to public
--- so gen_random_uuid() resolves via search_path. The trailing ALTER DATABASE
--- pins search_path for every future connection (app, gen, psql).
+-- so gen_random_uuid() resolves via search_path. Each connection sets its own
+-- search_path: the migration via the session-level SET below; the app and gen
+-- via the connection string (search_path=fitlytics,public), configured per
+-- environment rather than coupled to a hardcoded database name.
 --
 -- Conventions baked in here:
 --   * All loads stored canonically in kg. Distances in meters. Durations in
@@ -318,6 +320,12 @@ create table sessions (
 create index sessions_user_recent_idx
   on sessions (user_id, coalesce(started_at, created_at) desc)
   where deleted_at is null;
+-- One active (non-deleted) session per program day, so concurrent first-starts
+-- can't create duplicate session trees for the same (user, day). The app turns
+-- the resulting conflict into a reuse of the existing session.
+create unique index sessions_active_day_uq
+  on sessions (user_id, program_day_id)
+  where program_day_id is not null and deleted_at is null;
 create trigger sessions_updated_at before update on sessions
   for each row execute function set_updated_at();
 
@@ -436,13 +444,6 @@ create index if not exists set_videos_user_idx
   where deleted_at is null;
 create trigger set_videos_updated_at before update on set_videos
   for each row execute function set_updated_at();
-
--- ─────────────────────────────────────────────────────────────────────────────
--- Pin search_path for every future connection (app, gen, psql) so unqualified
--- references resolve to `fitlytics` first, with `public` available for pgcrypto.
--- ─────────────────────────────────────────────────────────────────────────────
-
-alter database fitlytics set search_path = fitlytics, public;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Authorization model — application layer (no Postgres RLS)
