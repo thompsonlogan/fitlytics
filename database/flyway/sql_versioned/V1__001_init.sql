@@ -330,7 +330,10 @@ create table session_exercises (
   rest_seconds_snapshot   int,
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now(),
-  unique (session_id, sequence)
+  unique (session_id, sequence),
+  -- Lets set_logs use a (session_exercise_id, exercise_id) composite FK to
+  -- guarantee a set log's exercise_id matches its session exercise's.
+  unique (id, exercise_id)
 );
 create index session_exercises_exercise_idx on session_exercises (exercise_id);
 create trigger session_exercises_updated_at before update on session_exercises
@@ -340,9 +343,10 @@ create trigger session_exercises_updated_at before update on session_exercises
 create table set_logs (
   id                        uuid primary key default gen_random_uuid(),
   session_exercise_id       uuid not null references session_exercises(id) on delete cascade,
-  -- Denormalized analytical dimensions, immutable after insert (owner + lift), so
-  -- analytics don't need to join up to sessions / session_exercises. Their
-  -- consistency + immutability is trigger-enforced in a later step.
+  -- Denormalized analytical dimensions so analytics don't have to join up to
+  -- sessions / session_exercises. Written once by the snapshot writer and never
+  -- mutated (app invariant). exercise_id's match to the session exercise is
+  -- enforced declaratively by the composite FK below; user_id is app-enforced.
   user_id                   uuid not null references users(id) on delete cascade,
   exercise_id               uuid not null references exercises(id) on delete restrict,
   sequence                  int not null,
@@ -365,7 +369,11 @@ create table set_logs (
   state                     set_log_state not null default 'pending',
   created_at                timestamptz not null default now(),
   updated_at                timestamptz not null default now(),
-  deleted_at                timestamptz
+  deleted_at                timestamptz,
+  -- Guarantees exercise_id matches the owning session_exercise's exercise_id
+  -- (declarative, no trigger; pairs with unique(id, exercise_id) on session_exercises).
+  constraint set_logs_exercise_matches_se foreign key (session_exercise_id, exercise_id)
+    references session_exercises (id, exercise_id)
 );
 create index set_logs_active_seq_idx
   on set_logs (session_exercise_id, sequence)

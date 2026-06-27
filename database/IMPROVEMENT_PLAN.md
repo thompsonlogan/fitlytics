@@ -41,7 +41,8 @@ pre-deployment.
 - **Equipment is a lookup table, canonical-only for V1** (§4).
 - **One current run** per user/program (active or paused), lazily created at session start,
   resolved server-side (§6).
-- **Analytics identity and snapshot identity are DB-enforced and immutable** via triggers (§5, §8).
+- **Analytics consistency (`set_logs.exercise_id`) is enforced by a declarative composite FK, not a
+  trigger** (§5); `user_id` and column immutability are documented application invariants.
 
 ---
 
@@ -171,7 +172,7 @@ enum. **User-created equipment is deferred**; V1 ships a curated canonical list.
 
 ---
 
-## 5. Analytics denormalization (with mandatory DB-enforced consistency)
+## 5. Analytics denormalization (with declarative consistency)
 
 `set_logs` carries neither owner nor lift, so the core analytics query is an un-indexed 4-table
 join. Fix it now.
@@ -180,13 +181,16 @@ join. Fix it now.
   **`exercise_id uuid not null references exercises(id)`** to `set_logs`.
 - **Populate** them in the snapshot insert (`session.UserID`, `p.ExerciseID` in scope) **and in the
   seed** (no prod backfill exists).
-- **Mandatory consistency — enforced in the database, not by convention** (a trigger is simpler than
-  extra columns for composite FKs):
-  - `BEFORE INSERT` on `set_logs`: `exercise_id` must equal the parent
-    `session_exercises.exercise_id`; `user_id` must equal the owning `sessions.user_id`.
-  - `BEFORE UPDATE` on `set_logs`: reject any change to `user_id` or `exercise_id` (immutable).
-  - `BEFORE UPDATE` on `session_exercises`: reject changes to `exercise_id` (snapshot identity immutable).
-  - `BEFORE UPDATE` on `sessions`: reject changes to `user_id` (ownership immutable).
+- **Consistency — declarative, no triggers** (revised: triggers add per-row overhead and invisible
+  "magic" to enforce invariants the single-writer path already guarantees):
+  - `exercise_id` ↔ session exercise: a **composite FK**
+    `set_logs (session_exercise_id, exercise_id) → session_exercises (id, exercise_id)`
+    (needs `unique(id, exercise_id)` on `session_exercises`) — declarative, checked alongside the FK
+    `set_logs` already has, negligible cost.
+  - `user_id` + **immutability** of both columns: an **application invariant**, not DB-enforced. The
+    snapshot writer is the sole inserter (sets them from the session owner); the logging path never
+    touches them. Documented in the schema comment. (A composite FK for `user_id` would require
+    denormalizing `user_id` onto `session_exercises` too — not worth it.)
 - **Index:** a **partial composite index** `(user_id, exercise_id, completed_at DESC)
   where deleted_at is null and state = 'completed'`. (It is *not* a "covering" index unless an
   `INCLUDE (actual_load_kg, reps_actual, actual_rpe)` is added once concrete analytics queries are
@@ -363,8 +367,8 @@ Required tests proving the constraints actually hold, against a clean database:
 
 1. Duplicate run/day sessions fail (`unique(program_run_id, program_day_id)`).
 2. Duplicate ordering fails — `set_logs` `unique(session_exercise_id, sequence)` (active); `program_sets` `unique(group_id, sequence)`; `program_set_groups` `unique(program_exercise_id, sequence)`. A program set cannot span exercises (FK through the group).
-3. Cross-user / cross-exercise `set_logs` denormalization mismatches fail (consistency triggers).
-4. Mutating `set_logs.user_id`/`exercise_id`, `session_exercises.exercise_id`, or `sessions.user_id` fails (immutability triggers).
+3. A `set_logs` row whose `exercise_id` doesn't match its session-exercise fails (composite FK).
+4. (Immutability of `set_logs.user_id`/`exercise_id` is an app invariant — covered by snapshot-writer tests, not a DB constraint.)
 5. Invalid canonical references fail (non-canonical target, self-reference, canonical-with-parent).
 6. Invalid run/day/program combinations fail (consistency trigger); the three valid session states pass.
 7. Completion-timestamp rules hold (set on first complete, preserved on edit, cleared on reopen, new on re-complete; `completed ⇒ completed_at`).
@@ -386,7 +390,7 @@ Required tests proving the constraints actually hold, against a clean database:
 | 2 | Finalize naming | low | all renames in one pass |
 | 3 | Normalize program sets | med | one-row-per-set + `program_set_groups` (FK ownership/order) |
 | 4 | Canonical model + equipment lookup | med | composite-FK rules, ownership-on-delete, equipment tables |
-| 5 | Analytics denormalization | med | denormalized ids + **mandatory consistency/immutability triggers** |
+| 5 | Analytics denormalization | med | denormalized ids + declarative composite-FK consistency (no triggers) |
 | 6 | Program runs + scheduling | high | runs survive deletion; active-run model; consistency triad |
 | 7 | Hard-delete programs | low | cascade; snapshots + surviving runs preserve history |
 | 8 | Integrity constraints | med | session/set/video, timestamp semantics, corrected load-type |
@@ -437,7 +441,7 @@ and the branch is never half-broken. Each step carries its own verification test
 
 ### E — Analytics denormalization
 - [ ] **E1** — `set_logs.user_id` + `exercise_id` (NOT NULL FK); populate in snapshot + seed; partial composite index; `unique(set_logs.id, user_id)`. · ~100 · *edits `StartSessionForDay`*
-- [ ] **E2** — Consistency + immutability triggers + tests. · ~90
+- [x] **E2** — `exercise_id` consistency via composite FK (`unique(id, exercise_id)` on session_exercises + `set_logs (session_exercise_id, exercise_id)` FK); `user_id` + immutability as documented app invariants. **No triggers.**
 
 ### F — Program runs + triad (most coupled)
 - [ ] **F1** — `program_runs` table + codegen; `sessions.program_run_id` (nullable); FKs + uniques. · ~120
@@ -470,9 +474,11 @@ copy — because edits/deletes must not rewrite history, per-run/session diverge
 prescribed-vs-actual analytics needs both on one row. Invoice-line-copies-price pattern. Cost (dup
 columns) mitigated by a drift test; §3 makes both sides one-row-per-set.
 
-**Analytics + snapshot identity is DB-enforced and immutable** (not "nice-to-have"): `set_logs`
-`user_id`/`exercise_id` must match their session/session-exercise and cannot change; session owner
-and snapshotted exercise identity are immutable. Triggers, §5/§8.
+**Analytics consistency is declarative; immutability is an app invariant** (revised from triggers):
+`set_logs.exercise_id` matching its session-exercise is enforced by a **composite FK**; `user_id`
+and the immutability of both columns are **application invariants** (single-writer snapshot path,
+never mutated). No triggers — they'd add per-row overhead and invisible behavior for invariants the
+write path already guarantees. §5.
 
 **Grouping is a `program_set_groups` entity; `set_logs.group_id` is a snapshot.** Template side:
 `program_sets.group_id` is a real **FK** to `program_set_groups` (which owns `program_exercise_id`
