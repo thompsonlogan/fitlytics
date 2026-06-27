@@ -43,15 +43,13 @@ type ProgramDayResponse struct {
 } // @name ProgramDayResponse
 
 type ProgramExerciseResponse struct {
-	ID           uuid.UUID `json:"id"`
-	Sequence     int32     `json:"sequence" example:"1"`
-	ExerciseID   uuid.UUID `json:"exercise_id"`
-	ExerciseName string    `json:"exercise_name" example:"Competition Squat"`
-	SubText      *string   `json:"sub_text,omitempty"`
-	RestSeconds  *int32    `json:"rest_seconds,omitempty"`
-	// Groups are the prescribed set blocks. Each group is a run of sets the editor
-	// collapses into one "2×5" row; sets within a group are normalized one-per-row.
-	Groups []ProgramSetGroupResponse `json:"groups"`
+	ID           uuid.UUID                 `json:"id"`
+	Sequence     int32                     `json:"sequence" example:"1"`
+	ExerciseID   uuid.UUID                 `json:"exercise_id"`
+	ExerciseName string                    `json:"exercise_name" example:"Competition Squat"`
+	SubText      *string                   `json:"sub_text,omitempty"`
+	RestSeconds  *int32                    `json:"rest_seconds,omitempty"`
+	Groups       []ProgramSetGroupResponse `json:"groups"`
 } // @name ProgramExerciseResponse
 
 type ProgramSetGroupResponse struct {

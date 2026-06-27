@@ -40,8 +40,7 @@ export interface ProgramExerciseResponse {
      */
     exerciseName?: string;
     /**
-     * Groups are the prescribed set blocks. Each group is a run of sets the editor
-     * collapses into one "2×5" row; sets within a group are normalized one-per-row.
+     * 
      * @type {Array<ProgramSetGroupResponse>}
      * @memberof ProgramExerciseResponse
      */
