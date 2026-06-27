@@ -41,6 +41,32 @@ func uuidArg(id uuid.UUID) driver.Value {
 	return id.String()
 }
 
+func expectVideoQuotaLock(mock sqlmock.Sqlmock, ownerID uuid.UUID) {
+	mock.ExpectExec(`select pg_advisory_xact_lock`).
+		WithArgs(uuidArg(ownerID)).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+}
+
+func expectNoExistingVideoForSet(mock sqlmock.Sqlmock, setLogID uuid.UUID) {
+	mock.ExpectQuery(`SELECT \* FROM "set_videos" WHERE.*set_log_id`).
+		WithArgs(uuidArg(setLogID), 1).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}))
+}
+
+func expectActiveVideoCount(mock sqlmock.Sqlmock, ownerID uuid.UUID, count int) {
+	mock.ExpectQuery(`SELECT count\(\*\) FROM "set_videos" WHERE .*"set_videos"\."status" <> .*deleted_at`).
+		WithArgs(uuidArg(ownerID), "failed").
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(count))
+}
+
+func expectRecentVideoAttemptCount(mock sqlmock.Sqlmock, ownerID uuid.UUID, count int) {
+	// Unscoped abuse/rate cap: deleted_at must NOT appear. Anchored to $ so any
+	// appended soft-delete clause breaks the match.
+	mock.ExpectQuery(`SELECT count\(\*\) FROM "set_videos" WHERE "set_videos"\."user_id" = \$1 AND "set_videos"\."created_at" > \$2$`).
+		WithArgs(uuidArg(ownerID), sqlmock.AnyArg()).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(count))
+}
+
 // ─── GetOwned ───────────────────────────────────────────────────────────────
 
 func TestRepositoryGetOwned_FiltersByOwner(t *testing.T) {
@@ -82,20 +108,17 @@ func TestRepositoryCreateUpload_HappyPathNoExisting(t *testing.T) {
 
 	mock.ExpectBegin()
 
-	// Count #1: total active videos for user (soft-delete scoped — deleted_at must appear).
-	mock.ExpectQuery(`SELECT count\(\*\) FROM "set_videos".*deleted_at`).
-		WithArgs(uuidArg(ownerID)).
-		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
+	// Transaction-scoped per-user lock serializes quota checks before any counts.
+	expectVideoQuotaLock(mock, ownerID)
 
-	// Count #2: trailing 24h — Unscoped, so deleted_at must NOT appear.
-	// Anchored to $ so any appended deleted_at clause breaks the match.
-	mock.ExpectQuery(`SELECT count\(\*\) FROM "set_videos" WHERE "set_videos"\."user_id" = \$1 AND "set_videos"\."created_at" > \$2$`).
-		WithArgs(uuidArg(ownerID), sqlmock.AnyArg()).
-		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
+	// Existing-video lookup returns nothing, so this upload increases active count.
+	expectNoExistingVideoForSet(mock, setLogID)
 
-	// Existing-video lookup returns nothing → ErrRecordNotFound path.
-	mock.ExpectQuery(`SELECT \* FROM "set_videos" WHERE.*set_log_id`).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}))
+	// Active per-user quota excludes failed rows and uses the soft-delete scope.
+	expectActiveVideoCount(mock, ownerID, 0)
+
+	// Per-day quota intentionally counts all recent attempts.
+	expectRecentVideoAttemptCount(mock, ownerID, 0)
 
 	// INSERT with RETURNING.
 	mock.ExpectQuery(`INSERT INTO "set_videos"`).
@@ -125,6 +148,43 @@ func TestRepositoryCreateUpload_HappyPathNoExisting(t *testing.T) {
 	}
 }
 
+func TestRepositoryCreateUpload_FailedRowsDoNotConsumePerUserQuota(t *testing.T) {
+	db, mock := newMockDB(t)
+
+	ownerID := uuid.New()
+	setLogID := uuid.New()
+	videoID := uuid.New()
+	maxPerUser := 1
+
+	mock.ExpectBegin()
+	expectVideoQuotaLock(mock, ownerID)
+	expectNoExistingVideoForSet(mock, setLogID)
+
+	// A failed row may exist for this user, but the active quota query excludes
+	// status='failed', so the count seen by the quota check is still below cap.
+	expectActiveVideoCount(mock, ownerID, 0)
+	expectRecentVideoAttemptCount(mock, ownerID, 0)
+
+	mock.ExpectQuery(`INSERT INTO "set_videos"`).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(videoID))
+	mock.ExpectCommit()
+
+	row := &generated.SetVideo{
+		SetLogID:   setLogID,
+		UserID:     ownerID,
+		Status:     "pending",
+		StorageKey: "users/u/set-videos/new.mp4",
+	}
+
+	if _, err := NewRepository(db).CreateUpload(context.Background(), ownerID, row, maxPerUser, 50); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
 func TestRepositoryCreateUpload_ReplacesExistingAndReturnsOldKey(t *testing.T) {
 	db, mock := newMockDB(t)
 
@@ -137,22 +197,22 @@ func TestRepositoryCreateUpload_ReplacesExistingAndReturnsOldKey(t *testing.T) {
 
 	mock.ExpectBegin()
 
-	// Count #1: total active.
-	mock.ExpectQuery(`SELECT count\(\*\) FROM "set_videos".*deleted_at`).
-		WithArgs(uuidArg(ownerID)).
-		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
-
-	// Count #2: trailing 24h — Unscoped, so deleted_at must NOT appear.
-	// Anchored to $ so any appended deleted_at clause breaks the match.
-	mock.ExpectQuery(`SELECT count\(\*\) FROM "set_videos" WHERE "set_videos"\."user_id" = \$1 AND "set_videos"\."created_at" > \$2$`).
-		WithArgs(uuidArg(ownerID), sqlmock.AnyArg()).
-		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
+	// Transaction-scoped per-user lock serializes quota checks before any counts.
+	expectVideoQuotaLock(mock, ownerID)
 
 	// Existing-video lookup returns one row.
 	mock.ExpectQuery(`SELECT \* FROM "set_videos" WHERE.*set_log_id`).
+		WithArgs(uuidArg(setLogID), 1).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "set_log_id", "user_id", "status", "storage_key", "created_at", "updated_at",
 		}).AddRow(existingID, setLogID, ownerID, "ready", existingKey, now, now))
+
+	// Existing ready row is subtracted from the active count, so replacing at
+	// the cap is allowed instead of temporarily counting as an extra video.
+	expectActiveVideoCount(mock, ownerID, 5)
+
+	// Per-day quota intentionally counts this as a new attempt.
+	expectRecentVideoAttemptCount(mock, ownerID, 0)
 
 	// Soft-delete the existing row.
 	mock.ExpectExec(`UPDATE "set_videos" SET "deleted_at"`).
@@ -173,7 +233,7 @@ func TestRepositoryCreateUpload_ReplacesExistingAndReturnsOldKey(t *testing.T) {
 		UpdatedAt:  now,
 	}
 
-	oldKey, err := NewRepository(db).CreateUpload(context.Background(), ownerID, row, 200, 50)
+	oldKey, err := NewRepository(db).CreateUpload(context.Background(), ownerID, row, 5, 50)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -194,16 +254,17 @@ func TestRepositoryCreateUpload_PerUserQuotaRollsBack(t *testing.T) {
 
 	mock.ExpectBegin()
 
-	// Count #1 returns maxPerUser → quota exceeded, rollback immediately.
-	// Baseline characterization: query includes deleted_at (soft-delete scope).
-	mock.ExpectQuery(`SELECT count\(\*\) FROM "set_videos".*deleted_at`).
-		WithArgs(uuidArg(ownerID)).
-		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(maxPerUser))
+	setLogID := uuid.New()
+	expectVideoQuotaLock(mock, ownerID)
+	expectNoExistingVideoForSet(mock, setLogID)
+
+	// Active count reaches maxPerUser after excluding failed rows.
+	expectActiveVideoCount(mock, ownerID, maxPerUser)
 
 	mock.ExpectRollback()
 
 	row := &generated.SetVideo{
-		SetLogID:   uuid.New(),
+		SetLogID:   setLogID,
 		UserID:     ownerID,
 		StorageKey: "users/u/set-videos/x.mp4",
 	}
@@ -226,23 +287,20 @@ func TestRepositoryCreateUpload_PerDayQuotaRollsBack(t *testing.T) {
 
 	mock.ExpectBegin()
 
-	// Count #1: total active → below per-user cap.
-	// Baseline characterization: query includes deleted_at (soft-delete scope).
-	mock.ExpectQuery(`SELECT count\(\*\) FROM "set_videos".*deleted_at`).
-		WithArgs(uuidArg(ownerID)).
-		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
+	setLogID := uuid.New()
+	expectVideoQuotaLock(mock, ownerID)
+	expectNoExistingVideoForSet(mock, setLogID)
 
-	// Count #2: trailing 24h → hits per-day cap.
-	// Unscoped — deleted_at must NOT appear. Anchored to $ so any appended
-	// deleted_at clause breaks the match.
-	mock.ExpectQuery(`SELECT count\(\*\) FROM "set_videos" WHERE "set_videos"\."user_id" = \$1 AND "set_videos"\."created_at" > \$2$`).
-		WithArgs(uuidArg(ownerID), sqlmock.AnyArg()).
-		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(maxPerDay))
+	// Active per-user quota passes.
+	expectActiveVideoCount(mock, ownerID, 0)
+
+	// Trailing 24h all-attempts cap hits; failed/deleted attempts still count.
+	expectRecentVideoAttemptCount(mock, ownerID, maxPerDay)
 
 	mock.ExpectRollback()
 
 	row := &generated.SetVideo{
-		SetLogID:   uuid.New(),
+		SetLogID:   setLogID,
 		UserID:     ownerID,
 		StorageKey: "users/u/set-videos/x.mp4",
 	}

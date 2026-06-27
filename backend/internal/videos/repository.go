@@ -36,6 +36,12 @@ func NewRepository(db *gorm.DB) Repository {
 	return &repository{db: db, q: query.Use(db)}
 }
 
+func lockUserVideoQuota(ctx context.Context, tx *gorm.DB, ownerID uuid.UUID) error {
+	return tx.WithContext(ctx).
+		Exec("select pg_advisory_xact_lock(hashtextextended(?::text, 0))", ownerID.String()).
+		Error
+}
+
 func (r *repository) VerifySetLogOwned(ctx context.Context, sessionID, setLogID, ownerID uuid.UUID) error {
 	sl := r.q.SetLog
 	se := r.q.SessionExercise
@@ -61,15 +67,40 @@ func (r *repository) CreateUpload(ctx context.Context, ownerID uuid.UUID, row *g
 		q := query.Use(tx)
 		sv := q.SetVideo
 
-		total, err := sv.WithContext(ctx).Where(sv.UserID.Eq(ownerID)).Count()
+		if err := lockUserVideoQuota(ctx, tx, ownerID); err != nil {
+			return fmt.Errorf("lock user video quota: %w", err)
+		}
+
+		var existing *generated.SetVideo
+		existing, err := sv.WithContext(ctx).Where(sv.SetLogID.Eq(row.SetLogID)).First()
+		switch {
+		case err == nil:
+		case errors.Is(err, gorm.ErrRecordNotFound):
+			// nothing to replace
+		default:
+			return fmt.Errorf("lookup existing video: %w", err)
+		}
+
+		total, err := sv.WithContext(ctx).
+			Where(sv.UserID.Eq(ownerID), sv.Status.Neq("failed")).
+			Count()
 		if err != nil {
 			return fmt.Errorf("count user videos: %w", err)
 		}
-		if int(total) >= maxPerUser {
+		activeAfterReplacement := int(total)
+		if existing != nil && existing.Status != "failed" {
+			activeAfterReplacement--
+		}
+		if activeAfterReplacement < 0 {
+			activeAfterReplacement = 0
+		}
+		if activeAfterReplacement >= maxPerUser {
 			return ErrQuotaExceeded
 		}
 
 		since := time.Now().Add(-24 * time.Hour)
+		// Per-day quota is an abuse/rate cap over all recent attempts, including
+		// deleted or failed rows, so intentionally bypass the soft-delete scope.
 		recent, err := sv.WithContext(ctx).Unscoped().
 			Where(sv.UserID.Eq(ownerID), sv.CreatedAt.Gt(since)).Count()
 		if err != nil {
@@ -79,17 +110,11 @@ func (r *repository) CreateUpload(ctx context.Context, ownerID uuid.UUID, row *g
 			return ErrQuotaExceeded
 		}
 
-		existing, err := sv.WithContext(ctx).Where(sv.SetLogID.Eq(row.SetLogID)).First()
-		switch {
-		case err == nil:
+		if existing != nil {
 			oldKey = existing.StorageKey
 			if _, derr := sv.WithContext(ctx).Where(sv.ID.Eq(existing.ID)).Delete(); derr != nil {
 				return fmt.Errorf("soft-delete existing video: %w", derr)
 			}
-		case errors.Is(err, gorm.ErrRecordNotFound):
-			// nothing to replace
-		default:
-			return fmt.Errorf("lookup existing video: %w", err)
 		}
 
 		if err := sv.WithContext(ctx).Create(row); err != nil {
