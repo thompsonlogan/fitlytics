@@ -220,7 +220,7 @@ create trigger programs_updated_at before update on programs
 create table program_weeks (
   id          uuid primary key default gen_random_uuid(),
   program_id  uuid not null references programs(id) on delete cascade,
-  sequence    int not null,                   -- week order within the program
+  sequence    int not null check (sequence > 0),  -- week order within the program
   name        text,                           -- optional label, e.g. "Deload"
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now(),
@@ -232,7 +232,7 @@ create trigger program_weeks_updated_at before update on program_weeks
 create table program_days (
   id           uuid primary key default gen_random_uuid(),
   program_week_id uuid not null references program_weeks(id) on delete cascade,
-  sequence     int not null,                   -- day order within the week
+  sequence     int not null check (sequence > 0),  -- day order within the week
   name         text not null,                  -- e.g. "Lower · Heavy"
   tag          text,                           -- e.g. "Day 1"
   is_rest_day  boolean not null default false,
@@ -247,7 +247,7 @@ create trigger program_days_updated_at before update on program_days
 create table program_exercises (
   id            uuid primary key default gen_random_uuid(),
   program_day_id uuid not null references program_days(id) on delete cascade,
-  sequence      int not null,
+  sequence      int not null check (sequence > 0),
   exercise_id   uuid not null references exercises(id) on delete restrict,
   sub_text      text,                          -- "Belt + sleeves", "Conventional"
   rest_seconds  int check (rest_seconds is null or rest_seconds >= 0),
@@ -312,7 +312,8 @@ create table sessions (
   notes               text,
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now(),
-  deleted_at          timestamptz
+  deleted_at          timestamptz,
+  constraint sessions_completed_has_at check (state <> 'completed' or completed_at is not null)
 );
 create index sessions_user_recent_idx
   on sessions (user_id, coalesce(started_at, created_at) desc)
@@ -323,7 +324,7 @@ create trigger sessions_updated_at before update on sessions
 create table session_exercises (
   id                  uuid primary key default gen_random_uuid(),
   session_id          uuid not null references sessions(id) on delete cascade,
-  sequence            int not null,
+  sequence            int not null check (sequence > 0),
   exercise_id         uuid not null references exercises(id) on delete restrict,
   exercise_name_snapshot  text not null,           -- snapshot at session start
   sub_snapshot            text,
@@ -349,7 +350,7 @@ create table set_logs (
   -- enforced declaratively by the composite FK below; user_id is app-enforced.
   user_id                   uuid not null references users(id) on delete cascade,
   exercise_id               uuid not null references exercises(id) on delete restrict,
-  sequence                  int not null,
+  sequence                  int not null check (sequence > 0),
   group_id                  uuid,   -- snapshot of program_set_groups.id; null for ad-hoc sets (not an FK)
   set_type                  set_type not null default 'working',
   -- prescription snapshot
@@ -370,12 +371,13 @@ create table set_logs (
   created_at                timestamptz not null default now(),
   updated_at                timestamptz not null default now(),
   deleted_at                timestamptz,
+  constraint set_logs_completed_has_at check (state <> 'completed' or completed_at is not null),
   -- Guarantees exercise_id matches the owning session_exercise's exercise_id
   -- (declarative, no trigger; pairs with unique(id, exercise_id) on session_exercises).
   constraint set_logs_exercise_matches_se foreign key (session_exercise_id, exercise_id)
     references session_exercises (id, exercise_id)
 );
-create index set_logs_active_seq_idx
+create unique index set_logs_active_seq_idx
   on set_logs (session_exercise_id, sequence)
   where deleted_at is null;
 create index if not exists set_logs_group_idx

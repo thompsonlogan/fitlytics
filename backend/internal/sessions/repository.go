@@ -294,6 +294,16 @@ func (r *repository) UpdateSetLog(ctx context.Context, sessionID, setLogID, owne
 		}
 		if input.State != nil {
 			assigns = append(assigns, sl.State.Value(*input.State))
+			// Maintain completed_at: stamp it on the first move into completed,
+			// clear it on reopen. (No state change never reaches here.)
+			switch *input.State {
+			case "completed":
+				if setLog.CompletedAt == nil {
+					assigns = append(assigns, sl.CompletedAt.Value(time.Now()))
+				}
+			case "pending", "skipped":
+				assigns = append(assigns, sl.CompletedAt.Null())
+			}
 		}
 		if len(assigns) == 0 {
 			out = setLog
@@ -447,6 +457,15 @@ func (r *repository) UpdateSetLogs(ctx context.Context, sessionID, ownerUserID u
 			}
 			if item.State != nil {
 				assigns = append(assigns, sl.State.Value(*item.State))
+				// Maintain completed_at: stamp on first move into completed, clear on reopen.
+				switch *item.State {
+				case "completed":
+					if byID[item.SetLogID].CompletedAt == nil {
+						assigns = append(assigns, sl.CompletedAt.Value(time.Now()))
+					}
+				case "pending", "skipped":
+					assigns = append(assigns, sl.CompletedAt.Null())
+				}
 			}
 			if len(assigns) > 0 {
 				if _, err := sl.WithContext(ctx).Where(sl.ID.Eq(item.SetLogID)).UpdateSimple(assigns...); err != nil {
