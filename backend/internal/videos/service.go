@@ -84,6 +84,11 @@ func (s *service) CreateUpload(ctx context.Context, sessionID, setLogID, ownerID
 		Note:         in.Note,
 	}
 
+	upload, err := s.store.PresignPut(ctx, key, in.ContentType, in.SizeBytes, uploadURLTTL)
+	if err != nil {
+		return nil, fmt.Errorf("presign upload: %w", err)
+	}
+
 	oldKey, err := s.repo.CreateUpload(ctx, ownerID, row, s.limits.MaxPerUser, s.limits.MaxPerDay)
 	if err != nil {
 		if errors.Is(err, ErrQuotaExceeded) {
@@ -98,11 +103,6 @@ func (s *service) CreateUpload(ctx context.Context, sessionID, setLogID, ownerID
 		if derr := s.store.Delete(ctx, oldKey); derr != nil {
 			s.log.Warn("failed to delete replaced video object", slog.String("key", oldKey), slog.Any("error", derr))
 		}
-	}
-
-	upload, err := s.store.PresignPut(ctx, key, in.ContentType, in.SizeBytes, uploadURLTTL)
-	if err != nil {
-		return nil, fmt.Errorf("presign upload: %w", err)
 	}
 
 	return &CreateVideoUploadResponse{Video: mapVideo(*row, nil), Upload: upload}, nil

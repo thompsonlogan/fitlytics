@@ -132,6 +132,39 @@ func TestCreateUpload_UnownedSetLogIsNotFound(t *testing.T) {
 	}
 }
 
+func TestCreateUpload_PresignFailureDoesNotReplaceExistingVideo(t *testing.T) {
+	presignErr := errors.New("r2 unavailable")
+	createCalled := false
+	repo := &fakeRepo{
+		verifyOwnedFn: okOwnership(),
+		createFn: func(context.Context, uuid.UUID, *generated.SetVideo, int, int) (string, error) {
+			createCalled = true
+			return "", nil
+		},
+	}
+	store := &fakeStore{
+		presignPutFn: func(context.Context, string, string, int64, time.Duration) (storage.PresignedUpload, error) {
+			return storage.PresignedUpload{}, presignErr
+		},
+	}
+	svc := NewService(repo, store, testLimits(), silentLogger())
+
+	_, err := svc.CreateUpload(context.Background(), uuid.New(), uuid.New(), uuid.New(),
+		CreateVideoUploadRequest{Filename: "x.mp4", ContentType: "video/mp4", SizeBytes: 10})
+	if !errors.Is(err, presignErr) {
+		t.Fatalf("want presign error to be wrapped, got %v", err)
+	}
+	if errors.Is(err, ErrQuotaExceeded) || errors.Is(err, apierr.ErrInvalidInput) {
+		t.Fatalf("presign error should not be mapped to quota or invalid input, got %v", err)
+	}
+	if createCalled {
+		t.Fatal("repository CreateUpload should not run when presigning fails")
+	}
+	if len(store.deleted) != 0 {
+		t.Fatalf("no stored objects should be deleted on presign failure, deleted=%v", store.deleted)
+	}
+}
+
 func TestCreateUpload_QuotaExceededPropagates(t *testing.T) {
 	repo := &fakeRepo{
 		verifyOwnedFn: okOwnership(),
