@@ -13,13 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
-import type { ProgramSetTargetResponse } from './ProgramSetTargetResponse';
+import type { ProgramSetGroupResponse } from './ProgramSetGroupResponse';
 import {
-    ProgramSetTargetResponseFromJSON,
-    ProgramSetTargetResponseFromJSONTyped,
-    ProgramSetTargetResponseToJSON,
-    ProgramSetTargetResponseToJSONTyped,
-} from './ProgramSetTargetResponse';
+    ProgramSetGroupResponseFromJSON,
+    ProgramSetGroupResponseFromJSONTyped,
+    ProgramSetGroupResponseToJSON,
+    ProgramSetGroupResponseToJSONTyped,
+} from './ProgramSetGroupResponse';
 
 /**
  * 
@@ -41,16 +41,16 @@ export interface ProgramExerciseResponse {
     exerciseName?: string;
     /**
      * 
-     * @type {string}
+     * @type {Array<ProgramSetGroupResponse>}
      * @memberof ProgramExerciseResponse
      */
-    id?: string;
+    groups?: Array<ProgramSetGroupResponse>;
     /**
      * 
      * @type {string}
      * @memberof ProgramExerciseResponse
      */
-    notes?: string;
+    id?: string;
     /**
      * 
      * @type {number}
@@ -63,12 +63,6 @@ export interface ProgramExerciseResponse {
      * @memberof ProgramExerciseResponse
      */
     sequence?: number;
-    /**
-     * 
-     * @type {Array<ProgramSetTargetResponse>}
-     * @memberof ProgramExerciseResponse
-     */
-    setTargets?: Array<ProgramSetTargetResponse>;
     /**
      * 
      * @type {string}
@@ -96,11 +90,10 @@ export function ProgramExerciseResponseFromJSONTyped(json: any, ignoreDiscrimina
         
         'exerciseId': json['exercise_id'] == null ? undefined : json['exercise_id'],
         'exerciseName': json['exercise_name'] == null ? undefined : json['exercise_name'],
+        'groups': json['groups'] == null ? undefined : ((json['groups'] as Array<any>).map(ProgramSetGroupResponseFromJSON)),
         'id': json['id'] == null ? undefined : json['id'],
-        'notes': json['notes'] == null ? undefined : json['notes'],
         'restSeconds': json['rest_seconds'] == null ? undefined : json['rest_seconds'],
         'sequence': json['sequence'] == null ? undefined : json['sequence'],
-        'setTargets': json['set_targets'] == null ? undefined : ((json['set_targets'] as Array<any>).map(ProgramSetTargetResponseFromJSON)),
         'subText': json['sub_text'] == null ? undefined : json['sub_text'],
     };
 }
@@ -118,11 +111,10 @@ export function ProgramExerciseResponseToJSONTyped(value?: ProgramExerciseRespon
         
         'exercise_id': value['exerciseId'],
         'exercise_name': value['exerciseName'],
+        'groups': value['groups'] == null ? undefined : ((value['groups'] as Array<any>).map(ProgramSetGroupResponseToJSON)),
         'id': value['id'],
-        'notes': value['notes'],
         'rest_seconds': value['restSeconds'],
         'sequence': value['sequence'],
-        'set_targets': value['setTargets'] == null ? undefined : ((value['setTargets'] as Array<any>).map(ProgramSetTargetResponseToJSON)),
         'sub_text': value['subText'],
     };
 }

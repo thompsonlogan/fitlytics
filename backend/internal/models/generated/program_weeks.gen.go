@@ -18,10 +18,9 @@ type ProgramWeek struct {
 	ProgramID uuid.UUID    `gorm:"column:program_id;type:uuid;not null" json:"program_id"`
 	Sequence  int32        `gorm:"column:sequence;type:integer;not null" json:"sequence"`
 	Name      *string      `gorm:"column:name;type:text" json:"name"`
-	Notes     *string      `gorm:"column:notes;type:text" json:"notes"`
 	CreatedAt time.Time    `gorm:"column:created_at;type:timestamp with time zone;not null;default:now()" json:"created_at"`
 	UpdatedAt time.Time    `gorm:"column:updated_at;type:timestamp with time zone;not null;default:now()" json:"updated_at"`
-	Days      []ProgramDay `gorm:"foreignKey:WeekID" json:"days"`
+	Days      []ProgramDay `json:"days"`
 }
 
 // TableName ProgramWeek's table name

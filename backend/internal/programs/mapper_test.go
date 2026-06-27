@@ -134,7 +134,7 @@ func TestMapDay_RestDayWithNoExercises(t *testing.T) {
 	}
 }
 
-func TestMapExercise_AllFieldsAndEmptySetTargets(t *testing.T) {
+func TestMapExercise_AllFieldsAndEmptyGroups(t *testing.T) {
 	exID := fixedID("ex")
 	e := generated.ProgramExercise{
 		ID:          fixedID("pe"),
@@ -142,8 +142,7 @@ func TestMapExercise_AllFieldsAndEmptySetTargets(t *testing.T) {
 		ExerciseID:  exID,
 		SubText:     strPtr("Belt"),
 		RestSeconds: ptr[int32](90),
-		Notes:       strPtr("warm up first"),
-		SetTargets:  nil,
+		Groups:      nil,
 	}
 	names := map[uuid.UUID]string{exID: "Squat"}
 	out := mapExercise(e, names)
@@ -157,11 +156,8 @@ func TestMapExercise_AllFieldsAndEmptySetTargets(t *testing.T) {
 	if out.RestSeconds == nil || *out.RestSeconds != 90 {
 		t.Errorf("RestSeconds: %v", out.RestSeconds)
 	}
-	if out.Notes == nil || *out.Notes != "warm up first" {
-		t.Errorf("Notes: %v", out.Notes)
-	}
-	if out.SetTargets == nil || len(out.SetTargets) != 0 {
-		t.Errorf("SetTargets should be empty non-nil, got %v", out.SetTargets)
+	if out.Groups == nil || len(out.Groups) != 0 {
+		t.Errorf("Groups should be empty non-nil, got %v", out.Groups)
 	}
 }
 
@@ -211,13 +207,12 @@ func TestMapProgramSummaries(t *testing.T) {
 	})
 }
 
-func TestMapSetTarget_AllScalarFieldsCopied(t *testing.T) {
+func TestMapSet_AllScalarFieldsCopied(t *testing.T) {
 	t.Run("populated", func(t *testing.T) {
-		in := generated.ProgramSetTarget{
-			ID:                     fixedID("pst"),
+		in := generated.ProgramSet{
+			ID:                     fixedID("ps"),
 			Sequence:               2,
 			SetType:                "amrap",
-			SetsCount:              3,
 			RepsMin:                ptr[int32](5),
 			RepsMax:                ptr[int32](8),
 			IntensityText:          strPtr("RPE 8"),
@@ -226,9 +221,9 @@ func TestMapSetTarget_AllScalarFieldsCopied(t *testing.T) {
 			CapLoadKg:              ptr(110.0),
 			PrescribedRpe:          ptr(8.0),
 		}
-		got := mapSetTarget(in)
+		got := mapSet(in)
 
-		if got.ID != in.ID || got.Sequence != 2 || got.SetType != "amrap" || got.SetsCount != 3 {
+		if got.ID != in.ID || got.Sequence != 2 || got.SetType != "amrap" {
 			t.Errorf("scalar fields not copied: %+v", got)
 		}
 		if *got.RepsMin != 5 || *got.RepsMax != 8 {
@@ -246,14 +241,13 @@ func TestMapSetTarget_AllScalarFieldsCopied(t *testing.T) {
 	})
 
 	t.Run("all nullable fields nil", func(t *testing.T) {
-		in := generated.ProgramSetTarget{
-			ID:                     fixedID("pst-empty"),
+		in := generated.ProgramSet{
+			ID:                     fixedID("ps-empty"),
 			Sequence:               1,
 			SetType:                "working",
-			SetsCount:              1,
 			PrescribedLoadModifier: "absolute",
 		}
-		got := mapSetTarget(in)
+		got := mapSet(in)
 		if got.RepsMin != nil || got.RepsMax != nil ||
 			got.IntensityText != nil || got.PrescribedLoadKg != nil ||
 			got.CapLoadKg != nil || got.PrescribedRpe != nil {

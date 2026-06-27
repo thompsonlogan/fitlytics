@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/thompsonlogan/fitlytics/backend/internal/models"
 	"gorm.io/gorm"
 )
 
@@ -18,28 +17,23 @@ const TableNameSetLog = "set_logs"
 type SetLog struct {
 	ID                     uuid.UUID      `gorm:"column:id;type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	SessionExerciseID      uuid.UUID      `gorm:"column:session_exercise_id;type:uuid;not null" json:"session_exercise_id"`
+	UserID                 uuid.UUID      `gorm:"column:user_id;type:uuid;not null" json:"user_id"`
+	ExerciseID             uuid.UUID      `gorm:"column:exercise_id;type:uuid;not null" json:"exercise_id"`
 	Sequence               int32          `gorm:"column:sequence;type:integer;not null" json:"sequence"`
-	BlockSequence          *int32         `gorm:"column:block_sequence;type:integer" json:"block_sequence"`
+	GroupID                *uuid.UUID     `gorm:"column:group_id;type:uuid" json:"group_id"`
 	SetType                string         `gorm:"column:set_type;type:set_type;not null;default:working" json:"set_type"`
 	RepsTargetMin          *int32         `gorm:"column:reps_target_min;type:integer" json:"reps_target_min"`
 	RepsTargetMax          *int32         `gorm:"column:reps_target_max;type:integer" json:"reps_target_max"`
-	DurationTargetSec      *int32         `gorm:"column:duration_target_sec;type:integer" json:"duration_target_sec"`
-	DistanceTargetM        *float64       `gorm:"column:distance_target_m;type:numeric(10,2)" json:"distance_target_m"`
 	PrescribedLoadKg       *float64       `gorm:"column:prescribed_load_kg;type:numeric(7,2)" json:"prescribed_load_kg"`
 	PrescribedLoadModifier string         `gorm:"column:prescribed_load_modifier;type:load_modifier;not null;default:absolute" json:"prescribed_load_modifier"`
 	PrescribedRpe          *float64       `gorm:"column:prescribed_rpe;type:numeric(3,1)" json:"prescribed_rpe"`
 	IntensityText          *string        `gorm:"column:intensity_text;type:text" json:"intensity_text"`
 	RepsActual             *int32         `gorm:"column:reps_actual;type:integer" json:"reps_actual"`
-	DurationActualSec      *int32         `gorm:"column:duration_actual_sec;type:integer" json:"duration_actual_sec"`
-	DistanceActualM        *float64       `gorm:"column:distance_actual_m;type:numeric(10,2)" json:"distance_actual_m"`
 	ActualLoadKg           *float64       `gorm:"column:actual_load_kg;type:numeric(7,2)" json:"actual_load_kg"`
 	ActualLoadModifier     string         `gorm:"column:actual_load_modifier;type:load_modifier;not null;default:absolute" json:"actual_load_modifier"`
 	ActualRpe              *float64       `gorm:"column:actual_rpe;type:numeric(3,1)" json:"actual_rpe"`
-	StartedAt              *time.Time     `gorm:"column:started_at;type:timestamp with time zone" json:"started_at"`
 	CompletedAt            *time.Time     `gorm:"column:completed_at;type:timestamp with time zone" json:"completed_at"`
 	State                  string         `gorm:"column:state;type:set_log_state;not null;default:pending" json:"state"`
-	Notes                  *string        `gorm:"column:notes;type:text" json:"notes"`
-	Extras                 models.JSONB   `gorm:"column:extras;type:jsonb;not null;default:{}" json:"extras"`
 	CreatedAt              time.Time      `gorm:"column:created_at;type:timestamp with time zone;not null;default:now()" json:"created_at"`
 	UpdatedAt              time.Time      `gorm:"column:updated_at;type:timestamp with time zone;not null;default:now()" json:"updated_at"`
 	DeletedAt              gorm.DeletedAt `gorm:"column:deleted_at;type:timestamp with time zone" json:"deleted_at"`

@@ -6,16 +6,16 @@ import (
 
 func mapSession(s *generated.Session) *SessionResponse {
 	out := &SessionResponse{
-		ID:              s.ID,
-		UserID:          s.UserID,
-		ProgramDayID:    s.ProgramDayID,
-		ProgramNameSnap: s.ProgramNameSnap,
-		DayNameSnap:     s.DayNameSnap,
-		State:           s.State,
-		StartedAt:       s.StartedAt,
-		CompletedAt:     s.CompletedAt,
-		Notes:           s.Notes,
-		Exercises:       make([]SessionExerciseResponse, 0, len(s.Exercises)),
+		ID:                  s.ID,
+		UserID:              s.UserID,
+		ProgramDayID:        s.ProgramDayID,
+		ProgramNameSnapshot: s.ProgramNameSnapshot,
+		DayNameSnapshot:     s.DayNameSnapshot,
+		State:               s.State,
+		StartedAt:           s.StartedAt,
+		CompletedAt:         s.CompletedAt,
+		Notes:               s.Notes,
+		Exercises:           make([]SessionExerciseResponse, 0, len(s.Exercises)),
 	}
 	for _, e := range s.Exercises {
 		out.Exercises = append(out.Exercises, mapSessionExercise(e))
@@ -25,13 +25,13 @@ func mapSession(s *generated.Session) *SessionResponse {
 
 func mapSessionExercise(e generated.SessionExercise) SessionExerciseResponse {
 	out := SessionExerciseResponse{
-		ID:               e.ID,
-		Sequence:         e.Sequence,
-		ExerciseID:       e.ExerciseID,
-		ExerciseNameSnap: e.ExerciseNameSnap,
-		SubSnap:          e.SubSnap,
-		RestSecondsSnap:  e.RestSecondsSnap,
-		SetLogs:          make([]SetLogResponse, 0, len(e.SetLogs)),
+		ID:                   e.ID,
+		Sequence:             e.Sequence,
+		ExerciseID:           e.ExerciseID,
+		ExerciseNameSnapshot: e.ExerciseNameSnapshot,
+		SubSnapshot:          e.SubSnapshot,
+		RestSecondsSnapshot:  e.RestSecondsSnapshot,
+		SetLogs:              make([]SetLogResponse, 0, len(e.SetLogs)),
 	}
 	for _, l := range e.SetLogs {
 		out.SetLogs = append(out.SetLogs, mapSetLog(l))
@@ -43,7 +43,7 @@ func mapSetLog(l generated.SetLog) SetLogResponse {
 	return SetLogResponse{
 		ID:                     l.ID,
 		Sequence:               l.Sequence,
-		BlockSequence:          l.BlockSequence,
+		GroupID:                l.GroupID,
 		SetType:                l.SetType,
 		RepsTargetMin:          l.RepsTargetMin,
 		RepsTargetMax:          l.RepsTargetMax,

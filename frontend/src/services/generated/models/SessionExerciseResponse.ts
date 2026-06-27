@@ -38,7 +38,7 @@ export interface SessionExerciseResponse {
      * @type {string}
      * @memberof SessionExerciseResponse
      */
-    exerciseNameSnap?: string;
+    exerciseNameSnapshot?: string;
     /**
      * 
      * @type {string}
@@ -50,7 +50,7 @@ export interface SessionExerciseResponse {
      * @type {number}
      * @memberof SessionExerciseResponse
      */
-    restSecondsSnap?: number;
+    restSecondsSnapshot?: number;
     /**
      * 
      * @type {number}
@@ -68,7 +68,7 @@ export interface SessionExerciseResponse {
      * @type {string}
      * @memberof SessionExerciseResponse
      */
-    subSnap?: string;
+    subSnapshot?: string;
 }
 
 /**
@@ -89,12 +89,12 @@ export function SessionExerciseResponseFromJSONTyped(json: any, ignoreDiscrimina
     return {
         
         'exerciseId': json['exercise_id'] == null ? undefined : json['exercise_id'],
-        'exerciseNameSnap': json['exercise_name_snap'] == null ? undefined : json['exercise_name_snap'],
+        'exerciseNameSnapshot': json['exercise_name_snapshot'] == null ? undefined : json['exercise_name_snapshot'],
         'id': json['id'] == null ? undefined : json['id'],
-        'restSecondsSnap': json['rest_seconds_snap'] == null ? undefined : json['rest_seconds_snap'],
+        'restSecondsSnapshot': json['rest_seconds_snapshot'] == null ? undefined : json['rest_seconds_snapshot'],
         'sequence': json['sequence'] == null ? undefined : json['sequence'],
         'setLogs': json['set_logs'] == null ? undefined : ((json['set_logs'] as Array<any>).map(SetLogResponseFromJSON)),
-        'subSnap': json['sub_snap'] == null ? undefined : json['sub_snap'],
+        'subSnapshot': json['sub_snapshot'] == null ? undefined : json['sub_snapshot'],
     };
 }
 
@@ -110,12 +110,12 @@ export function SessionExerciseResponseToJSONTyped(value?: SessionExerciseRespon
     return {
         
         'exercise_id': value['exerciseId'],
-        'exercise_name_snap': value['exerciseNameSnap'],
+        'exercise_name_snapshot': value['exerciseNameSnapshot'],
         'id': value['id'],
-        'rest_seconds_snap': value['restSecondsSnap'],
+        'rest_seconds_snapshot': value['restSecondsSnapshot'],
         'sequence': value['sequence'],
         'set_logs': value['setLogs'] == null ? undefined : ((value['setLogs'] as Array<any>).map(SetLogResponseToJSON)),
-        'sub_snap': value['subSnap'],
+        'sub_snapshot': value['subSnapshot'],
     };
 }
 

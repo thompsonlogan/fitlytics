@@ -43,7 +43,6 @@ func mapWeek(w generated.ProgramWeek, names map[uuid.UUID]string) ProgramWeekRes
 		ID:       w.ID,
 		Sequence: w.Sequence,
 		Name:     w.Name,
-		Notes:    w.Notes,
 		Days:     make([]ProgramDayResponse, 0, len(w.Days)),
 	}
 	for _, d := range w.Days {
@@ -76,27 +75,37 @@ func mapExercise(e generated.ProgramExercise, names map[uuid.UUID]string) Progra
 		ExerciseName: names[e.ExerciseID],
 		SubText:      e.SubText,
 		RestSeconds:  e.RestSeconds,
-		Notes:        e.Notes,
-		SetTargets:   make([]ProgramSetTargetResponse, 0, len(e.SetTargets)),
+		Groups:       make([]ProgramSetGroupResponse, 0, len(e.Groups)),
 	}
-	for _, t := range e.SetTargets {
-		out.SetTargets = append(out.SetTargets, mapSetTarget(t))
+	for _, g := range e.Groups {
+		out.Groups = append(out.Groups, mapGroup(g))
 	}
 	return out
 }
 
-func mapSetTarget(t generated.ProgramSetTarget) ProgramSetTargetResponse {
-	return ProgramSetTargetResponse{
-		ID:                     t.ID,
-		Sequence:               t.Sequence,
-		SetType:                t.SetType,
-		SetsCount:              t.SetsCount,
-		RepsMin:                t.RepsMin,
-		RepsMax:                t.RepsMax,
-		IntensityText:          t.IntensityText,
-		PrescribedLoadKg:       t.PrescribedLoadKg,
-		PrescribedLoadModifier: t.PrescribedLoadModifier,
-		CapLoadKg:              t.CapLoadKg,
-		PrescribedRpe:          t.PrescribedRpe,
+func mapGroup(g generated.ProgramSetGroup) ProgramSetGroupResponse {
+	out := ProgramSetGroupResponse{
+		ID:       g.ID,
+		Sequence: g.Sequence,
+		Sets:     make([]ProgramSetResponse, 0, len(g.Sets)),
+	}
+	for _, s := range g.Sets {
+		out.Sets = append(out.Sets, mapSet(s))
+	}
+	return out
+}
+
+func mapSet(s generated.ProgramSet) ProgramSetResponse {
+	return ProgramSetResponse{
+		ID:                     s.ID,
+		Sequence:               s.Sequence,
+		SetType:                s.SetType,
+		RepsMin:                s.RepsMin,
+		RepsMax:                s.RepsMax,
+		IntensityText:          s.IntensityText,
+		PrescribedLoadKg:       s.PrescribedLoadKg,
+		PrescribedLoadModifier: s.PrescribedLoadModifier,
+		CapLoadKg:              s.CapLoadKg,
+		PrescribedRpe:          s.PrescribedRpe,
 	}
 }

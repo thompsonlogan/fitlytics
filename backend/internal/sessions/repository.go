@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -68,6 +69,13 @@ func (r *repository) GetCurrentSessionByDay(ctx context.Context, programDayID, o
 	return session, nil
 }
 
+// isUniqueViolation reports whether err (possibly wrapped) is a Postgres
+// unique-constraint violation on the named constraint. Matched by name so it
+// stays independent of the SQL driver's concrete error type.
+func isUniqueViolation(err error, constraint string) bool {
+	return err != nil && strings.Contains(err.Error(), constraint)
+}
+
 func (r *repository) StartSessionForDay(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*generated.Session, error) {
 	var out generated.Session
 
@@ -103,25 +111,26 @@ func (r *repository) StartSessionForDay(ctx context.Context, programID, programD
 		pd := q.ProgramDay
 		pw := q.ProgramWeek
 		day, err := pd.WithContext(ctx).
-			Join(&generated.ProgramWeek{}, pw.ID.EqCol(pd.WeekID)).
+			Join(&generated.ProgramWeek{}, pw.ID.EqCol(pd.ProgramWeekID)).
 			Where(pd.ID.Eq(programDayID), pw.ProgramID.Eq(programID)).
 			First()
 		if err != nil {
 			return err
 		}
 
-		// 3) Pull the program exercises + set targets for the snapshot.
+		// 3) Pull the program exercises + set groups/sets for the snapshot.
 		pe := q.ProgramExercise
 		pExercises, err := pe.WithContext(ctx).
-			Preload(pe.SetTargets).
-			Where(pe.DayID.Eq(programDayID)).
+			Preload(pe.Groups).
+			Preload(pe.Groups.Sets).
+			Where(pe.ProgramDayID.Eq(programDayID)).
 			Order(pe.Sequence).
 			Find()
 		if err != nil {
 			return fmt.Errorf("load program exercises: %w", err)
 		}
 
-		// Bulk-fetch exercise names for the name_snap field.
+		// Bulk-fetch exercise names for the name_snapshot field.
 		nameByID := make(map[uuid.UUID]string)
 		if len(pExercises) > 0 {
 			ids := make([]uuid.UUID, 0, len(pExercises))
@@ -154,12 +163,12 @@ func (r *repository) StartSessionForDay(ctx context.Context, programID, programD
 		// 4) Create the session row.
 		now := time.Now()
 		session := generated.Session{
-			UserID:          ownerUserID,
-			ProgramDayID:    &programDayID,
-			ProgramNameSnap: &program.Name,
-			DayNameSnap:     &day.Name,
-			State:           "planned",
-			StartedAt:       &now,
+			UserID:              ownerUserID,
+			ProgramDayID:        &programDayID,
+			ProgramNameSnapshot: &program.Name,
+			DayNameSnapshot:     &day.Name,
+			State:               "planned",
+			StartedAt:           &now,
 		}
 		if err := s.WithContext(ctx).Create(&session); err != nil {
 			return fmt.Errorf("create session: %w", err)
@@ -176,12 +185,12 @@ func (r *repository) StartSessionForDay(ctx context.Context, programID, programD
 		sessionExercises := make([]*generated.SessionExercise, len(pExercises))
 		for i, p := range pExercises {
 			sessionExercises[i] = &generated.SessionExercise{
-				SessionID:        session.ID,
-				Sequence:         p.Sequence,
-				ExerciseID:       p.ExerciseID,
-				ExerciseNameSnap: nameByID[p.ExerciseID],
-				SubSnap:          p.SubText,
-				RestSecondsSnap:  p.RestSeconds,
+				SessionID:            session.ID,
+				Sequence:             p.Sequence,
+				ExerciseID:           p.ExerciseID,
+				ExerciseNameSnapshot: nameByID[p.ExerciseID],
+				SubSnapshot:          p.SubText,
+				RestSecondsSnapshot:  p.RestSeconds,
 			}
 		}
 		if len(sessionExercises) > 0 {
@@ -194,24 +203,30 @@ func (r *repository) StartSessionForDay(ctx context.Context, programID, programD
 		for i, p := range pExercises {
 			seID := sessionExercises[i].ID
 			seq := int32(1)
-			for _, pst := range p.SetTargets {
-				blockSeq := pst.Sequence
-				count := pst.SetsCount
-				if count < 1 {
-					count = 1
-				}
-				for k := int32(0); k < count; k++ {
+			groups := p.Groups
+			slices.SortFunc(groups, func(a, b generated.ProgramSetGroup) int {
+				return cmp.Compare(a.Sequence, b.Sequence)
+			})
+			for gi := range groups {
+				groupID := groups[gi].ID
+				sets := groups[gi].Sets
+				slices.SortFunc(sets, func(a, b generated.ProgramSet) int {
+					return cmp.Compare(a.Sequence, b.Sequence)
+				})
+				for _, ps := range sets {
 					setLogs = append(setLogs, &generated.SetLog{
 						SessionExerciseID:      seID,
+						UserID:                 ownerUserID,
+						ExerciseID:             p.ExerciseID,
 						Sequence:               seq,
-						BlockSequence:          &blockSeq,
-						SetType:                pst.SetType,
-						RepsTargetMin:          pst.RepsMin,
-						RepsTargetMax:          pst.RepsMax,
-						PrescribedLoadKg:       pst.PrescribedLoadKg,
-						PrescribedLoadModifier: pst.PrescribedLoadModifier,
-						PrescribedRpe:          pst.PrescribedRpe,
-						IntensityText:          pst.IntensityText,
+						GroupID:                &groupID,
+						SetType:                ps.SetType,
+						RepsTargetMin:          ps.RepsMin,
+						RepsTargetMax:          ps.RepsMax,
+						PrescribedLoadKg:       ps.PrescribedLoadKg,
+						PrescribedLoadModifier: ps.PrescribedLoadModifier,
+						PrescribedRpe:          ps.PrescribedRpe,
+						IntensityText:          ps.IntensityText,
 						ActualLoadModifier:     "absolute",
 						State:                  "pending",
 					})
@@ -239,6 +254,11 @@ func (r *repository) StartSessionForDay(ctx context.Context, programID, programD
 		return nil
 	})
 	if err != nil {
+		// A concurrent first-start committed the session before us and our insert
+		// hit sessions_active_day_uq; load and return the winner's row.
+		if isUniqueViolation(err, "sessions_active_day_uq") {
+			return r.GetCurrentSessionByDay(ctx, programDayID, ownerUserID)
+		}
 		return nil, err
 	}
 	return &out, nil
@@ -287,6 +307,16 @@ func (r *repository) UpdateSetLog(ctx context.Context, sessionID, setLogID, owne
 		}
 		if input.State != nil {
 			assigns = append(assigns, sl.State.Value(*input.State))
+			// Maintain completed_at: stamp it on the first move into completed,
+			// clear it on reopen. (No state change never reaches here.)
+			switch *input.State {
+			case "completed":
+				if setLog.CompletedAt == nil {
+					assigns = append(assigns, sl.CompletedAt.Value(time.Now()))
+				}
+			case "pending", "skipped":
+				assigns = append(assigns, sl.CompletedAt.Null())
+			}
 		}
 		if len(assigns) == 0 {
 			out = setLog
@@ -440,6 +470,15 @@ func (r *repository) UpdateSetLogs(ctx context.Context, sessionID, ownerUserID u
 			}
 			if item.State != nil {
 				assigns = append(assigns, sl.State.Value(*item.State))
+				// Maintain completed_at: stamp on first move into completed, clear on reopen.
+				switch *item.State {
+				case "completed":
+					if byID[item.SetLogID].CompletedAt == nil {
+						assigns = append(assigns, sl.CompletedAt.Value(time.Now()))
+					}
+				case "pending", "skipped":
+					assigns = append(assigns, sl.CompletedAt.Null())
+				}
 			}
 			if len(assigns) > 0 {
 				if _, err := sl.WithContext(ctx).Where(sl.ID.Eq(item.SetLogID)).UpdateSimple(assigns...); err != nil {
@@ -480,7 +519,7 @@ func (r *repository) FindCompletedDays(ctx context.Context, programID, ownerUser
 	err := s.WithContext(ctx).
 		Select(pw.Sequence.As("week_sequence"), pd.Sequence.As("day_sequence")).
 		Join(&generated.ProgramDay{}, pd.ID.EqCol(s.ProgramDayID)).
-		Join(&generated.ProgramWeek{}, pw.ID.EqCol(pd.WeekID)).
+		Join(&generated.ProgramWeek{}, pw.ID.EqCol(pd.ProgramWeekID)).
 		Where(s.UserID.Eq(ownerUserID), s.State.Eq("completed"), pw.ProgramID.Eq(programID)).
 		Group(pw.Sequence, pd.Sequence).
 		Order(pw.Sequence, pd.Sequence).

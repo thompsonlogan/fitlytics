@@ -28,7 +28,7 @@ func newProgramDay(db *gorm.DB, opts ...gen.DOOption) programDay {
 	tableName := _programDay.programDayDo.TableName()
 	_programDay.ALL = field.NewAsterisk(tableName)
 	_programDay.ID = field.NewField(tableName, "id")
-	_programDay.WeekID = field.NewField(tableName, "week_id")
+	_programDay.ProgramWeekID = field.NewField(tableName, "program_week_id")
 	_programDay.Sequence = field.NewInt32(tableName, "sequence")
 	_programDay.Name = field.NewString(tableName, "name")
 	_programDay.Tag = field.NewString(tableName, "tag")
@@ -40,10 +40,18 @@ func newProgramDay(db *gorm.DB, opts ...gen.DOOption) programDay {
 		db: db.Session(&gorm.Session{}),
 
 		RelationField: field.NewRelation("Exercises", "generated.ProgramExercise"),
-		SetTargets: struct {
+		Groups: struct {
 			field.RelationField
+			Sets struct {
+				field.RelationField
+			}
 		}{
-			RelationField: field.NewRelation("Exercises.SetTargets", "generated.ProgramSetTarget"),
+			RelationField: field.NewRelation("Exercises.Groups", "generated.ProgramSetGroup"),
+			Sets: struct {
+				field.RelationField
+			}{
+				RelationField: field.NewRelation("Exercises.Groups.Sets", "generated.ProgramSet"),
+			},
 		},
 	}
 
@@ -55,17 +63,17 @@ func newProgramDay(db *gorm.DB, opts ...gen.DOOption) programDay {
 type programDay struct {
 	programDayDo programDayDo
 
-	ALL       field.Asterisk
-	ID        field.Field
-	WeekID    field.Field
-	Sequence  field.Int32
-	Name      field.String
-	Tag       field.String
-	IsRestDay field.Bool
-	Notes     field.String
-	CreatedAt field.Time
-	UpdatedAt field.Time
-	Exercises programDayHasManyExercises
+	ALL           field.Asterisk
+	ID            field.Field
+	ProgramWeekID field.Field
+	Sequence      field.Int32
+	Name          field.String
+	Tag           field.String
+	IsRestDay     field.Bool
+	Notes         field.String
+	CreatedAt     field.Time
+	UpdatedAt     field.Time
+	Exercises     programDayHasManyExercises
 
 	fieldMap map[string]field.Expr
 }
@@ -83,7 +91,7 @@ func (p programDay) As(alias string) *programDay {
 func (p *programDay) updateTableName(table string) *programDay {
 	p.ALL = field.NewAsterisk(table)
 	p.ID = field.NewField(table, "id")
-	p.WeekID = field.NewField(table, "week_id")
+	p.ProgramWeekID = field.NewField(table, "program_week_id")
 	p.Sequence = field.NewInt32(table, "sequence")
 	p.Name = field.NewString(table, "name")
 	p.Tag = field.NewString(table, "tag")
@@ -119,7 +127,7 @@ func (p *programDay) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 func (p *programDay) fillFieldMap() {
 	p.fieldMap = make(map[string]field.Expr, 10)
 	p.fieldMap["id"] = p.ID
-	p.fieldMap["week_id"] = p.WeekID
+	p.fieldMap["program_week_id"] = p.ProgramWeekID
 	p.fieldMap["sequence"] = p.Sequence
 	p.fieldMap["name"] = p.Name
 	p.fieldMap["tag"] = p.Tag
@@ -148,8 +156,11 @@ type programDayHasManyExercises struct {
 
 	field.RelationField
 
-	SetTargets struct {
+	Groups struct {
 		field.RelationField
+		Sets struct {
+			field.RelationField
+		}
 	}
 }
 

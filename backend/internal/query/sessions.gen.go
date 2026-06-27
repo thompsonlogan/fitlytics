@@ -30,14 +30,12 @@ func newSession(db *gorm.DB, opts ...gen.DOOption) session {
 	_session.ID = field.NewField(tableName, "id")
 	_session.UserID = field.NewField(tableName, "user_id")
 	_session.ProgramDayID = field.NewField(tableName, "program_day_id")
-	_session.ProgramNameSnap = field.NewString(tableName, "program_name_snap")
-	_session.DayNameSnap = field.NewString(tableName, "day_name_snap")
+	_session.ProgramNameSnapshot = field.NewString(tableName, "program_name_snapshot")
+	_session.DayNameSnapshot = field.NewString(tableName, "day_name_snapshot")
 	_session.State = field.NewString(tableName, "state")
-	_session.ScheduledFor = field.NewTime(tableName, "scheduled_for")
 	_session.StartedAt = field.NewTime(tableName, "started_at")
 	_session.CompletedAt = field.NewTime(tableName, "completed_at")
 	_session.Notes = field.NewString(tableName, "notes")
-	_session.Extras = field.NewField(tableName, "extras")
 	_session.CreatedAt = field.NewTime(tableName, "created_at")
 	_session.UpdatedAt = field.NewTime(tableName, "updated_at")
 	_session.DeletedAt = field.NewField(tableName, "deleted_at")
@@ -60,22 +58,20 @@ func newSession(db *gorm.DB, opts ...gen.DOOption) session {
 type session struct {
 	sessionDo sessionDo
 
-	ALL             field.Asterisk
-	ID              field.Field
-	UserID          field.Field
-	ProgramDayID    field.Field
-	ProgramNameSnap field.String
-	DayNameSnap     field.String
-	State           field.String
-	ScheduledFor    field.Time
-	StartedAt       field.Time
-	CompletedAt     field.Time
-	Notes           field.String
-	Extras          field.Field
-	CreatedAt       field.Time
-	UpdatedAt       field.Time
-	DeletedAt       field.Field
-	Exercises       sessionHasManyExercises
+	ALL                 field.Asterisk
+	ID                  field.Field
+	UserID              field.Field
+	ProgramDayID        field.Field
+	ProgramNameSnapshot field.String
+	DayNameSnapshot     field.String
+	State               field.String
+	StartedAt           field.Time
+	CompletedAt         field.Time
+	Notes               field.String
+	CreatedAt           field.Time
+	UpdatedAt           field.Time
+	DeletedAt           field.Field
+	Exercises           sessionHasManyExercises
 
 	fieldMap map[string]field.Expr
 }
@@ -95,14 +91,12 @@ func (s *session) updateTableName(table string) *session {
 	s.ID = field.NewField(table, "id")
 	s.UserID = field.NewField(table, "user_id")
 	s.ProgramDayID = field.NewField(table, "program_day_id")
-	s.ProgramNameSnap = field.NewString(table, "program_name_snap")
-	s.DayNameSnap = field.NewString(table, "day_name_snap")
+	s.ProgramNameSnapshot = field.NewString(table, "program_name_snapshot")
+	s.DayNameSnapshot = field.NewString(table, "day_name_snapshot")
 	s.State = field.NewString(table, "state")
-	s.ScheduledFor = field.NewTime(table, "scheduled_for")
 	s.StartedAt = field.NewTime(table, "started_at")
 	s.CompletedAt = field.NewTime(table, "completed_at")
 	s.Notes = field.NewString(table, "notes")
-	s.Extras = field.NewField(table, "extras")
 	s.CreatedAt = field.NewTime(table, "created_at")
 	s.UpdatedAt = field.NewTime(table, "updated_at")
 	s.DeletedAt = field.NewField(table, "deleted_at")
@@ -130,18 +124,16 @@ func (s *session) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (s *session) fillFieldMap() {
-	s.fieldMap = make(map[string]field.Expr, 15)
+	s.fieldMap = make(map[string]field.Expr, 13)
 	s.fieldMap["id"] = s.ID
 	s.fieldMap["user_id"] = s.UserID
 	s.fieldMap["program_day_id"] = s.ProgramDayID
-	s.fieldMap["program_name_snap"] = s.ProgramNameSnap
-	s.fieldMap["day_name_snap"] = s.DayNameSnap
+	s.fieldMap["program_name_snapshot"] = s.ProgramNameSnapshot
+	s.fieldMap["day_name_snapshot"] = s.DayNameSnapshot
 	s.fieldMap["state"] = s.State
-	s.fieldMap["scheduled_for"] = s.ScheduledFor
 	s.fieldMap["started_at"] = s.StartedAt
 	s.fieldMap["completed_at"] = s.CompletedAt
 	s.fieldMap["notes"] = s.Notes
-	s.fieldMap["extras"] = s.Extras
 	s.fieldMap["created_at"] = s.CreatedAt
 	s.fieldMap["updated_at"] = s.UpdatedAt
 	s.fieldMap["deleted_at"] = s.DeletedAt

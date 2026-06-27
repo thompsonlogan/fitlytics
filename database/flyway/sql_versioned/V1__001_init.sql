@@ -2,12 +2,14 @@
 --
 -- Target: PostgreSQL 15+. Applied by Flyway from database/docker-compose.yml.
 -- All objects live in the `fitlytics` schema; pgcrypto is installed to public
--- so gen_random_uuid() resolves via search_path. The trailing ALTER DATABASE
--- pins search_path for every future connection (app, gen, psql).
+-- so gen_random_uuid() resolves via search_path. Each connection sets its own
+-- search_path: the migration via the session-level SET below; the app and gen
+-- via the connection string (search_path=fitlytics,public), configured per
+-- environment rather than coupled to a hardcoded database name.
 --
 -- Conventions baked in here:
 --   * All loads stored canonically in kg. Distances in meters. Durations in
---     seconds. Display-convert per users.unit_pref.
+--     seconds. Display-convert per users.unit_preference.
 --   * timestamptz everywhere, never timestamp.
 --   * Client-generated UUIDs (gen_random_uuid()) for offline-friendly sync.
 --   * Prescriptions are SNAPSHOTTED onto sessions at start time. Editing a
@@ -61,11 +63,11 @@ create type load_modifier as enum (
 );
 
 create type load_type as enum (
-  'weighted', 'bodyweight', 'timed', 'distance'
+  'weighted', 'bodyweight'
 );
 
 create type set_type as enum (
-  'warmup', 'working', 'amrap', 'drop', 'timed', 'distance'
+  'warmup', 'working', 'amrap', 'drop'
 );
 
 create type session_state as enum (
@@ -106,7 +108,7 @@ create table users (
   workos_user_id  text not null unique,   -- WorkOS identity, e.g. 'user_01H...'
   display_name    text not null,
   email           text unique,            -- mirrored from WorkOS; WorkOS stays authoritative
-  unit_pref       unit_system not null default 'imperial',
+  unit_preference unit_system not null default 'imperial',
   timezone        text not null default 'UTC',
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now(),
@@ -117,22 +119,27 @@ create trigger users_updated_at before update on users
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Exercises (canonical + user-contributed in one table)
---   Canonical:  created_by_user_id IS NULL, canonical_id IS NULL, slug set
---   User-made:  created_by_user_id = <user>, canonical_id either null
+--   Canonical:  is_canonical = true, canonical_id IS NULL, slug set (created_by_user_id NULL)
+--   User-made:  is_canonical = false, created_by_user_id = <user>, canonical_id either null
 --               (unmapped) or pointing at the canonical row.
 --   Analytics rollup key: coalesce(canonical_id, id)
 -- ─────────────────────────────────────────────────────────────────────────────
 
 create table exercises (
   id                     uuid primary key default gen_random_uuid(),
+  -- Simple FK gives ON DELETE SET NULL (the composite FK below can't, since it
+  -- includes a generated column); the composite FK adds the canonical-only rule.
   canonical_id           uuid references exercises(id) on delete set null,
+  -- Mirrors "canonical_id is set" so the composite FK below can force
+  -- canonical_id to reference a row with is_canonical = true.
+  canonical_ref_flag     boolean generated always as (case when canonical_id is null then null else true end) stored,
   created_by_user_id     uuid references users(id) on delete set null,
+  is_canonical           boolean not null default false,
   name                   text not null,
   slug                   text,
   primary_muscles        muscle[] not null default '{}',
   secondary_muscles      muscle[] not null default '{}',
   movement_pattern       movement_pattern,
-  equipment              text[] not null default '{}',
   is_compound            boolean not null default false,
   load_type              load_type not null default 'weighted',
   default_load_modifier  load_modifier not null default 'absolute',
@@ -141,16 +148,20 @@ create table exercises (
   updated_at             timestamptz not null default now(),
   deleted_at             timestamptz,
   constraint exercises_no_self_canonical check (canonical_id is null or canonical_id <> id),
+  constraint exercises_canonical_not_nested check (not (is_canonical and canonical_id is not null)),
   constraint exercises_canonical_has_slug check (
-    created_by_user_id is not null or slug is not null
-  )
+    not is_canonical or slug is not null
+  ),
+  constraint exercises_id_canonical_uq unique (id, is_canonical),
+  constraint exercises_canonical_ref foreign key (canonical_id, canonical_ref_flag)
+    references exercises (id, is_canonical)
 );
 
--- Canonical entries (created_by_user_id IS NULL) get a globally unique slug.
+-- Canonical entries (is_canonical = true) get a globally unique slug.
 -- User entries are unconstrained by slug.
 create unique index exercises_slug_canonical_uq
   on exercises (slug)
-  where created_by_user_id is null;
+  where is_canonical;
 
 create index exercises_canonical_id_idx on exercises (canonical_id);
 create index exercises_created_by_idx on exercises (created_by_user_id);
@@ -158,6 +169,30 @@ create index exercises_movement_pattern_idx on exercises (movement_pattern);
 
 create trigger exercises_updated_at before update on exercises
   for each row execute function set_updated_at();
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Equipment (controlled vocabulary; a lookup table, not an enum, because
+-- equipment is an open set. Canonical-only for v1 — user-created equipment
+-- (is_canonical / created_by_user_id) can be added later, mirroring exercises.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+create table equipment (
+  id          uuid primary key default gen_random_uuid(),
+  slug        text not null unique,
+  name        text not null,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+create trigger equipment_updated_at before update on equipment
+  for each row execute function set_updated_at();
+
+-- Join table: which equipment an exercise uses (many-to-many).
+create table exercise_equipment (
+  exercise_id   uuid not null references exercises(id) on delete cascade,
+  equipment_id  uuid not null references equipment(id) on delete cascade,
+  primary key (exercise_id, equipment_id)
+);
+create index exercise_equipment_equipment_idx on exercise_equipment (equipment_id);
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Programs (reusable templates)
@@ -187,9 +222,8 @@ create trigger programs_updated_at before update on programs
 create table program_weeks (
   id          uuid primary key default gen_random_uuid(),
   program_id  uuid not null references programs(id) on delete cascade,
-  sequence    int not null,                   -- week order within the program
+  sequence    int not null check (sequence > 0),  -- week order within the program
   name        text,                           -- optional label, e.g. "Deload"
-  notes       text,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now(),
   unique (program_id, sequence)
@@ -199,62 +233,67 @@ create trigger program_weeks_updated_at before update on program_weeks
 
 create table program_days (
   id           uuid primary key default gen_random_uuid(),
-  week_id      uuid not null references program_weeks(id) on delete cascade,
-  sequence     int not null,                   -- day order within the week
+  program_week_id uuid not null references program_weeks(id) on delete cascade,
+  sequence     int not null check (sequence > 0),  -- day order within the week
   name         text not null,                  -- e.g. "Lower · Heavy"
   tag          text,                           -- e.g. "Day 1"
   is_rest_day  boolean not null default false,
   notes        text,
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now(),
-  unique (week_id, sequence)
+  unique (program_week_id, sequence)
 );
 create trigger program_days_updated_at before update on program_days
   for each row execute function set_updated_at();
 
 create table program_exercises (
   id            uuid primary key default gen_random_uuid(),
-  day_id        uuid not null references program_days(id) on delete cascade,
-  sequence      int not null,
+  program_day_id uuid not null references program_days(id) on delete cascade,
+  sequence      int not null check (sequence > 0),
   exercise_id   uuid not null references exercises(id) on delete restrict,
   sub_text      text,                          -- "Belt + sleeves", "Conventional"
   rest_seconds  int check (rest_seconds is null or rest_seconds >= 0),
-  notes         text,
-  extras        jsonb not null default '{}'::jsonb,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now(),
-  unique (day_id, sequence)
+  unique (program_day_id, sequence)
 );
 create index program_exercises_exercise_idx on program_exercises (exercise_id);
 create trigger program_exercises_updated_at before update on program_exercises
   for each row execute function set_updated_at();
 
--- A program_set_target represents one "block" of prescribed sets that share
--- the same target params (e.g. "2 sets of 5 @ 285lb RPE 8"). When the user
--- starts a session, expand each target into sets_count individual set_logs.
-create table program_set_targets (
+-- Program sets are normalized one-row-per-set. A program_set_group is one
+-- "block" of sets the editor collapses into a single "2×5" row; a program_set
+-- is one prescribed set. At session start each program_set snapshots into
+-- exactly one set_log (1:1, no sets_count expansion).
+create table program_set_groups (
+  id                   uuid primary key default gen_random_uuid(),
+  program_exercise_id  uuid not null references program_exercises(id) on delete cascade,
+  sequence             int not null check (sequence > 0),   -- group display order within the exercise
+  created_at           timestamptz not null default now(),
+  updated_at           timestamptz not null default now(),
+  unique (program_exercise_id, sequence)
+);
+create trigger program_set_groups_updated_at before update on program_set_groups
+  for each row execute function set_updated_at();
+
+create table program_sets (
   id                        uuid primary key default gen_random_uuid(),
-  program_exercise_id       uuid not null references program_exercises(id) on delete cascade,
-  sequence                  int not null,
+  group_id                  uuid not null references program_set_groups(id) on delete cascade,
+  sequence                  int not null check (sequence > 0),   -- set order within the group
   set_type                  set_type not null default 'working',
-  sets_count                int not null default 1 check (sets_count > 0),
   reps_min                  int check (reps_min is null or reps_min >= 0),
   reps_max                  int check (reps_max is null or reps_max >= 0),
-  duration_target_sec       int check (duration_target_sec is null or duration_target_sec >= 0),
-  distance_target_m         numeric(10,2) check (distance_target_m is null or distance_target_m >= 0),
   intensity_text            text,             -- free-form display: "0–1 RIR", "285lb (0.95)"
   prescribed_load_kg        numeric(7,2) check (prescribed_load_kg is null or prescribed_load_kg >= 0),
   prescribed_load_modifier  load_modifier not null default 'absolute',
   cap_load_kg               numeric(7,2) check (cap_load_kg is null or cap_load_kg >= 0),
   prescribed_rpe            numeric(3,1) check (prescribed_rpe is null or (prescribed_rpe >= 0 and prescribed_rpe <= 10)),
-  notes                     text,
-  extras                    jsonb not null default '{}'::jsonb,
   created_at                timestamptz not null default now(),
   updated_at                timestamptz not null default now(),
-  unique (program_exercise_id, sequence),
-  constraint reps_range_ok check (reps_min is null or reps_max is null or reps_max >= reps_min)
+  unique (group_id, sequence),
+  constraint program_sets_reps_range_ok check (reps_min is null or reps_max is null or reps_max >= reps_min)
 );
-create trigger program_set_targets_updated_at before update on program_set_targets
+create trigger program_sets_updated_at before update on program_sets
   for each row execute function set_updated_at();
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -267,40 +306,43 @@ create table sessions (
   id                  uuid primary key default gen_random_uuid(),
   user_id             uuid not null references users(id) on delete cascade,
   program_day_id      uuid references program_days(id) on delete set null,  -- nullable for ad-hoc sessions
-  program_name_snap   text,
-  day_name_snap       text,
+  program_name_snapshot   text,
+  day_name_snapshot       text,
   state               session_state not null default 'planned',
-  scheduled_for       date,
   started_at          timestamptz,
   completed_at        timestamptz,
   notes               text,
-  extras              jsonb not null default '{}'::jsonb,
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now(),
-  deleted_at          timestamptz
+  deleted_at          timestamptz,
+  constraint sessions_completed_has_at check (state <> 'completed' or completed_at is not null)
 );
 create index sessions_user_recent_idx
   on sessions (user_id, coalesce(started_at, created_at) desc)
   where deleted_at is null;
-create index sessions_user_scheduled_idx
-  on sessions (user_id, scheduled_for)
-  where deleted_at is null;
+-- One active (non-deleted) session per program day, so concurrent first-starts
+-- can't create duplicate session trees for the same (user, day). The app turns
+-- the resulting conflict into a reuse of the existing session.
+create unique index sessions_active_day_uq
+  on sessions (user_id, program_day_id)
+  where program_day_id is not null and deleted_at is null;
 create trigger sessions_updated_at before update on sessions
   for each row execute function set_updated_at();
 
 create table session_exercises (
   id                  uuid primary key default gen_random_uuid(),
   session_id          uuid not null references sessions(id) on delete cascade,
-  sequence            int not null,
+  sequence            int not null check (sequence > 0),
   exercise_id         uuid not null references exercises(id) on delete restrict,
-  exercise_name_snap  text not null,           -- snapshot at session start
-  sub_snap            text,
-  rest_seconds_snap   int,
-  notes               text,
-  extras              jsonb not null default '{}'::jsonb,
+  exercise_name_snapshot  text not null,           -- snapshot at session start
+  sub_snapshot            text,
+  rest_seconds_snapshot   int,
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now(),
-  unique (session_id, sequence)
+  unique (session_id, sequence),
+  -- Lets set_logs use a (session_exercise_id, exercise_id) composite FK to
+  -- guarantee a set log's exercise_id matches its session exercise's.
+  unique (id, exercise_id)
 );
 create index session_exercises_exercise_idx on session_exercises (exercise_id);
 create trigger session_exercises_updated_at before update on session_exercises
@@ -310,41 +352,54 @@ create trigger session_exercises_updated_at before update on session_exercises
 create table set_logs (
   id                        uuid primary key default gen_random_uuid(),
   session_exercise_id       uuid not null references session_exercises(id) on delete cascade,
-  sequence                  int not null,
-  block_sequence            int,
+  -- Denormalized analytical dimensions so analytics don't have to join up to
+  -- sessions / session_exercises. Written once by the snapshot writer and never
+  -- mutated (app invariant). exercise_id's match to the session exercise is
+  -- enforced declaratively by the composite FK below; user_id is app-enforced.
+  user_id                   uuid not null references users(id) on delete cascade,
+  exercise_id               uuid not null references exercises(id) on delete restrict,
+  sequence                  int not null check (sequence > 0),
+  group_id                  uuid,   -- snapshot of program_set_groups.id; null for ad-hoc sets (not an FK)
   set_type                  set_type not null default 'working',
   -- prescription snapshot
-  reps_target_min           int,
-  reps_target_max           int,
-  duration_target_sec       int,
-  distance_target_m         numeric(10,2),
-  prescribed_load_kg        numeric(7,2),
+  reps_target_min           int check (reps_target_min is null or reps_target_min >= 0),
+  reps_target_max           int check (reps_target_max is null or reps_target_max >= 0),
+  prescribed_load_kg        numeric(7,2) check (prescribed_load_kg is null or prescribed_load_kg >= 0),
   prescribed_load_modifier  load_modifier not null default 'absolute',
-  prescribed_rpe            numeric(3,1),
+  prescribed_rpe            numeric(3,1) check (prescribed_rpe is null or (prescribed_rpe >= 0 and prescribed_rpe <= 10)),
   intensity_text            text,
   -- actuals
   reps_actual               int check (reps_actual is null or reps_actual >= 0),
-  duration_actual_sec       int check (duration_actual_sec is null or duration_actual_sec >= 0),
-  distance_actual_m         numeric(10,2) check (distance_actual_m is null or distance_actual_m >= 0),
   actual_load_kg            numeric(7,2) check (actual_load_kg is null or actual_load_kg >= 0),
   actual_load_modifier      load_modifier not null default 'absolute',
   actual_rpe                numeric(3,1) check (actual_rpe is null or (actual_rpe >= 0 and actual_rpe <= 10)),
   -- timing & status
-  started_at                timestamptz,
   completed_at              timestamptz,
   state                     set_log_state not null default 'pending',
-  notes                     text,
-  extras                    jsonb not null default '{}'::jsonb,
   created_at                timestamptz not null default now(),
   updated_at                timestamptz not null default now(),
-  deleted_at                timestamptz
+  deleted_at                timestamptz,
+  constraint set_logs_completed_has_at check (state <> 'completed' or completed_at is not null),
+  constraint set_logs_reps_range_ok check (reps_target_min is null or reps_target_max is null or reps_target_max >= reps_target_min),
+  -- Guarantees exercise_id matches the owning session_exercise's exercise_id
+  -- (declarative, no trigger; pairs with unique(id, exercise_id) on session_exercises).
+  constraint set_logs_exercise_matches_se foreign key (session_exercise_id, exercise_id)
+    references session_exercises (id, exercise_id)
 );
-create index set_logs_active_seq_idx
+create unique index set_logs_active_seq_idx
   on set_logs (session_exercise_id, sequence)
   where deleted_at is null;
-create index if not exists set_logs_block_idx
-  on set_logs (session_exercise_id, block_sequence, sequence)
+create index if not exists set_logs_group_idx
+  on set_logs (session_exercise_id, group_id, sequence)
   where deleted_at is null;
+-- Composite unique on (id, user_id) so set_videos can use a (set_log_id, user_id)
+-- composite FK to guarantee a video's owner matches its set's owner (later step).
+create unique index set_logs_id_user_uq on set_logs (id, user_id);
+-- Partial composite index for the core analytics path: a user's completed sets
+-- of a given lift over time. (Not "covering" — add INCLUDE once queries are fixed.)
+create index set_logs_user_exercise_completed_idx
+  on set_logs (user_id, exercise_id, completed_at desc)
+  where deleted_at is null and state = 'completed';
 create trigger set_logs_updated_at before update on set_logs
   for each row execute function set_updated_at();
 
@@ -363,18 +418,23 @@ create trigger set_logs_updated_at before update on set_logs
 
 create table if not exists set_videos (
   id             uuid primary key default gen_random_uuid(),
-  set_log_id     uuid not null references set_logs(id) on delete cascade,
-  user_id        uuid not null references users(id) on delete cascade,
-  status         text not null default 'pending',
+  set_log_id     uuid not null,
+  user_id        uuid not null,
+  status         text not null default 'pending' check (status in ('pending', 'ready', 'failed')),
   storage_key    text not null,
   content_type   text,
   size_bytes     bigint check (size_bytes is null or size_bytes >= 0),
-  duration_sec   numeric,                 -- client-reported hint; not authoritative
+  duration_sec   numeric check (duration_sec is null or duration_sec >= 0),  -- client hint; not authoritative
   original_name  text,
   note           text,
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now(),
-  deleted_at     timestamptz
+  deleted_at     timestamptz,
+  -- Composite FK guarantees a video's owner matches its set's owner (and that the
+  -- set_log exists). Replaces the separate set_log_id/user_id FKs; cascades on
+  -- set_log deletion, and transitively on user deletion via set_logs.user_id.
+  constraint set_videos_setlog_owner_fk foreign key (set_log_id, user_id)
+    references set_logs (id, user_id) on delete cascade
 );
 create unique index if not exists set_videos_setlog_uq
   on set_videos (set_log_id)
@@ -382,42 +442,8 @@ create unique index if not exists set_videos_setlog_uq
 create index if not exists set_videos_user_idx
   on set_videos (user_id)
   where deleted_at is null;
-create index if not exists set_videos_setlog_idx
-  on set_videos (set_log_id)
-  where deleted_at is null;
 create trigger set_videos_updated_at before update on set_videos
   for each row execute function set_updated_at();
-
--- ─────────────────────────────────────────────────────────────────────────────
--- User metrics sidecar (bodyweight, sleep, subjective wellness)
--- Allocated v1 even if you don't populate it; backfilling joins later is
--- much worse than carrying empty rows now.
--- ─────────────────────────────────────────────────────────────────────────────
-
-create table user_metrics (
-  id             uuid primary key default gen_random_uuid(),
-  user_id        uuid not null references users(id) on delete cascade,
-  recorded_at    timestamptz not null default now(),
-  bodyweight_kg  numeric(5,2) check (bodyweight_kg is null or bodyweight_kg > 0),
-  sleep_hours    numeric(4,2) check (sleep_hours is null or (sleep_hours >= 0 and sleep_hours <= 24)),
-  sleep_score    int check (sleep_score is null or sleep_score between 0 and 100),
-  soreness       int check (soreness is null or soreness between 0 and 10),
-  fatigue        int check (fatigue is null or fatigue between 0 and 10),
-  notes          text,
-  extras         jsonb not null default '{}'::jsonb,
-  created_at     timestamptz not null default now(),
-  updated_at     timestamptz not null default now()
-);
-create index user_metrics_user_time_idx on user_metrics (user_id, recorded_at desc);
-create trigger user_metrics_updated_at before update on user_metrics
-  for each row execute function set_updated_at();
-
--- ─────────────────────────────────────────────────────────────────────────────
--- Pin search_path for every future connection (app, gen, psql) so unqualified
--- references resolve to `fitlytics` first, with `public` available for pgcrypto.
--- ─────────────────────────────────────────────────────────────────────────────
-
-alter database fitlytics set search_path = fitlytics, public;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Authorization model — application layer (no Postgres RLS)
@@ -429,12 +455,12 @@ alter database fitlytics set search_path = fitlytics, public;
 -- policies — enforcement lives entirely in the app layer.
 --
 -- Ownership rules the app layer MUST enforce on every query:
---   * programs, sessions, user_metrics       -> filter by owner_user_id / user_id
+--   * programs, sessions                     -> filter by owner_user_id / user_id
 --   * program_weeks/days/exercises/targets    -> reachable only via a program the
 --                                                caller owns (join up to programs)
 --   * session_exercises, set_logs             -> reachable only via a session the
 --                                                caller owns (join up to sessions)
---   * exercises  SELECT -> canonical rows (created_by_user_id IS NULL) are
+--   * exercises  SELECT -> canonical rows (is_canonical = true) are
 --                          readable by everyone; user rows only by their creator
 --                exercises  WRITE  -> only the caller's own user rows
 --

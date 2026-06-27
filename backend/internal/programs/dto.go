@@ -29,7 +29,6 @@ type ProgramWeekResponse struct {
 	ID       uuid.UUID            `json:"id"`
 	Sequence int32                `json:"sequence" example:"1"`
 	Name     *string              `json:"name,omitempty" example:"Week 1"`
-	Notes    *string              `json:"notes,omitempty"`
 	Days     []ProgramDayResponse `json:"days"`
 } // @name ProgramWeekResponse
 
@@ -44,21 +43,25 @@ type ProgramDayResponse struct {
 } // @name ProgramDayResponse
 
 type ProgramExerciseResponse struct {
-	ID           uuid.UUID                  `json:"id"`
-	Sequence     int32                      `json:"sequence" example:"1"`
-	ExerciseID   uuid.UUID                  `json:"exercise_id"`
-	ExerciseName string                     `json:"exercise_name" example:"Competition Squat"`
-	SubText      *string                    `json:"sub_text,omitempty"`
-	RestSeconds  *int32                     `json:"rest_seconds,omitempty"`
-	Notes        *string                    `json:"notes,omitempty"`
-	SetTargets   []ProgramSetTargetResponse `json:"set_targets"`
+	ID           uuid.UUID                 `json:"id"`
+	Sequence     int32                     `json:"sequence" example:"1"`
+	ExerciseID   uuid.UUID                 `json:"exercise_id"`
+	ExerciseName string                    `json:"exercise_name" example:"Competition Squat"`
+	SubText      *string                   `json:"sub_text,omitempty"`
+	RestSeconds  *int32                    `json:"rest_seconds,omitempty"`
+	Groups       []ProgramSetGroupResponse `json:"groups"`
 } // @name ProgramExerciseResponse
 
-type ProgramSetTargetResponse struct {
+type ProgramSetGroupResponse struct {
+	ID       uuid.UUID            `json:"id"`
+	Sequence int32                `json:"sequence" example:"1"`
+	Sets     []ProgramSetResponse `json:"sets"`
+} // @name ProgramSetGroupResponse
+
+type ProgramSetResponse struct {
 	ID                     uuid.UUID `json:"id"`
 	Sequence               int32     `json:"sequence" example:"1"`
 	SetType                string    `json:"set_type" example:"working"`
-	SetsCount              int32     `json:"sets_count" example:"2"`
 	RepsMin                *int32    `json:"reps_min,omitempty" example:"3"`
 	RepsMax                *int32    `json:"reps_max,omitempty" example:"5"`
 	IntensityText          *string   `json:"intensity_text,omitempty" example:"285lb (0.95)"`
@@ -66,4 +69,4 @@ type ProgramSetTargetResponse struct {
 	PrescribedLoadModifier string    `json:"prescribed_load_modifier" example:"absolute"`
 	CapLoadKg              *float64  `json:"cap_load_kg,omitempty"`
 	PrescribedRpe          *float64  `json:"prescribed_rpe,omitempty" example:"5"`
-} // @name ProgramSetTargetResponse
+} // @name ProgramSetResponse

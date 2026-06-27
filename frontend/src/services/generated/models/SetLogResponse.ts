@@ -38,11 +38,13 @@ export interface SetLogResponse {
      */
     actualRpe?: number;
     /**
-     * 
-     * @type {number}
+     * GroupID is the snapshot of the originating program_set_group.id. Set logs
+     * that share a group_id are the individual sets of one prescribed block, so
+     * the frontend groups them back under a single table row. Null for ad-hoc sets.
+     * @type {string}
      * @memberof SetLogResponse
      */
-    blockSequence?: number;
+    groupId?: string;
     /**
      * 
      * @type {string}
@@ -131,7 +133,7 @@ export function SetLogResponseFromJSONTyped(json: any, ignoreDiscriminator: bool
         'actualLoadKg': json['actual_load_kg'] == null ? undefined : json['actual_load_kg'],
         'actualLoadModifier': json['actual_load_modifier'] == null ? undefined : json['actual_load_modifier'],
         'actualRpe': json['actual_rpe'] == null ? undefined : json['actual_rpe'],
-        'blockSequence': json['block_sequence'] == null ? undefined : json['block_sequence'],
+        'groupId': json['group_id'] == null ? undefined : json['group_id'],
         'id': json['id'] == null ? undefined : json['id'],
         'intensityText': json['intensity_text'] == null ? undefined : json['intensity_text'],
         'prescribedLoadKg': json['prescribed_load_kg'] == null ? undefined : json['prescribed_load_kg'],
@@ -160,7 +162,7 @@ export function SetLogResponseToJSONTyped(value?: SetLogResponse | null, ignoreD
         'actual_load_kg': value['actualLoadKg'],
         'actual_load_modifier': value['actualLoadModifier'],
         'actual_rpe': value['actualRpe'],
-        'block_sequence': value['blockSequence'],
+        'group_id': value['groupId'],
         'id': value['id'],
         'intensity_text': value['intensityText'],
         'prescribed_load_kg': value['prescribedLoadKg'],

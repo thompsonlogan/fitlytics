@@ -14,14 +14,14 @@ import (
 // Stable, hand-curated shape (separate from the generated GORM models) so the
 // OpenAPI spec and the TypeScript client stay decoupled from schema evolution.
 type MeResponse struct {
-	ID           uuid.UUID `json:"id"`
-	WorkosUserID string    `json:"workos_user_id"`
-	DisplayName  string    `json:"display_name"`
-	Email        *string   `json:"email,omitempty"`
-	UnitPref     string    `json:"unit_pref" example:"imperial"`
-	Timezone     string    `json:"timezone" example:"UTC"`
-	Role         string    `json:"role"`
-	Permissions  []string  `json:"permissions"`
+	ID             uuid.UUID `json:"id"`
+	WorkosUserID   string    `json:"workos_user_id"`
+	DisplayName    string    `json:"display_name"`
+	Email          *string   `json:"email,omitempty"`
+	UnitPreference string    `json:"unit_preference" example:"imperial"`
+	Timezone       string    `json:"timezone" example:"UTC"`
+	Role           string    `json:"role"`
+	Permissions    []string  `json:"permissions"`
 } // @name MeResponse
 
 // Me returns the authenticated caller's profile. It demonstrates reading the
@@ -40,14 +40,14 @@ func Me() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		p := auth.MustPrincipal(c)
 		c.JSON(http.StatusOK, MeResponse{
-			ID:           p.User.ID,
-			WorkosUserID: p.User.WorkosUserID,
-			DisplayName:  p.User.DisplayName,
-			Email:        p.User.Email,
-			UnitPref:     p.User.UnitPref,
-			Timezone:     p.User.Timezone,
-			Role:         p.Claims.Role,
-			Permissions:  p.Claims.Permissions,
+			ID:             p.User.ID,
+			WorkosUserID:   p.User.WorkosUserID,
+			DisplayName:    p.User.DisplayName,
+			Email:          p.User.Email,
+			UnitPreference: p.User.UnitPreference,
+			Timezone:       p.User.Timezone,
+			Role:           p.Claims.Role,
+			Permissions:    p.Claims.Permissions,
 		})
 	}
 }

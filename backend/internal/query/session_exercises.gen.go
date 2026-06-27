@@ -31,11 +31,9 @@ func newSessionExercise(db *gorm.DB, opts ...gen.DOOption) sessionExercise {
 	_sessionExercise.SessionID = field.NewField(tableName, "session_id")
 	_sessionExercise.Sequence = field.NewInt32(tableName, "sequence")
 	_sessionExercise.ExerciseID = field.NewField(tableName, "exercise_id")
-	_sessionExercise.ExerciseNameSnap = field.NewString(tableName, "exercise_name_snap")
-	_sessionExercise.SubSnap = field.NewString(tableName, "sub_snap")
-	_sessionExercise.RestSecondsSnap = field.NewInt32(tableName, "rest_seconds_snap")
-	_sessionExercise.Notes = field.NewString(tableName, "notes")
-	_sessionExercise.Extras = field.NewField(tableName, "extras")
+	_sessionExercise.ExerciseNameSnapshot = field.NewString(tableName, "exercise_name_snapshot")
+	_sessionExercise.SubSnapshot = field.NewString(tableName, "sub_snapshot")
+	_sessionExercise.RestSecondsSnapshot = field.NewInt32(tableName, "rest_seconds_snapshot")
 	_sessionExercise.CreatedAt = field.NewTime(tableName, "created_at")
 	_sessionExercise.UpdatedAt = field.NewTime(tableName, "updated_at")
 	_sessionExercise.SetLogs = sessionExerciseHasManySetLogs{
@@ -52,19 +50,17 @@ func newSessionExercise(db *gorm.DB, opts ...gen.DOOption) sessionExercise {
 type sessionExercise struct {
 	sessionExerciseDo sessionExerciseDo
 
-	ALL              field.Asterisk
-	ID               field.Field
-	SessionID        field.Field
-	Sequence         field.Int32
-	ExerciseID       field.Field
-	ExerciseNameSnap field.String
-	SubSnap          field.String
-	RestSecondsSnap  field.Int32
-	Notes            field.String
-	Extras           field.Field
-	CreatedAt        field.Time
-	UpdatedAt        field.Time
-	SetLogs          sessionExerciseHasManySetLogs
+	ALL                  field.Asterisk
+	ID                   field.Field
+	SessionID            field.Field
+	Sequence             field.Int32
+	ExerciseID           field.Field
+	ExerciseNameSnapshot field.String
+	SubSnapshot          field.String
+	RestSecondsSnapshot  field.Int32
+	CreatedAt            field.Time
+	UpdatedAt            field.Time
+	SetLogs              sessionExerciseHasManySetLogs
 
 	fieldMap map[string]field.Expr
 }
@@ -85,11 +81,9 @@ func (s *sessionExercise) updateTableName(table string) *sessionExercise {
 	s.SessionID = field.NewField(table, "session_id")
 	s.Sequence = field.NewInt32(table, "sequence")
 	s.ExerciseID = field.NewField(table, "exercise_id")
-	s.ExerciseNameSnap = field.NewString(table, "exercise_name_snap")
-	s.SubSnap = field.NewString(table, "sub_snap")
-	s.RestSecondsSnap = field.NewInt32(table, "rest_seconds_snap")
-	s.Notes = field.NewString(table, "notes")
-	s.Extras = field.NewField(table, "extras")
+	s.ExerciseNameSnapshot = field.NewString(table, "exercise_name_snapshot")
+	s.SubSnapshot = field.NewString(table, "sub_snapshot")
+	s.RestSecondsSnapshot = field.NewInt32(table, "rest_seconds_snapshot")
 	s.CreatedAt = field.NewTime(table, "created_at")
 	s.UpdatedAt = field.NewTime(table, "updated_at")
 
@@ -120,16 +114,14 @@ func (s *sessionExercise) GetFieldByName(fieldName string) (field.OrderExpr, boo
 }
 
 func (s *sessionExercise) fillFieldMap() {
-	s.fieldMap = make(map[string]field.Expr, 12)
+	s.fieldMap = make(map[string]field.Expr, 10)
 	s.fieldMap["id"] = s.ID
 	s.fieldMap["session_id"] = s.SessionID
 	s.fieldMap["sequence"] = s.Sequence
 	s.fieldMap["exercise_id"] = s.ExerciseID
-	s.fieldMap["exercise_name_snap"] = s.ExerciseNameSnap
-	s.fieldMap["sub_snap"] = s.SubSnap
-	s.fieldMap["rest_seconds_snap"] = s.RestSecondsSnap
-	s.fieldMap["notes"] = s.Notes
-	s.fieldMap["extras"] = s.Extras
+	s.fieldMap["exercise_name_snapshot"] = s.ExerciseNameSnapshot
+	s.fieldMap["sub_snapshot"] = s.SubSnapshot
+	s.fieldMap["rest_seconds_snapshot"] = s.RestSecondsSnapshot
 	s.fieldMap["created_at"] = s.CreatedAt
 	s.fieldMap["updated_at"] = s.UpdatedAt
 

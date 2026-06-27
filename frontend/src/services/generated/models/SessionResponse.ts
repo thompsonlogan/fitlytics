@@ -38,7 +38,7 @@ export interface SessionResponse {
      * @type {string}
      * @memberof SessionResponse
      */
-    dayNameSnap?: string;
+    dayNameSnapshot?: string;
     /**
      * 
      * @type {Array<SessionExerciseResponse>}
@@ -46,19 +46,21 @@ export interface SessionResponse {
      */
     exercises?: Array<SessionExerciseResponse>;
     /**
-     *
+     * 
      * @type {string}
      * @memberof SessionResponse
      */
     id?: string;
     /**
-     * Notes is the athlete's own free-text note for this workout ("Your notes" in the UI). Distinct from the program day's coach note, which is prescription-side and read-only.
+     * Notes is the athlete's own free-text note for this workout ("Your notes"
+     * in the UI). Distinct from the program day's coach note, which is
+     * prescription-side and read-only.
      * @type {string}
      * @memberof SessionResponse
      */
     notes?: string;
     /**
-     *
+     * 
      * @type {string}
      * @memberof SessionResponse
      */
@@ -68,7 +70,7 @@ export interface SessionResponse {
      * @type {string}
      * @memberof SessionResponse
      */
-    programNameSnap?: string;
+    programNameSnapshot?: string;
     /**
      * 
      * @type {string}
@@ -107,12 +109,12 @@ export function SessionResponseFromJSONTyped(json: any, ignoreDiscriminator: boo
     return {
         
         'completedAt': json['completed_at'] == null ? undefined : json['completed_at'],
-        'dayNameSnap': json['day_name_snap'] == null ? undefined : json['day_name_snap'],
+        'dayNameSnapshot': json['day_name_snapshot'] == null ? undefined : json['day_name_snapshot'],
         'exercises': json['exercises'] == null ? undefined : ((json['exercises'] as Array<any>).map(SessionExerciseResponseFromJSON)),
         'id': json['id'] == null ? undefined : json['id'],
         'notes': json['notes'] == null ? undefined : json['notes'],
         'programDayId': json['program_day_id'] == null ? undefined : json['program_day_id'],
-        'programNameSnap': json['program_name_snap'] == null ? undefined : json['program_name_snap'],
+        'programNameSnapshot': json['program_name_snapshot'] == null ? undefined : json['program_name_snapshot'],
         'startedAt': json['started_at'] == null ? undefined : json['started_at'],
         'state': json['state'] == null ? undefined : json['state'],
         'userId': json['user_id'] == null ? undefined : json['user_id'],
@@ -131,12 +133,12 @@ export function SessionResponseToJSONTyped(value?: SessionResponse | null, ignor
     return {
         
         'completed_at': value['completedAt'],
-        'day_name_snap': value['dayNameSnap'],
+        'day_name_snapshot': value['dayNameSnapshot'],
         'exercises': value['exercises'] == null ? undefined : ((value['exercises'] as Array<any>).map(SessionExerciseResponseToJSON)),
         'id': value['id'],
         'notes': value['notes'],
         'program_day_id': value['programDayId'],
-        'program_name_snap': value['programNameSnap'],
+        'program_name_snapshot': value['programNameSnapshot'],
         'started_at': value['startedAt'],
         'state': value['state'],
         'user_id': value['userId'],

@@ -102,7 +102,8 @@ func run() error {
 	// Tables without inbound nav fields can be generated first / independently.
 	exercise := g.GenerateModel("exercises", softDelete)
 	user := g.GenerateModel("users", softDelete)
-	userMetric := g.GenerateModel("user_metrics")
+	equipment := g.GenerateModel("equipment")
+	exerciseEquipment := g.GenerateModel("exercise_equipment")
 
 	// ── Session tree: Session → SessionExercise → SetLog ─────────────────────
 	setLog := g.GenerateModel("set_logs", softDelete)
@@ -120,26 +121,28 @@ func run() error {
 		gen.FieldRelate(field.HasMany, "Exercises", sessionExercise, nil),
 	)
 
-	// ── Program tree: Program → Week → Day → Exercise → SetTarget ────────────
-	programSetTarget := g.GenerateModel("program_set_targets")
+	// ── Program tree: Program → Week → Day → Exercise → Group → Set ──────────
+	programSet := g.GenerateModel("program_sets")
+
+	programSetGroup := g.GenerateModel("program_set_groups",
+		// Child FK column is group_id -> GroupID, not the convention ProgramSetGroupID.
+		gen.FieldRelate(field.HasMany, "Sets", programSet, &field.RelateConfig{
+			GORMTag: field.GormTag{"foreignKey": []string{"GroupID"}},
+		}),
+	)
 
 	programExercise := g.GenerateModel("program_exercises",
-		gen.FieldRelate(field.HasMany, "SetTargets", programSetTarget, nil),
+		gen.FieldRelate(field.HasMany, "Groups", programSetGroup, nil),
 	)
 
 	programDay := g.GenerateModel("program_days",
-		// Child FK column is day_id -> DayID, which doesn't match GORM's default
-		// convention of ProgramDayID; override explicitly.
-		gen.FieldRelate(field.HasMany, "Exercises", programExercise, &field.RelateConfig{
-			GORMTag: field.GormTag{"foreignKey": []string{"DayID"}},
-		}),
+		// day_id -> program_day_id matches GORM's default ProgramDayID convention.
+		gen.FieldRelate(field.HasMany, "Exercises", programExercise, nil),
 	)
 
 	programWeek := g.GenerateModel("program_weeks",
-		// Same story: week_id -> WeekID, not ProgramWeekID.
-		gen.FieldRelate(field.HasMany, "Days", programDay, &field.RelateConfig{
-			GORMTag: field.GormTag{"foreignKey": []string{"WeekID"}},
-		}),
+		// week_id -> program_week_id matches GORM's default ProgramWeekID convention.
+		gen.FieldRelate(field.HasMany, "Days", programDay, nil),
 	)
 
 	program := g.GenerateModel("programs", softDelete,
@@ -147,9 +150,9 @@ func run() error {
 	)
 
 	g.ApplyBasic(
-		exercise, user, userMetric,
+		exercise, user, equipment, exerciseEquipment,
 		setLog, setVideo, sessionExercise, session,
-		programSetTarget, programExercise, programDay, programWeek, program,
+		programSet, programSetGroup, programExercise, programDay, programWeek, program,
 	)
 	g.Execute()
 	return nil

@@ -29,28 +29,23 @@ func newSetLog(db *gorm.DB, opts ...gen.DOOption) setLog {
 	_setLog.ALL = field.NewAsterisk(tableName)
 	_setLog.ID = field.NewField(tableName, "id")
 	_setLog.SessionExerciseID = field.NewField(tableName, "session_exercise_id")
+	_setLog.UserID = field.NewField(tableName, "user_id")
+	_setLog.ExerciseID = field.NewField(tableName, "exercise_id")
 	_setLog.Sequence = field.NewInt32(tableName, "sequence")
-	_setLog.BlockSequence = field.NewInt32(tableName, "block_sequence")
+	_setLog.GroupID = field.NewField(tableName, "group_id")
 	_setLog.SetType = field.NewString(tableName, "set_type")
 	_setLog.RepsTargetMin = field.NewInt32(tableName, "reps_target_min")
 	_setLog.RepsTargetMax = field.NewInt32(tableName, "reps_target_max")
-	_setLog.DurationTargetSec = field.NewInt32(tableName, "duration_target_sec")
-	_setLog.DistanceTargetM = field.NewFloat64(tableName, "distance_target_m")
 	_setLog.PrescribedLoadKg = field.NewFloat64(tableName, "prescribed_load_kg")
 	_setLog.PrescribedLoadModifier = field.NewString(tableName, "prescribed_load_modifier")
 	_setLog.PrescribedRpe = field.NewFloat64(tableName, "prescribed_rpe")
 	_setLog.IntensityText = field.NewString(tableName, "intensity_text")
 	_setLog.RepsActual = field.NewInt32(tableName, "reps_actual")
-	_setLog.DurationActualSec = field.NewInt32(tableName, "duration_actual_sec")
-	_setLog.DistanceActualM = field.NewFloat64(tableName, "distance_actual_m")
 	_setLog.ActualLoadKg = field.NewFloat64(tableName, "actual_load_kg")
 	_setLog.ActualLoadModifier = field.NewString(tableName, "actual_load_modifier")
 	_setLog.ActualRpe = field.NewFloat64(tableName, "actual_rpe")
-	_setLog.StartedAt = field.NewTime(tableName, "started_at")
 	_setLog.CompletedAt = field.NewTime(tableName, "completed_at")
 	_setLog.State = field.NewString(tableName, "state")
-	_setLog.Notes = field.NewString(tableName, "notes")
-	_setLog.Extras = field.NewField(tableName, "extras")
 	_setLog.CreatedAt = field.NewTime(tableName, "created_at")
 	_setLog.UpdatedAt = field.NewTime(tableName, "updated_at")
 	_setLog.DeletedAt = field.NewField(tableName, "deleted_at")
@@ -66,28 +61,23 @@ type setLog struct {
 	ALL                    field.Asterisk
 	ID                     field.Field
 	SessionExerciseID      field.Field
+	UserID                 field.Field
+	ExerciseID             field.Field
 	Sequence               field.Int32
-	BlockSequence          field.Int32
+	GroupID                field.Field
 	SetType                field.String
 	RepsTargetMin          field.Int32
 	RepsTargetMax          field.Int32
-	DurationTargetSec      field.Int32
-	DistanceTargetM        field.Float64
 	PrescribedLoadKg       field.Float64
 	PrescribedLoadModifier field.String
 	PrescribedRpe          field.Float64
 	IntensityText          field.String
 	RepsActual             field.Int32
-	DurationActualSec      field.Int32
-	DistanceActualM        field.Float64
 	ActualLoadKg           field.Float64
 	ActualLoadModifier     field.String
 	ActualRpe              field.Float64
-	StartedAt              field.Time
 	CompletedAt            field.Time
 	State                  field.String
-	Notes                  field.String
-	Extras                 field.Field
 	CreatedAt              field.Time
 	UpdatedAt              field.Time
 	DeletedAt              field.Field
@@ -109,28 +99,23 @@ func (s *setLog) updateTableName(table string) *setLog {
 	s.ALL = field.NewAsterisk(table)
 	s.ID = field.NewField(table, "id")
 	s.SessionExerciseID = field.NewField(table, "session_exercise_id")
+	s.UserID = field.NewField(table, "user_id")
+	s.ExerciseID = field.NewField(table, "exercise_id")
 	s.Sequence = field.NewInt32(table, "sequence")
-	s.BlockSequence = field.NewInt32(table, "block_sequence")
+	s.GroupID = field.NewField(table, "group_id")
 	s.SetType = field.NewString(table, "set_type")
 	s.RepsTargetMin = field.NewInt32(table, "reps_target_min")
 	s.RepsTargetMax = field.NewInt32(table, "reps_target_max")
-	s.DurationTargetSec = field.NewInt32(table, "duration_target_sec")
-	s.DistanceTargetM = field.NewFloat64(table, "distance_target_m")
 	s.PrescribedLoadKg = field.NewFloat64(table, "prescribed_load_kg")
 	s.PrescribedLoadModifier = field.NewString(table, "prescribed_load_modifier")
 	s.PrescribedRpe = field.NewFloat64(table, "prescribed_rpe")
 	s.IntensityText = field.NewString(table, "intensity_text")
 	s.RepsActual = field.NewInt32(table, "reps_actual")
-	s.DurationActualSec = field.NewInt32(table, "duration_actual_sec")
-	s.DistanceActualM = field.NewFloat64(table, "distance_actual_m")
 	s.ActualLoadKg = field.NewFloat64(table, "actual_load_kg")
 	s.ActualLoadModifier = field.NewString(table, "actual_load_modifier")
 	s.ActualRpe = field.NewFloat64(table, "actual_rpe")
-	s.StartedAt = field.NewTime(table, "started_at")
 	s.CompletedAt = field.NewTime(table, "completed_at")
 	s.State = field.NewString(table, "state")
-	s.Notes = field.NewString(table, "notes")
-	s.Extras = field.NewField(table, "extras")
 	s.CreatedAt = field.NewTime(table, "created_at")
 	s.UpdatedAt = field.NewTime(table, "updated_at")
 	s.DeletedAt = field.NewField(table, "deleted_at")
@@ -158,31 +143,26 @@ func (s *setLog) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (s *setLog) fillFieldMap() {
-	s.fieldMap = make(map[string]field.Expr, 27)
+	s.fieldMap = make(map[string]field.Expr, 22)
 	s.fieldMap["id"] = s.ID
 	s.fieldMap["session_exercise_id"] = s.SessionExerciseID
+	s.fieldMap["user_id"] = s.UserID
+	s.fieldMap["exercise_id"] = s.ExerciseID
 	s.fieldMap["sequence"] = s.Sequence
-	s.fieldMap["block_sequence"] = s.BlockSequence
+	s.fieldMap["group_id"] = s.GroupID
 	s.fieldMap["set_type"] = s.SetType
 	s.fieldMap["reps_target_min"] = s.RepsTargetMin
 	s.fieldMap["reps_target_max"] = s.RepsTargetMax
-	s.fieldMap["duration_target_sec"] = s.DurationTargetSec
-	s.fieldMap["distance_target_m"] = s.DistanceTargetM
 	s.fieldMap["prescribed_load_kg"] = s.PrescribedLoadKg
 	s.fieldMap["prescribed_load_modifier"] = s.PrescribedLoadModifier
 	s.fieldMap["prescribed_rpe"] = s.PrescribedRpe
 	s.fieldMap["intensity_text"] = s.IntensityText
 	s.fieldMap["reps_actual"] = s.RepsActual
-	s.fieldMap["duration_actual_sec"] = s.DurationActualSec
-	s.fieldMap["distance_actual_m"] = s.DistanceActualM
 	s.fieldMap["actual_load_kg"] = s.ActualLoadKg
 	s.fieldMap["actual_load_modifier"] = s.ActualLoadModifier
 	s.fieldMap["actual_rpe"] = s.ActualRpe
-	s.fieldMap["started_at"] = s.StartedAt
 	s.fieldMap["completed_at"] = s.CompletedAt
 	s.fieldMap["state"] = s.State
-	s.fieldMap["notes"] = s.Notes
-	s.fieldMap["extras"] = s.Extras
 	s.fieldMap["created_at"] = s.CreatedAt
 	s.fieldMap["updated_at"] = s.UpdatedAt
 	s.fieldMap["deleted_at"] = s.DeletedAt

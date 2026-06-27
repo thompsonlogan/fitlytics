@@ -29,13 +29,14 @@ func newExercise(db *gorm.DB, opts ...gen.DOOption) exercise {
 	_exercise.ALL = field.NewAsterisk(tableName)
 	_exercise.ID = field.NewField(tableName, "id")
 	_exercise.CanonicalID = field.NewField(tableName, "canonical_id")
+	_exercise.CanonicalRefFlag = field.NewBool(tableName, "canonical_ref_flag")
 	_exercise.CreatedByUserID = field.NewField(tableName, "created_by_user_id")
+	_exercise.IsCanonical = field.NewBool(tableName, "is_canonical")
 	_exercise.Name = field.NewString(tableName, "name")
 	_exercise.Slug = field.NewString(tableName, "slug")
 	_exercise.PrimaryMuscles = field.NewField(tableName, "primary_muscles")
 	_exercise.SecondaryMuscles = field.NewField(tableName, "secondary_muscles")
 	_exercise.MovementPattern = field.NewString(tableName, "movement_pattern")
-	_exercise.Equipment = field.NewField(tableName, "equipment")
 	_exercise.IsCompound = field.NewBool(tableName, "is_compound")
 	_exercise.LoadType = field.NewString(tableName, "load_type")
 	_exercise.DefaultLoadModifier = field.NewString(tableName, "default_load_modifier")
@@ -55,13 +56,14 @@ type exercise struct {
 	ALL                 field.Asterisk
 	ID                  field.Field
 	CanonicalID         field.Field
+	CanonicalRefFlag    field.Bool
 	CreatedByUserID     field.Field
+	IsCanonical         field.Bool
 	Name                field.String
 	Slug                field.String
 	PrimaryMuscles      field.Field
 	SecondaryMuscles    field.Field
 	MovementPattern     field.String
-	Equipment           field.Field
 	IsCompound          field.Bool
 	LoadType            field.String
 	DefaultLoadModifier field.String
@@ -87,13 +89,14 @@ func (e *exercise) updateTableName(table string) *exercise {
 	e.ALL = field.NewAsterisk(table)
 	e.ID = field.NewField(table, "id")
 	e.CanonicalID = field.NewField(table, "canonical_id")
+	e.CanonicalRefFlag = field.NewBool(table, "canonical_ref_flag")
 	e.CreatedByUserID = field.NewField(table, "created_by_user_id")
+	e.IsCanonical = field.NewBool(table, "is_canonical")
 	e.Name = field.NewString(table, "name")
 	e.Slug = field.NewString(table, "slug")
 	e.PrimaryMuscles = field.NewField(table, "primary_muscles")
 	e.SecondaryMuscles = field.NewField(table, "secondary_muscles")
 	e.MovementPattern = field.NewString(table, "movement_pattern")
-	e.Equipment = field.NewField(table, "equipment")
 	e.IsCompound = field.NewBool(table, "is_compound")
 	e.LoadType = field.NewString(table, "load_type")
 	e.DefaultLoadModifier = field.NewString(table, "default_load_modifier")
@@ -125,16 +128,17 @@ func (e *exercise) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (e *exercise) fillFieldMap() {
-	e.fieldMap = make(map[string]field.Expr, 16)
+	e.fieldMap = make(map[string]field.Expr, 17)
 	e.fieldMap["id"] = e.ID
 	e.fieldMap["canonical_id"] = e.CanonicalID
+	e.fieldMap["canonical_ref_flag"] = e.CanonicalRefFlag
 	e.fieldMap["created_by_user_id"] = e.CreatedByUserID
+	e.fieldMap["is_canonical"] = e.IsCanonical
 	e.fieldMap["name"] = e.Name
 	e.fieldMap["slug"] = e.Slug
 	e.fieldMap["primary_muscles"] = e.PrimaryMuscles
 	e.fieldMap["secondary_muscles"] = e.SecondaryMuscles
 	e.fieldMap["movement_pattern"] = e.MovementPattern
-	e.fieldMap["equipment"] = e.Equipment
 	e.fieldMap["is_compound"] = e.IsCompound
 	e.fieldMap["load_type"] = e.LoadType
 	e.fieldMap["default_load_modifier"] = e.DefaultLoadModifier

@@ -39,9 +39,15 @@ func sortProgramTree(p *generated.Program) {
 				return cmp.Compare(a.Sequence, b.Sequence)
 			})
 			for k := range p.Weeks[i].Days[j].Exercises {
-				slices.SortFunc(p.Weeks[i].Days[j].Exercises[k].SetTargets, func(a, b generated.ProgramSetTarget) int {
+				ex := &p.Weeks[i].Days[j].Exercises[k]
+				slices.SortFunc(ex.Groups, func(a, b generated.ProgramSetGroup) int {
 					return cmp.Compare(a.Sequence, b.Sequence)
 				})
+				for g := range ex.Groups {
+					slices.SortFunc(ex.Groups[g].Sets, func(a, b generated.ProgramSet) int {
+						return cmp.Compare(a.Sequence, b.Sequence)
+					})
+				}
 			}
 		}
 	}

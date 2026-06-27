@@ -34,7 +34,8 @@ func (r *repository) GetProgramById(ctx context.Context, programID, ownerUserID 
 		Preload(p.Weeks).
 		Preload(p.Weeks.Days).
 		Preload(p.Weeks.Days.Exercises).
-		Preload(p.Weeks.Days.Exercises.SetTargets).
+		Preload(p.Weeks.Days.Exercises.Groups).
+		Preload(p.Weeks.Days.Exercises.Groups.Sets).
 		Where(p.ID.Eq(programID), p.OwnerUserID.Eq(ownerUserID)).
 		First()
 	if err != nil {

@@ -8,25 +8,22 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/thompsonlogan/fitlytics/backend/internal/models"
 )
 
 const TableNameSessionExercise = "session_exercises"
 
 // SessionExercise mapped from table <session_exercises>
 type SessionExercise struct {
-	ID               uuid.UUID    `gorm:"column:id;type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	SessionID        uuid.UUID    `gorm:"column:session_id;type:uuid;not null" json:"session_id"`
-	Sequence         int32        `gorm:"column:sequence;type:integer;not null" json:"sequence"`
-	ExerciseID       uuid.UUID    `gorm:"column:exercise_id;type:uuid;not null" json:"exercise_id"`
-	ExerciseNameSnap string       `gorm:"column:exercise_name_snap;type:text;not null" json:"exercise_name_snap"`
-	SubSnap          *string      `gorm:"column:sub_snap;type:text" json:"sub_snap"`
-	RestSecondsSnap  *int32       `gorm:"column:rest_seconds_snap;type:integer" json:"rest_seconds_snap"`
-	Notes            *string      `gorm:"column:notes;type:text" json:"notes"`
-	Extras           models.JSONB `gorm:"column:extras;type:jsonb;not null;default:{}" json:"extras"`
-	CreatedAt        time.Time    `gorm:"column:created_at;type:timestamp with time zone;not null;default:now()" json:"created_at"`
-	UpdatedAt        time.Time    `gorm:"column:updated_at;type:timestamp with time zone;not null;default:now()" json:"updated_at"`
-	SetLogs          []SetLog     `json:"set_logs"`
+	ID                   uuid.UUID `gorm:"column:id;type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	SessionID            uuid.UUID `gorm:"column:session_id;type:uuid;not null" json:"session_id"`
+	Sequence             int32     `gorm:"column:sequence;type:integer;not null" json:"sequence"`
+	ExerciseID           uuid.UUID `gorm:"column:exercise_id;type:uuid;not null" json:"exercise_id"`
+	ExerciseNameSnapshot string    `gorm:"column:exercise_name_snapshot;type:text;not null" json:"exercise_name_snapshot"`
+	SubSnapshot          *string   `gorm:"column:sub_snapshot;type:text" json:"sub_snapshot"`
+	RestSecondsSnapshot  *int32    `gorm:"column:rest_seconds_snapshot;type:integer" json:"rest_seconds_snapshot"`
+	CreatedAt            time.Time `gorm:"column:created_at;type:timestamp with time zone;not null;default:now()" json:"created_at"`
+	UpdatedAt            time.Time `gorm:"column:updated_at;type:timestamp with time zone;not null;default:now()" json:"updated_at"`
+	SetLogs              []SetLog  `json:"set_logs"`
 }
 
 // TableName SessionExercise's table name

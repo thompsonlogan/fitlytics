@@ -28,3 +28,6 @@ dist-ssr
 !.claude/launch.json
 .agents/
 skills-lock.json
+
+# Local planning docs — kept locally, not in source control
+database/IMPROVEMENT_PLAN.md

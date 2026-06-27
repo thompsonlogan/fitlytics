@@ -31,7 +31,7 @@ func newUser(db *gorm.DB, opts ...gen.DOOption) user {
 	_user.WorkosUserID = field.NewString(tableName, "workos_user_id")
 	_user.DisplayName = field.NewString(tableName, "display_name")
 	_user.Email = field.NewString(tableName, "email")
-	_user.UnitPref = field.NewString(tableName, "unit_pref")
+	_user.UnitPreference = field.NewString(tableName, "unit_preference")
 	_user.Timezone = field.NewString(tableName, "timezone")
 	_user.CreatedAt = field.NewTime(tableName, "created_at")
 	_user.UpdatedAt = field.NewTime(tableName, "updated_at")
@@ -45,16 +45,16 @@ func newUser(db *gorm.DB, opts ...gen.DOOption) user {
 type user struct {
 	userDo userDo
 
-	ALL          field.Asterisk
-	ID           field.Field
-	WorkosUserID field.String
-	DisplayName  field.String
-	Email        field.String
-	UnitPref     field.String
-	Timezone     field.String
-	CreatedAt    field.Time
-	UpdatedAt    field.Time
-	DeletedAt    field.Field
+	ALL            field.Asterisk
+	ID             field.Field
+	WorkosUserID   field.String
+	DisplayName    field.String
+	Email          field.String
+	UnitPreference field.String
+	Timezone       field.String
+	CreatedAt      field.Time
+	UpdatedAt      field.Time
+	DeletedAt      field.Field
 
 	fieldMap map[string]field.Expr
 }
@@ -75,7 +75,7 @@ func (u *user) updateTableName(table string) *user {
 	u.WorkosUserID = field.NewString(table, "workos_user_id")
 	u.DisplayName = field.NewString(table, "display_name")
 	u.Email = field.NewString(table, "email")
-	u.UnitPref = field.NewString(table, "unit_pref")
+	u.UnitPreference = field.NewString(table, "unit_preference")
 	u.Timezone = field.NewString(table, "timezone")
 	u.CreatedAt = field.NewTime(table, "created_at")
 	u.UpdatedAt = field.NewTime(table, "updated_at")
@@ -109,7 +109,7 @@ func (u *user) fillFieldMap() {
 	u.fieldMap["workos_user_id"] = u.WorkosUserID
 	u.fieldMap["display_name"] = u.DisplayName
 	u.fieldMap["email"] = u.Email
-	u.fieldMap["unit_pref"] = u.UnitPref
+	u.fieldMap["unit_preference"] = u.UnitPreference
 	u.fieldMap["timezone"] = u.Timezone
 	u.fieldMap["created_at"] = u.CreatedAt
 	u.fieldMap["updated_at"] = u.UpdatedAt
