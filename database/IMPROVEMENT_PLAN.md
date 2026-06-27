@@ -368,6 +368,27 @@ for nested/child tables; cross-user integration tests. (`set_logs` policies beco
 
 ---
 
+## Pre-deployment checklist
+
+Complete before the schema/repo leaves dev (when V1 stops being editable in place):
+
+- **Pin image versions** — `flyway:latest` (and `postgres:16`) in `database/docker-compose.yml`;
+  pin a specific Flyway tag + Postgres patch so prod doesn't drift.
+- **Migrate-only prod config** — a separate Flyway invocation with `cleanDisabled=true`; the dev
+  `clean migrate` must never reach a real database.
+- **Remove the hardcoded DB-name coupling** — `ALTER DATABASE fitlytics SET search_path …` pins the
+  literal db name; make it configurable.
+- **Scrub the seed's real identity / PII** — `R__seed_dev_data.sql` hardcodes a real WorkOS user id
+  and the email `thompsonlogan78@gmail.com`. The **email is the real concern**: PII baked into git
+  history (spam/phishing target, ties identity to the repo permanently). The WorkOS user id alone is
+  a low-risk *identifier*, not a credential — nobody can authenticate with it. Replace both with
+  synthetic or env-configurable values before the repo is shared/public. Risk scales with repo
+  visibility.
+- **Add clean-DB migration + schema integration tests** (the "Database verification" suite below) to
+  CI so the constraints are proven on every change.
+
+---
+
 ## Database verification (integration tests)
 
 Required tests proving the constraints actually hold, against a clean database:
