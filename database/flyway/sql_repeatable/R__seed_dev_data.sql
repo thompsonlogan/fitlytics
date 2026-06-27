@@ -17,13 +17,13 @@ set search_path to fitlytics, public;
 
 -- 1. Owner user
 --
--- Pinned to Logan's real WorkOS identity so the seeded program lights up the
--- UI on first login. The users.ResolveOrProvision flow upserts on
--- workos_user_id, so this row becomes the canonical local mirror — the
--- provisioning path on first auth resolves to it instead of creating a
--- duplicate row with a different UUID.
+-- Synthetic dev owner. users.ResolveOrProvision upserts on workos_user_id, so
+-- this row is the local mirror the seeded program hangs off. The workos_user_id
+-- and email are deliberately fake — never commit a real identity. To drive the
+-- UI in dev, point AUTH_BYPASS_USER_ID at this id (bypasses WorkOS), or override
+-- workos_user_id locally to bind a real account outside source control.
 insert into users (id, workos_user_id, display_name, email, unit_preference, timezone) values
-  ('265f6d7d-c361-4189-ac41-3f053b2b217d', 'user_01KSD69HT48DQP44SCN92F9NSC', 'Logan Thompson', 'thompsonlogan78@gmail.com', 'imperial', 'UTC')
+  ('265f6d7d-c361-4189-ac41-3f053b2b217d', 'user_00000000000000000000000000', 'Dev User', 'dev@example.invalid', 'imperial', 'UTC')
 on conflict (id) do nothing;
 
 -- 2. Canonical exercises referenced by the program.
