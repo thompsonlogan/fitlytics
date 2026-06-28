@@ -38,6 +38,20 @@ func (c Config) IsProduction() bool { return c.Env == "production" }
 func Load() (Config, error) {
 	_ = godotenv.Load()
 
+	var invalid []string
+	maxVideoBytes, err := envInt64("MAX_VIDEO_BYTES", 500*1024*1024) // 500 MB
+	if err != nil {
+		invalid = append(invalid, err.Error())
+	}
+	maxVideosPerUser, err := envInt("MAX_VIDEOS_PER_USER", 200)
+	if err != nil {
+		invalid = append(invalid, err.Error())
+	}
+	maxVideosPerDay, err := envInt("MAX_VIDEOS_PER_DAY", 50)
+	if err != nil {
+		invalid = append(invalid, err.Error())
+	}
+
 	c := Config{
 		Env:               env("APP_ENV", "development"),
 		HTTPPort:          env("HTTP_PORT", "8080"),
@@ -55,12 +69,15 @@ func Load() (Config, error) {
 		R2Bucket:          env("R2_BUCKET", ""),
 		R2AccessKeyID:     env("R2_ACCESS_KEY_ID", ""),
 		R2SecretAccessKey: env("R2_SECRET_ACCESS_KEY", ""),
-		MaxVideoBytes:     envInt64("MAX_VIDEO_BYTES", 500*1024*1024), // 500 MB
-		MaxVideosPerUser:  envInt("MAX_VIDEOS_PER_USER", 200),
-		MaxVideosPerDay:   envInt("MAX_VIDEOS_PER_DAY", 50),
+		MaxVideoBytes:     maxVideoBytes,
+		MaxVideosPerUser:  maxVideosPerUser,
+		MaxVideosPerDay:   maxVideosPerDay,
 	}
 
 	var missing []string
+	if strings.TrimSpace(c.HTTPPort) == "" {
+		invalid = append(invalid, "HTTP_PORT must be non-empty")
+	}
 	if c.DatabaseURL == "" {
 		missing = append(missing, "DATABASE_URL")
 	}
@@ -88,8 +105,22 @@ func Load() (Config, error) {
 	if c.R2SecretAccessKey == "" {
 		missing = append(missing, "R2_SECRET_ACCESS_KEY")
 	}
-	if len(missing) > 0 {
-		return Config{}, fmt.Errorf("missing required env vars: %s", strings.Join(missing, ", "))
+	if c.MaxVideoBytes <= 0 {
+		invalid = append(invalid, "MAX_VIDEO_BYTES must be positive")
+	}
+	if c.MaxVideosPerUser <= 0 {
+		invalid = append(invalid, "MAX_VIDEOS_PER_USER must be positive")
+	}
+	if c.MaxVideosPerDay <= 0 {
+		invalid = append(invalid, "MAX_VIDEOS_PER_DAY must be positive")
+	}
+	if len(missing) > 0 || len(invalid) > 0 {
+		var problems []string
+		if len(missing) > 0 {
+			problems = append(problems, "missing required env vars: "+strings.Join(missing, ", "))
+		}
+		problems = append(problems, invalid...)
+		return Config{}, fmt.Errorf("invalid config: %s", strings.Join(problems, "; "))
 	}
 	if c.JWKSURL == "" {
 		c.JWKSURL = "https://api.workos.com/sso/jwks/" + c.WorkOSClientID
@@ -108,20 +139,24 @@ func env(key, fallback string) string {
 	return fallback
 }
 
-func envInt(key string, fallback int) int {
+func envInt(key string, fallback int) (int, error) {
 	if v := os.Getenv(key); v != "" {
-		if n, err := strconv.Atoi(v); err == nil {
-			return n
+		n, err := strconv.Atoi(v)
+		if err != nil {
+			return 0, fmt.Errorf("%s must be an integer", key)
 		}
+		return n, nil
 	}
-	return fallback
+	return fallback, nil
 }
 
-func envInt64(key string, fallback int64) int64 {
+func envInt64(key string, fallback int64) (int64, error) {
 	if v := os.Getenv(key); v != "" {
-		if n, err := strconv.ParseInt(v, 10, 64); err == nil {
-			return n
+		n, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return 0, fmt.Errorf("%s must be an integer", key)
 		}
+		return n, nil
 	}
-	return fallback
+	return fallback, nil
 }
