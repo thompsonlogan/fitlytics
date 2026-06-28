@@ -16,35 +16,35 @@ import (
 
 func TestServiceGetCurrentSession_HappyPathMapsRow(t *testing.T) {
 	sessionID := uuid.New()
-	var gotDayID, gotOwnerID uuid.UUID
+	var gotProgramID, gotDayID, gotOwnerID uuid.UUID
 	repo := &fakeRepository{
-		getCurrentFn: func(_ context.Context, dayID, ownerID uuid.UUID) (*generated.Session, error) {
-			gotDayID, gotOwnerID = dayID, ownerID
+		getCurrentFn: func(_ context.Context, programID, dayID, ownerID uuid.UUID) (*generated.Session, error) {
+			gotProgramID, gotDayID, gotOwnerID = programID, dayID, ownerID
 			return &generated.Session{ID: sessionID, State: "in_progress"}, nil
 		},
 	}
 
-	dayID, ownerID := uuid.New(), uuid.New()
-	resp, err := NewService(repo).GetCurrentSession(context.Background(), dayID, ownerID)
+	programID, dayID, ownerID := uuid.New(), uuid.New(), uuid.New()
+	resp, err := NewService(repo).GetCurrentSession(context.Background(), programID, dayID, ownerID)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if resp == nil || resp.ID != sessionID || resp.State != "in_progress" {
 		t.Errorf("unexpected response: %+v", resp)
 	}
-	if gotDayID != dayID || gotOwnerID != ownerID {
-		t.Errorf("ids passed to repo: day=%v owner=%v", gotDayID, gotOwnerID)
+	if gotProgramID != programID || gotDayID != dayID || gotOwnerID != ownerID {
+		t.Errorf("ids passed to repo: program=%v day=%v owner=%v", gotProgramID, gotDayID, gotOwnerID)
 	}
 }
 
 func TestServiceGetCurrentSession_NotFoundMapsToErrNotFound(t *testing.T) {
 	repo := &fakeRepository{
-		getCurrentFn: func(_ context.Context, _, _ uuid.UUID) (*generated.Session, error) {
+		getCurrentFn: func(_ context.Context, _, _, _ uuid.UUID) (*generated.Session, error) {
 			return nil, gorm.ErrRecordNotFound
 		},
 	}
 
-	resp, err := NewService(repo).GetCurrentSession(context.Background(), uuid.New(), uuid.New())
+	resp, err := NewService(repo).GetCurrentSession(context.Background(), uuid.New(), uuid.New(), uuid.New())
 	if resp != nil {
 		t.Errorf("response should be nil on not-found, got %+v", resp)
 	}
@@ -56,12 +56,12 @@ func TestServiceGetCurrentSession_NotFoundMapsToErrNotFound(t *testing.T) {
 func TestServiceGetCurrentSession_RepoErrorIsWrapped(t *testing.T) {
 	boom := errors.New("connection refused")
 	repo := &fakeRepository{
-		getCurrentFn: func(_ context.Context, _, _ uuid.UUID) (*generated.Session, error) {
+		getCurrentFn: func(_ context.Context, _, _, _ uuid.UUID) (*generated.Session, error) {
 			return nil, boom
 		},
 	}
 
-	resp, err := NewService(repo).GetCurrentSession(context.Background(), uuid.New(), uuid.New())
+	resp, err := NewService(repo).GetCurrentSession(context.Background(), uuid.New(), uuid.New(), uuid.New())
 	if resp != nil {
 		t.Errorf("response should be nil on error, got %+v", resp)
 	}

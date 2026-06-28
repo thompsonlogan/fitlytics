@@ -19,7 +19,7 @@ import (
 )
 
 type Repository interface {
-	GetCurrentSessionByDay(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*generated.Session, error)
+	GetCurrentSessionByDay(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*generated.Session, error)
 	StartSessionForDay(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*generated.Session, error)
 	UpdateSetLog(ctx context.Context, sessionID, setLogID, ownerUserID uuid.UUID, input UpdateSetLogRequest) (*generated.SetLog, error)
 	UpdateSetLogs(ctx context.Context, sessionID, ownerUserID uuid.UUID, updates []BatchUpdateSetLogItem) ([]*generated.SetLog, error)
@@ -52,13 +52,17 @@ func sortSessionTree(s *generated.Session) {
 	}
 }
 
-func (r *repository) GetCurrentSessionByDay(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*generated.Session, error) {
+func (r *repository) GetCurrentSessionByDay(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*generated.Session, error) {
 	s := r.q.Session
+	pd := r.q.ProgramDay
+	pw := r.q.ProgramWeek
 
 	session, err := s.WithContext(ctx).
 		Preload(s.Exercises).
 		Preload(s.Exercises.SetLogs).
-		Where(s.UserID.Eq(ownerUserID), s.ProgramDayID.Eq(programDayID)).
+		Join(&generated.ProgramDay{}, pd.ID.EqCol(s.ProgramDayID)).
+		Join(&generated.ProgramWeek{}, pw.ID.EqCol(pd.ProgramWeekID)).
+		Where(s.UserID.Eq(ownerUserID), s.ProgramDayID.Eq(programDayID), pw.ProgramID.Eq(programID)).
 		Order(s.CreatedAt.Desc()).
 		First()
 	if err != nil {
@@ -82,12 +86,16 @@ func (r *repository) StartSessionForDay(ctx context.Context, programID, programD
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		q := query.Use(tx)
 		s := q.Session
+		pd := q.ProgramDay
+		pw := q.ProgramWeek
 
 		// 1) Existing session? Reuse it.
 		existing, err := s.WithContext(ctx).
 			Preload(s.Exercises).
 			Preload(s.Exercises.SetLogs).
-			Where(s.UserID.Eq(ownerUserID), s.ProgramDayID.Eq(programDayID)).
+			Join(&generated.ProgramDay{}, pd.ID.EqCol(s.ProgramDayID)).
+			Join(&generated.ProgramWeek{}, pw.ID.EqCol(pd.ProgramWeekID)).
+			Where(s.UserID.Eq(ownerUserID), s.ProgramDayID.Eq(programDayID), pw.ProgramID.Eq(programID)).
 			Order(s.CreatedAt.Desc()).
 			First()
 		if err == nil {
@@ -108,8 +116,6 @@ func (r *repository) StartSessionForDay(ctx context.Context, programID, programD
 			return err
 		}
 
-		pd := q.ProgramDay
-		pw := q.ProgramWeek
 		day, err := pd.WithContext(ctx).
 			Join(&generated.ProgramWeek{}, pw.ID.EqCol(pd.ProgramWeekID)).
 			Where(pd.ID.Eq(programDayID), pw.ProgramID.Eq(programID)).
@@ -257,7 +263,7 @@ func (r *repository) StartSessionForDay(ctx context.Context, programID, programD
 		// A concurrent first-start committed the session before us and our insert
 		// hit sessions_active_day_uq; load and return the winner's row.
 		if isUniqueViolation(err, "sessions_active_day_uq") {
-			return r.GetCurrentSessionByDay(ctx, programDayID, ownerUserID)
+			return r.GetCurrentSessionByDay(ctx, programID, programDayID, ownerUserID)
 		}
 		return nil, err
 	}

@@ -45,14 +45,15 @@ func TestRepositoryGetCurrentSessionByDay_HappyPathSortsTree(t *testing.T) {
 	db, mock := newMockDB(t)
 
 	ownerID := uuid.New()
+	programID := uuid.New()
 	dayID := uuid.New()
 	sessionID := uuid.New()
 	ex1, ex2 := uuid.New(), uuid.New()
 	now := time.Now()
 
 	// Main session row.
-	mock.ExpectQuery(`SELECT \* FROM "sessions" WHERE .* ORDER BY "sessions"\."created_at" DESC.* LIMIT`).
-		WithArgs(uuidArg(ownerID), uuidArg(dayID), 1).
+	mock.ExpectQuery(`SELECT .* FROM "sessions" .*JOIN "program_days".*JOIN "program_weeks".*ORDER BY "sessions"\."created_at" DESC.* LIMIT`).
+		WithArgs(uuidArg(ownerID), uuidArg(dayID), uuidArg(programID), 1).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "user_id", "program_day_id", "state", "created_at", "updated_at",
 		}).AddRow(sessionID, ownerID, dayID, "in_progress", now, now))
@@ -73,7 +74,7 @@ func TestRepositoryGetCurrentSessionByDay_HappyPathSortsTree(t *testing.T) {
 			AddRow(uuid.New(), ex1, 2, "working", "pending").
 			AddRow(uuid.New(), ex1, 1, "working", "completed"))
 
-	session, err := NewRepository(db).GetCurrentSessionByDay(context.Background(), dayID, ownerID)
+	session, err := NewRepository(db).GetCurrentSessionByDay(context.Background(), programID, dayID, ownerID)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -96,15 +97,15 @@ func TestRepositoryGetCurrentSessionByDay_HappyPathSortsTree(t *testing.T) {
 	}
 }
 
-func TestRepositoryGetCurrentSessionByDay_NotFoundBubbles(t *testing.T) {
+func TestRepositoryGetCurrentSessionByDay_ProgramDayMismatchReturnsNotFound(t *testing.T) {
 	db, mock := newMockDB(t)
-	dayID, ownerID := uuid.New(), uuid.New()
+	programID, dayID, ownerID := uuid.New(), uuid.New(), uuid.New()
 
-	mock.ExpectQuery(`SELECT \* FROM "sessions"`).
-		WithArgs(uuidArg(ownerID), uuidArg(dayID), 1).
+	mock.ExpectQuery(`SELECT .* FROM "sessions" .*JOIN "program_days".*JOIN "program_weeks"`).
+		WithArgs(uuidArg(ownerID), uuidArg(dayID), uuidArg(programID), 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}))
 
-	_, err := NewRepository(db).GetCurrentSessionByDay(context.Background(), dayID, ownerID)
+	_, err := NewRepository(db).GetCurrentSessionByDay(context.Background(), programID, dayID, ownerID)
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		t.Fatalf("want ErrRecordNotFound, got %v", err)
 	}
@@ -115,13 +116,13 @@ func TestRepositoryGetCurrentSessionByDay_NotFoundBubbles(t *testing.T) {
 
 func TestRepositoryGetCurrentSessionByDay_DBErrorBubbles(t *testing.T) {
 	db, mock := newMockDB(t)
-	dayID, ownerID := uuid.New(), uuid.New()
+	programID, dayID, ownerID := uuid.New(), uuid.New(), uuid.New()
 
-	mock.ExpectQuery(`SELECT \* FROM "sessions"`).
-		WithArgs(uuidArg(ownerID), uuidArg(dayID), 1).
+	mock.ExpectQuery(`SELECT .* FROM "sessions" .*JOIN "program_days".*JOIN "program_weeks"`).
+		WithArgs(uuidArg(ownerID), uuidArg(dayID), uuidArg(programID), 1).
 		WillReturnError(errors.New("network down"))
 
-	_, err := NewRepository(db).GetCurrentSessionByDay(context.Background(), dayID, ownerID)
+	_, err := NewRepository(db).GetCurrentSessionByDay(context.Background(), programID, dayID, ownerID)
 	if err == nil || errors.Is(err, gorm.ErrRecordNotFound) {
 		t.Fatalf("expected raw db error to bubble, got %v", err)
 	}
@@ -145,8 +146,8 @@ func TestRepositoryStartSessionForDay_ReusesExistingSession(t *testing.T) {
 	mock.ExpectBegin()
 
 	// Existing session is found, so the create path is skipped entirely.
-	mock.ExpectQuery(`SELECT \* FROM "sessions" WHERE .* ORDER BY "sessions"\."created_at" DESC.* LIMIT`).
-		WithArgs(uuidArg(ownerID), uuidArg(dayID), 1).
+	mock.ExpectQuery(`SELECT .* FROM "sessions" .*JOIN "program_days".*JOIN "program_weeks".*ORDER BY "sessions"\."created_at" DESC.* LIMIT`).
+		WithArgs(uuidArg(ownerID), uuidArg(dayID), uuidArg(programID), 1).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "user_id", "program_day_id", "state", "created_at", "updated_at",
 		}).AddRow(sessionID, ownerID, dayID, "in_progress", now, now))
@@ -197,8 +198,8 @@ func TestRepositoryStartSessionForDay_SnapshotsProgramIntoNewSession(t *testing.
 	mock.ExpectBegin()
 
 	// 1) No existing session for the day.
-	mock.ExpectQuery(`SELECT \* FROM "sessions" WHERE .* ORDER BY "sessions"\."created_at" DESC.* LIMIT`).
-		WithArgs(uuidArg(ownerID), uuidArg(dayID), 1).
+	mock.ExpectQuery(`SELECT .* FROM "sessions" .*JOIN "program_days".*JOIN "program_weeks".*ORDER BY "sessions"\."created_at" DESC.* LIMIT`).
+		WithArgs(uuidArg(ownerID), uuidArg(dayID), uuidArg(programID), 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}))
 
 	// 2) Program ownership probe succeeds.
@@ -300,8 +301,8 @@ func TestRepositoryStartSessionForDay_SnapshotsGroupSetsIntoPerSetLogs(t *testin
 
 	mock.ExpectBegin()
 
-	mock.ExpectQuery(`SELECT \* FROM "sessions" WHERE .* ORDER BY "sessions"\."created_at" DESC.* LIMIT`).
-		WithArgs(uuidArg(ownerID), uuidArg(dayID), 1).
+	mock.ExpectQuery(`SELECT .* FROM "sessions" .*JOIN "program_days".*JOIN "program_weeks".*ORDER BY "sessions"\."created_at" DESC.* LIMIT`).
+		WithArgs(uuidArg(ownerID), uuidArg(dayID), uuidArg(programID), 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}))
 
 	mock.ExpectQuery(`SELECT \* FROM "programs"`).
@@ -395,8 +396,8 @@ func TestRepositoryStartSessionForDay_UnknownProgramRollsBack(t *testing.T) {
 	mock.ExpectBegin()
 
 	// No existing session for the day.
-	mock.ExpectQuery(`SELECT \* FROM "sessions"`).
-		WithArgs(uuidArg(ownerID), uuidArg(dayID), 1).
+	mock.ExpectQuery(`SELECT .* FROM "sessions" .*JOIN "program_days".*JOIN "program_weeks"`).
+		WithArgs(uuidArg(ownerID), uuidArg(dayID), uuidArg(programID), 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}))
 
 	// Program ownership probe finds nothing → not-found bubbles up.

@@ -47,7 +47,7 @@ func (h *Handler) Register(rg *gin.RouterGroup) {
 // @Security     BearerAuth
 // @Router       /api/programs/{id}/days/{dayId}/sessions/current [get]
 func (h *Handler) GetCurrentSession(c *gin.Context) {
-	_, err := uuid.Parse(c.Param("id"))
+	programID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		apierr.BadRequest(c, "invalid program id")
 		return
@@ -60,13 +60,14 @@ func (h *Handler) GetCurrentSession(c *gin.Context) {
 
 	principal := auth.MustPrincipal(c)
 
-	session, err := h.service.GetCurrentSession(c.Request.Context(), programDayID, principal.User.ID)
+	session, err := h.service.GetCurrentSession(c.Request.Context(), programID, programDayID, principal.User.ID)
 	if err != nil {
 		if errors.Is(err, apierr.ErrNotFound) {
 			apierr.NotFound(c, "no current session")
 			return
 		}
 		h.log.Error("find current session failed",
+			slog.String("program_id", programID.String()),
 			slog.String("program_day_id", programDayID.String()),
 			slog.String("user_id", principal.User.ID.String()),
 			slog.Any("error", err),

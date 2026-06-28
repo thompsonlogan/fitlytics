@@ -12,7 +12,7 @@ import (
 )
 
 type Service interface {
-	GetCurrentSession(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error)
+	GetCurrentSession(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error)
 	StartSession(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error)
 	UpdateSetLog(ctx context.Context, sessionID, setLogID, ownerUserID uuid.UUID, input UpdateSetLogRequest) (*SetLogResponse, error)
 	UpdateSetLogs(ctx context.Context, sessionID, ownerUserID uuid.UUID, input BatchUpdateSetLogsRequest) ([]SetLogResponse, error)
@@ -37,8 +37,8 @@ const (
 	maxReps   = 1000
 )
 
-func (s *service) GetCurrentSession(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error) {
-	row, err := s.repo.GetCurrentSessionByDay(ctx, programDayID, ownerUserID)
+func (s *service) GetCurrentSession(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error) {
+	row, err := s.repo.GetCurrentSessionByDay(ctx, programID, programDayID, ownerUserID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, apierr.ErrNotFound
