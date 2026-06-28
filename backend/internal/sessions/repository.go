@@ -351,39 +351,35 @@ func recomputeSessionState(ctx context.Context, q *query.Query, sessionID uuid.U
 	sl := q.SetLog
 	ss := q.Session
 
-	exercises, err := se.WithContext(ctx).
-		Select(se.ID).
+	var rows []struct {
+		State string
+		Count int64
+	}
+	err := sl.WithContext(ctx).
+		Select(
+			sl.State,
+			sl.ID.Count().As("count"),
+		).
+		Join(&generated.SessionExercise{}, se.ID.EqCol(sl.SessionExerciseID)).
 		Where(se.SessionID.Eq(sessionID)).
-		Find()
-	if err != nil {
-		return fmt.Errorf("find session exercises: %w", err)
-	}
-
-	seIDs := make([]driver.Valuer, len(exercises))
-	for i, ex := range exercises {
-		seIDs[i] = ex.ID
-	}
-
-	logs, err := sl.WithContext(ctx).
-		Select(sl.State).
-		Where(sl.SessionExerciseID.In(seIDs...)).
-		Find()
+		Group(sl.State).
+		Scan(&rows)
 	if err != nil {
 		return fmt.Errorf("count session set_logs: %w", err)
 	}
 
-	var pending, completed, skipped int
-	for _, log := range logs {
-		switch log.State {
+	var total, pending, completed, skipped int64
+	for _, row := range rows {
+		total += row.Count
+		switch row.State {
 		case "pending":
-			pending++
+			pending = row.Count
 		case "completed":
-			completed++
+			completed = row.Count
 		case "skipped":
-			skipped++
+			skipped = row.Count
 		}
 	}
-	total := len(logs)
 
 	switch {
 	case total == 0:
