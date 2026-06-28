@@ -16,6 +16,7 @@ import (
 
 	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 	"github.com/thompsonlogan/fitlytics/backend/internal/query"
+	"github.com/thompsonlogan/fitlytics/backend/internal/repoauth"
 )
 
 type Repository interface {
@@ -276,26 +277,8 @@ func (r *repository) UpdateSetLog(ctx context.Context, sessionID, setLogID, owne
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		q := query.Use(tx)
 		sl := q.SetLog
-		se := q.SessionExercise
-		ss := q.Session
 
-		// Ownership probe: verify the set_log rolls up to a session owned
-		// by the caller and matches the path session id.
-		setLog, err := sl.WithContext(ctx).Where(sl.ID.Eq(setLogID)).First()
-		if err != nil {
-			return err
-		}
-
-		_, err = se.WithContext(ctx).
-			Where(se.ID.Eq(setLog.SessionExerciseID), se.SessionID.Eq(sessionID)).
-			First()
-		if err != nil {
-			return err
-		}
-
-		_, err = ss.WithContext(ctx).
-			Where(ss.ID.Eq(sessionID), ss.UserID.Eq(ownerUserID)).
-			First()
+		setLog, err := repoauth.SetLogOwnedBySession(ctx, q, sessionID, setLogID, ownerUserID)
 		if err != nil {
 			return err
 		}

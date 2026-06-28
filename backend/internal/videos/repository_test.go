@@ -69,6 +69,8 @@ func expectRecentVideoAttemptCount(mock sqlmock.Sqlmock, ownerID uuid.UUID, coun
 
 // ─── GetOwned ───────────────────────────────────────────────────────────────
 
+const setLogOwnedBySessionQuery = `SELECT .* FROM "set_logs" .*JOIN "session_exercises".*JOIN "sessions".*WHERE "set_logs"\."id" = \$1 AND "session_exercises"\."session_id" = \$2 AND "sessions"\."user_id" = \$3.*LIMIT`
+
 func TestRepositoryGetOwned_FiltersByOwner(t *testing.T) {
 	db, mock := newMockDB(t)
 
@@ -325,27 +327,12 @@ func TestRepositoryVerifySetLogOwned_HappyPath(t *testing.T) {
 	ownerID := uuid.New()
 	seID := uuid.New()
 	now := time.Now()
-
-	// Probe 1: set_log by id.
-	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE`).
-		WithArgs(uuidArg(setLogID), 1).
+	// Ownership probe: set_log -> session_exercise -> session.
+	mock.ExpectQuery(setLogOwnedBySessionQuery).
+		WithArgs(uuidArg(setLogID), uuidArg(sessionID), uuidArg(ownerID), 1).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "session_exercise_id", "sequence", "set_type", "state", "created_at", "updated_at",
 		}).AddRow(setLogID, seID, 1, "working", "pending", now, now))
-
-	// Probe 2: session_exercise by (id, session_id).
-	mock.ExpectQuery(`SELECT \* FROM "session_exercises" WHERE`).
-		WithArgs(uuidArg(seID), uuidArg(sessionID), 1).
-		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "session_id", "sequence", "exercise_id", "exercise_name_snapshot",
-		}).AddRow(seID, sessionID, 1, uuid.New(), "Squat"))
-
-	// Probe 3: session by (id, user_id).
-	mock.ExpectQuery(`SELECT \* FROM "sessions" WHERE`).
-		WithArgs(uuidArg(sessionID), uuidArg(ownerID), 1).
-		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "user_id", "state", "created_at", "updated_at",
-		}).AddRow(sessionID, ownerID, "in_progress", now, now))
 
 	err := NewRepository(db).VerifySetLogOwned(context.Background(), sessionID, setLogID, ownerID)
 	if err != nil {
@@ -363,28 +350,11 @@ func TestRepositoryVerifySetLogOwned_ForeignSessionIsNotFound(t *testing.T) {
 	sessionID := uuid.New()
 	setLogID := uuid.New()
 	ownerID := uuid.New()
-	seID := uuid.New()
-	now := time.Now()
 
-	// Probe 1: set_log found.
-	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE`).
-		WithArgs(uuidArg(setLogID), 1).
-		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "session_exercise_id", "sequence", "set_type", "state", "created_at", "updated_at",
-		}).AddRow(setLogID, seID, 1, "working", "pending", now, now))
-
-	// Probe 2: session_exercise found.
-	mock.ExpectQuery(`SELECT \* FROM "session_exercises" WHERE`).
-		WithArgs(uuidArg(seID), uuidArg(sessionID), 1).
-		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "session_id", "sequence", "exercise_id", "exercise_name_snapshot",
-		}).AddRow(seID, sessionID, 1, uuid.New(), "Squat"))
-
-	// Probe 3: sessions returns empty → not-found.
-	mock.ExpectQuery(`SELECT \* FROM "sessions" WHERE`).
-		WithArgs(uuidArg(sessionID), uuidArg(ownerID), 1).
+	// Ownership probe returns no matching row.
+	mock.ExpectQuery(setLogOwnedBySessionQuery).
+		WithArgs(uuidArg(setLogID), uuidArg(sessionID), uuidArg(ownerID), 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}))
-
 	err := NewRepository(db).VerifySetLogOwned(context.Background(), sessionID, setLogID, ownerID)
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		t.Fatalf("want ErrRecordNotFound, got %v", err)

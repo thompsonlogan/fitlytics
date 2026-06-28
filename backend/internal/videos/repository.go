@@ -12,6 +12,7 @@ import (
 
 	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 	"github.com/thompsonlogan/fitlytics/backend/internal/query"
+	"github.com/thompsonlogan/fitlytics/backend/internal/repoauth"
 )
 
 var ErrQuotaExceeded = errors.New("video quota exceeded")
@@ -43,20 +44,7 @@ func lockUserVideoQuota(ctx context.Context, tx *gorm.DB, ownerID uuid.UUID) err
 }
 
 func (r *repository) VerifySetLogOwned(ctx context.Context, sessionID, setLogID, ownerID uuid.UUID) error {
-	sl := r.q.SetLog
-	se := r.q.SessionExercise
-	ss := r.q.Session
-
-	setLog, err := sl.WithContext(ctx).Where(sl.ID.Eq(setLogID)).First()
-	if err != nil {
-		return err
-	}
-	if _, err := se.WithContext(ctx).
-		Where(se.ID.Eq(setLog.SessionExerciseID), se.SessionID.Eq(sessionID)).
-		First(); err != nil {
-		return err
-	}
-	_, err = ss.WithContext(ctx).Where(ss.ID.Eq(sessionID), ss.UserID.Eq(ownerID)).First()
+	_, err := repoauth.SetLogOwnedBySession(ctx, r.q, sessionID, setLogID, ownerID)
 	return err
 }
 

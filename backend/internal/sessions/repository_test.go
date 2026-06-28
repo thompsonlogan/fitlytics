@@ -42,6 +42,7 @@ func uuidArg(id uuid.UUID) driver.Value {
 }
 
 const sessionStateCountsQuery = `SELECT "set_logs"\."state",COUNT\("set_logs"\."id"\) AS "count" FROM "set_logs" .*JOIN "session_exercises".*GROUP BY "set_logs"\."state"`
+const setLogOwnedBySessionQuery = `SELECT .* FROM "set_logs" .*JOIN "session_exercises".*JOIN "sessions".*WHERE "set_logs"\."id" = \$1 AND "session_exercises"\."session_id" = \$2 AND "sessions"\."user_id" = \$3.*LIMIT`
 
 func expectSessionStateCounts(mock sqlmock.Sqlmock, sessionID uuid.UUID, counts map[string]int64) {
 	rows := sqlmock.NewRows([]string{"state", "count"})
@@ -442,28 +443,15 @@ func TestRepositoryUpdateSetLog_CompletesSessionWhenNoPending(t *testing.T) {
 	sessionID := uuid.New()
 	setLogID := uuid.New()
 	seID := uuid.New()
-	now := time.Now()
 
 	mock.ExpectBegin()
 
 	// Ownership probe: set_log → session_exercise → session.
-	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE .*"set_logs"\."id" = \$1.* LIMIT`).
-		WithArgs(uuidArg(setLogID), 1).
+	mock.ExpectQuery(setLogOwnedBySessionQuery).
+		WithArgs(uuidArg(setLogID), uuidArg(sessionID), uuidArg(ownerID), 1).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "session_exercise_id", "sequence", "set_type", "state",
 		}).AddRow(setLogID, seID, 1, "working", "pending"))
-
-	mock.ExpectQuery(`SELECT \* FROM "session_exercises" WHERE .* LIMIT`).
-		WithArgs(uuidArg(seID), uuidArg(sessionID), 1).
-		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "session_id", "sequence", "exercise_id", "exercise_name_snapshot",
-		}).AddRow(seID, sessionID, 1, uuid.New(), "Squat"))
-
-	mock.ExpectQuery(`SELECT \* FROM "sessions" WHERE .* LIMIT`).
-		WithArgs(uuidArg(sessionID), uuidArg(ownerID), 1).
-		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "user_id", "state", "created_at", "updated_at",
-		}).AddRow(sessionID, ownerID, "in_progress", now, now))
 
 	// Apply the field update.
 	mock.ExpectExec(`UPDATE "set_logs" SET`).
@@ -505,8 +493,8 @@ func TestRepositoryUpdateSetLog_MissingSetLogRollsBack(t *testing.T) {
 	setLogID := uuid.New()
 
 	mock.ExpectBegin()
-	mock.ExpectQuery(`SELECT \* FROM "set_logs"`).
-		WithArgs(uuidArg(setLogID), 1).
+	mock.ExpectQuery(setLogOwnedBySessionQuery).
+		WithArgs(uuidArg(setLogID), uuidArg(sessionID), uuidArg(ownerID), 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}))
 	mock.ExpectRollback()
 
