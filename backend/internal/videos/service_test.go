@@ -91,6 +91,76 @@ func okOwnership() func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) error 
 
 // ─── CreateUpload ───────────────────────────────────────────────────────────
 
+func repeatRune(r rune, n int) string {
+	out := make([]rune, n)
+	for i := range out {
+		out[i] = r
+	}
+	return string(out)
+}
+
+func TestCreateUpload_RejectsInvalidMetadata(t *testing.T) {
+	cases := []struct {
+		name string
+		in   CreateVideoUploadRequest
+	}{
+		{
+			name: "empty filename",
+			in:   CreateVideoUploadRequest{Filename: "  ", ContentType: "video/mp4", SizeBytes: 10},
+		},
+		{
+			name: "overlong filename",
+			in:   CreateVideoUploadRequest{Filename: repeatRune('a', maxFilenameChars+1), ContentType: "video/mp4", SizeBytes: 10},
+		},
+		{
+			name: "negative duration",
+			in:   CreateVideoUploadRequest{Filename: "x.mp4", ContentType: "video/mp4", SizeBytes: 10, DurationSec: ptr(-0.1)},
+		},
+		{
+			name: "overlong note",
+			in:   CreateVideoUploadRequest{Filename: "x.mp4", ContentType: "video/mp4", SizeBytes: 10, Note: ptr(repeatRune('n', maxVideoNoteChars+1))},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			svc := NewService(&fakeRepo{}, &fakeStore{}, testLimits(), silentLogger())
+			_, err := svc.CreateUpload(context.Background(), uuid.New(), uuid.New(), uuid.New(), tc.in)
+			if !errors.Is(err, apierr.ErrInvalidInput) {
+				t.Fatalf("want ErrInvalidInput, got %v", err)
+			}
+		})
+	}
+}
+
+func TestCreateUpload_AcceptsMetadataBoundaries(t *testing.T) {
+	note := repeatRune('n', maxVideoNoteChars)
+	var inserted *generated.SetVideo
+	repo := &fakeRepo{
+		verifyOwnedFn: okOwnership(),
+		createFn: func(_ context.Context, _ uuid.UUID, row *generated.SetVideo, _, _ int) (string, error) {
+			inserted = row
+			return "", nil
+		},
+	}
+	svc := NewService(repo, &fakeStore{}, testLimits(), silentLogger())
+
+	_, err := svc.CreateUpload(context.Background(), uuid.New(), uuid.New(), uuid.New(),
+		CreateVideoUploadRequest{
+			Filename:    repeatRune('f', maxFilenameChars),
+			ContentType: "video/mp4",
+			SizeBytes:   10,
+			DurationSec: ptr(0.0),
+			Note:        &note,
+		})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if inserted == nil || inserted.Note == nil || *inserted.Note != note {
+		t.Fatalf("expected boundary note to reach repository, row=%+v", inserted)
+	}
+}
+
 func TestCreateUpload_RejectsUnsupportedContentType(t *testing.T) {
 	svc := NewService(&fakeRepo{}, &fakeStore{}, testLimits(), silentLogger())
 	_, err := svc.CreateUpload(context.Background(), uuid.New(), uuid.New(), uuid.New(),
@@ -482,5 +552,42 @@ func TestDelete_NotFound(t *testing.T) {
 
 	if err := svc.Delete(context.Background(), uuid.New(), uuid.New()); !errors.Is(err, apierr.ErrNotFound) {
 		t.Fatalf("want ErrNotFound, got %v", err)
+	}
+}
+
+func TestUpdateNote_RejectsOverlongNote(t *testing.T) {
+	repo := &fakeRepo{
+		updateNoteFn: func(context.Context, uuid.UUID, uuid.UUID, *string) (*generated.SetVideo, error) {
+			t.Fatal("repository should not be called for invalid note")
+			return nil, nil
+		},
+	}
+	svc := NewService(repo, &fakeStore{}, testLimits(), silentLogger())
+
+	_, err := svc.UpdateNote(context.Background(), uuid.New(), uuid.New(),
+		UpdateVideoRequest{Note: ptr(repeatRune('n', maxVideoNoteChars+1))})
+	if !errors.Is(err, apierr.ErrInvalidInput) {
+		t.Fatalf("want ErrInvalidInput, got %v", err)
+	}
+}
+
+func TestUpdateNote_AcceptsBoundaryNote(t *testing.T) {
+	note := repeatRune('n', maxVideoNoteChars)
+	repo := &fakeRepo{
+		updateNoteFn: func(_ context.Context, id, ownerID uuid.UUID, got *string) (*generated.SetVideo, error) {
+			if got == nil || *got != note {
+				t.Fatalf("note passed to repo: %v", got)
+			}
+			return &generated.SetVideo{ID: id, UserID: ownerID, Status: "ready", StorageKey: "k.mp4", Note: got}, nil
+		},
+	}
+	svc := NewService(repo, &fakeStore{}, testLimits(), silentLogger())
+
+	out, err := svc.UpdateNote(context.Background(), uuid.New(), uuid.New(), UpdateVideoRequest{Note: &note})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if out.Note == nil || *out.Note != note {
+		t.Fatalf("response note mismatch: %+v", out.Note)
 	}
 }

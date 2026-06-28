@@ -11,6 +11,14 @@ import (
 
 func ptr[T any](v T) *T { return &v }
 
+func repeatRune(r rune, n int) string {
+	out := make([]rune, n)
+	for i := range out {
+		out[i] = r
+	}
+	return string(out)
+}
+
 type fakeService struct {
 	findCurrentFn       func(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error)
 	ensureForDayFn      func(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error)

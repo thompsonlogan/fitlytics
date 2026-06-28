@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,8 +17,10 @@ import (
 )
 
 const (
-	uploadURLTTL   = 10 * time.Minute
-	playbackURLTTL = 6 * time.Hour
+	uploadURLTTL      = 10 * time.Minute
+	playbackURLTTL    = 6 * time.Hour
+	maxFilenameChars  = 255
+	maxVideoNoteChars = 2000
 )
 
 var allowedContentTypes = map[string]string{
@@ -51,7 +54,30 @@ func NewService(repo Repository, store storage.ObjectStore, limits Limits, log *
 	return &service{repo: repo, store: store, limits: limits, log: log}
 }
 
+func validateUploadMetadata(in CreateVideoUploadRequest) error {
+	if strings.TrimSpace(in.Filename) == "" {
+		return fmt.Errorf("%w: filename is required", apierr.ErrInvalidInput)
+	}
+	if len([]rune(in.Filename)) > maxFilenameChars {
+		return fmt.Errorf("%w: filename exceeds %d characters", apierr.ErrInvalidInput, maxFilenameChars)
+	}
+	if in.DurationSec != nil && *in.DurationSec < 0 {
+		return fmt.Errorf("%w: duration_sec must be non-negative", apierr.ErrInvalidInput)
+	}
+	return validateVideoNote(in.Note)
+}
+
+func validateVideoNote(note *string) error {
+	if note != nil && len([]rune(*note)) > maxVideoNoteChars {
+		return fmt.Errorf("%w: note exceeds %d characters", apierr.ErrInvalidInput, maxVideoNoteChars)
+	}
+	return nil
+}
+
 func (s *service) CreateUpload(ctx context.Context, sessionID, setLogID, ownerID uuid.UUID, in CreateVideoUploadRequest) (*CreateVideoUploadResponse, error) {
+	if err := validateUploadMetadata(in); err != nil {
+		return nil, err
+	}
 	ext, ok := allowedContentTypes[in.ContentType]
 	if !ok {
 		return nil, fmt.Errorf("%w: unsupported content type %q", apierr.ErrInvalidInput, in.ContentType)
@@ -194,6 +220,10 @@ func (s *service) ListForSession(ctx context.Context, sessionID, ownerID uuid.UU
 }
 
 func (s *service) UpdateNote(ctx context.Context, videoID, ownerID uuid.UUID, in UpdateVideoRequest) (*VideoResponse, error) {
+	if err := validateVideoNote(in.Note); err != nil {
+		return nil, err
+	}
+
 	updated, err := s.repo.UpdateNote(ctx, videoID, ownerID, in.Note)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
