@@ -11,8 +11,16 @@ import (
 
 func ptr[T any](v T) *T { return &v }
 
+func repeatRune(r rune, n int) string {
+	out := make([]rune, n)
+	for i := range out {
+		out[i] = r
+	}
+	return string(out)
+}
+
 type fakeService struct {
-	findCurrentFn       func(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error)
+	findCurrentFn       func(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error)
 	ensureForDayFn      func(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error)
 	updateSetLogFn      func(ctx context.Context, sessionID, setLogID, ownerUserID uuid.UUID, input UpdateSetLogRequest) (*SetLogResponse, error)
 	updateSetLogsFn     func(ctx context.Context, sessionID, ownerUserID uuid.UUID, input BatchUpdateSetLogsRequest) ([]SetLogResponse, error)
@@ -20,11 +28,11 @@ type fakeService struct {
 	updateSessionFn     func(ctx context.Context, sessionID, ownerUserID uuid.UUID, input UpdateSessionRequest) (*SessionResponse, error)
 }
 
-func (f *fakeService) GetCurrentSession(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error) {
+func (f *fakeService) GetCurrentSession(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error) {
 	if f.findCurrentFn == nil {
 		return nil, apierr.ErrNotFound
 	}
-	return f.findCurrentFn(ctx, programDayID, ownerUserID)
+	return f.findCurrentFn(ctx, programID, programDayID, ownerUserID)
 }
 
 func (f *fakeService) StartSession(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error) {
@@ -65,7 +73,7 @@ func (f *fakeService) UpdateSession(ctx context.Context, sessionID, ownerUserID 
 // ─── fakeRepository ──────────────────────────────────────────────────────────
 
 type fakeRepository struct {
-	getCurrentFn    func(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*generated.Session, error)
+	getCurrentFn    func(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*generated.Session, error)
 	startFn         func(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*generated.Session, error)
 	updateSetLogFn  func(ctx context.Context, sessionID, setLogID, ownerUserID uuid.UUID, input UpdateSetLogRequest) (*generated.SetLog, error)
 	updateSetLogsFn func(ctx context.Context, sessionID, ownerUserID uuid.UUID, updates []BatchUpdateSetLogItem) ([]*generated.SetLog, error)
@@ -84,12 +92,12 @@ type fakeRepository struct {
 	lastNotesSeen bool
 }
 
-func (f *fakeRepository) GetCurrentSessionByDay(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*generated.Session, error) {
+func (f *fakeRepository) GetCurrentSessionByDay(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*generated.Session, error) {
 	f.getCurrentCount++
 	if f.getCurrentFn == nil {
 		return nil, nil
 	}
-	return f.getCurrentFn(ctx, programDayID, ownerUserID)
+	return f.getCurrentFn(ctx, programID, programDayID, ownerUserID)
 }
 
 func (f *fakeRepository) StartSessionForDay(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*generated.Session, error) {

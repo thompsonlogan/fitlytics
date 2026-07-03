@@ -442,6 +442,9 @@ create unique index if not exists set_videos_setlog_uq
 create index if not exists set_videos_user_idx
   on set_videos (user_id)
   where deleted_at is null;
+create index if not exists set_videos_user_live_quota_idx
+  on set_videos (user_id)
+  where deleted_at is null and status <> 'failed';
 create trigger set_videos_updated_at before update on set_videos
   for each row execute function set_updated_at();
 

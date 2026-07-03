@@ -12,6 +12,8 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+
+	"github.com/thompsonlogan/fitlytics/backend/internal/query"
 )
 
 func newMockDB(t *testing.T) (*gorm.DB, sqlmock.Sqlmock) {
@@ -39,20 +41,37 @@ func uuidArg(id uuid.UUID) driver.Value {
 	return id.String()
 }
 
+const sessionStateCountsQuery = `SELECT "set_logs"\."state",COUNT\("set_logs"\."id"\) AS "count" FROM "set_logs" .*JOIN "session_exercises".*GROUP BY "set_logs"\."state"`
+const setLogOwnedBySessionQuery = `SELECT .* FROM "set_logs" .*JOIN "session_exercises".*JOIN "sessions".*WHERE "set_logs"\."id" = \$1 AND "session_exercises"\."session_id" = \$2 AND "sessions"\."user_id" = \$3.*LIMIT`
+
+func expectSessionStateCounts(mock sqlmock.Sqlmock, sessionID uuid.UUID, counts map[string]int64) {
+	rows := sqlmock.NewRows([]string{"state", "count"})
+	for _, state := range []string{"pending", "completed", "skipped"} {
+		count, ok := counts[state]
+		if ok {
+			rows.AddRow(state, count)
+		}
+	}
+	mock.ExpectQuery(sessionStateCountsQuery).
+		WithArgs(uuidArg(sessionID)).
+		WillReturnRows(rows)
+}
+
 // ─── GetCurrentSessionByDay ─────────────────────────────────────────────────
 
 func TestRepositoryGetCurrentSessionByDay_HappyPathSortsTree(t *testing.T) {
 	db, mock := newMockDB(t)
 
 	ownerID := uuid.New()
+	programID := uuid.New()
 	dayID := uuid.New()
 	sessionID := uuid.New()
 	ex1, ex2 := uuid.New(), uuid.New()
 	now := time.Now()
 
 	// Main session row.
-	mock.ExpectQuery(`SELECT \* FROM "sessions" WHERE .* ORDER BY "sessions"\."created_at" DESC.* LIMIT`).
-		WithArgs(uuidArg(ownerID), uuidArg(dayID), 1).
+	mock.ExpectQuery(`SELECT .* FROM "sessions" .*JOIN "program_days".*JOIN "program_weeks".*ORDER BY "sessions"\."created_at" DESC.* LIMIT`).
+		WithArgs(uuidArg(ownerID), uuidArg(dayID), uuidArg(programID), 1).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "user_id", "program_day_id", "state", "created_at", "updated_at",
 		}).AddRow(sessionID, ownerID, dayID, "in_progress", now, now))
@@ -73,7 +92,7 @@ func TestRepositoryGetCurrentSessionByDay_HappyPathSortsTree(t *testing.T) {
 			AddRow(uuid.New(), ex1, 2, "working", "pending").
 			AddRow(uuid.New(), ex1, 1, "working", "completed"))
 
-	session, err := NewRepository(db).GetCurrentSessionByDay(context.Background(), dayID, ownerID)
+	session, err := NewRepository(db).GetCurrentSessionByDay(context.Background(), programID, dayID, ownerID)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -96,15 +115,15 @@ func TestRepositoryGetCurrentSessionByDay_HappyPathSortsTree(t *testing.T) {
 	}
 }
 
-func TestRepositoryGetCurrentSessionByDay_NotFoundBubbles(t *testing.T) {
+func TestRepositoryGetCurrentSessionByDay_ProgramDayMismatchReturnsNotFound(t *testing.T) {
 	db, mock := newMockDB(t)
-	dayID, ownerID := uuid.New(), uuid.New()
+	programID, dayID, ownerID := uuid.New(), uuid.New(), uuid.New()
 
-	mock.ExpectQuery(`SELECT \* FROM "sessions"`).
-		WithArgs(uuidArg(ownerID), uuidArg(dayID), 1).
+	mock.ExpectQuery(`SELECT .* FROM "sessions" .*JOIN "program_days".*JOIN "program_weeks"`).
+		WithArgs(uuidArg(ownerID), uuidArg(dayID), uuidArg(programID), 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}))
 
-	_, err := NewRepository(db).GetCurrentSessionByDay(context.Background(), dayID, ownerID)
+	_, err := NewRepository(db).GetCurrentSessionByDay(context.Background(), programID, dayID, ownerID)
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		t.Fatalf("want ErrRecordNotFound, got %v", err)
 	}
@@ -115,13 +134,13 @@ func TestRepositoryGetCurrentSessionByDay_NotFoundBubbles(t *testing.T) {
 
 func TestRepositoryGetCurrentSessionByDay_DBErrorBubbles(t *testing.T) {
 	db, mock := newMockDB(t)
-	dayID, ownerID := uuid.New(), uuid.New()
+	programID, dayID, ownerID := uuid.New(), uuid.New(), uuid.New()
 
-	mock.ExpectQuery(`SELECT \* FROM "sessions"`).
-		WithArgs(uuidArg(ownerID), uuidArg(dayID), 1).
+	mock.ExpectQuery(`SELECT .* FROM "sessions" .*JOIN "program_days".*JOIN "program_weeks"`).
+		WithArgs(uuidArg(ownerID), uuidArg(dayID), uuidArg(programID), 1).
 		WillReturnError(errors.New("network down"))
 
-	_, err := NewRepository(db).GetCurrentSessionByDay(context.Background(), dayID, ownerID)
+	_, err := NewRepository(db).GetCurrentSessionByDay(context.Background(), programID, dayID, ownerID)
 	if err == nil || errors.Is(err, gorm.ErrRecordNotFound) {
 		t.Fatalf("expected raw db error to bubble, got %v", err)
 	}
@@ -145,8 +164,8 @@ func TestRepositoryStartSessionForDay_ReusesExistingSession(t *testing.T) {
 	mock.ExpectBegin()
 
 	// Existing session is found, so the create path is skipped entirely.
-	mock.ExpectQuery(`SELECT \* FROM "sessions" WHERE .* ORDER BY "sessions"\."created_at" DESC.* LIMIT`).
-		WithArgs(uuidArg(ownerID), uuidArg(dayID), 1).
+	mock.ExpectQuery(`SELECT .* FROM "sessions" .*JOIN "program_days".*JOIN "program_weeks".*ORDER BY "sessions"\."created_at" DESC.* LIMIT`).
+		WithArgs(uuidArg(ownerID), uuidArg(dayID), uuidArg(programID), 1).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "user_id", "program_day_id", "state", "created_at", "updated_at",
 		}).AddRow(sessionID, ownerID, dayID, "in_progress", now, now))
@@ -197,8 +216,8 @@ func TestRepositoryStartSessionForDay_SnapshotsProgramIntoNewSession(t *testing.
 	mock.ExpectBegin()
 
 	// 1) No existing session for the day.
-	mock.ExpectQuery(`SELECT \* FROM "sessions" WHERE .* ORDER BY "sessions"\."created_at" DESC.* LIMIT`).
-		WithArgs(uuidArg(ownerID), uuidArg(dayID), 1).
+	mock.ExpectQuery(`SELECT .* FROM "sessions" .*JOIN "program_days".*JOIN "program_weeks".*ORDER BY "sessions"\."created_at" DESC.* LIMIT`).
+		WithArgs(uuidArg(ownerID), uuidArg(dayID), uuidArg(programID), 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}))
 
 	// 2) Program ownership probe succeeds.
@@ -300,8 +319,8 @@ func TestRepositoryStartSessionForDay_SnapshotsGroupSetsIntoPerSetLogs(t *testin
 
 	mock.ExpectBegin()
 
-	mock.ExpectQuery(`SELECT \* FROM "sessions" WHERE .* ORDER BY "sessions"\."created_at" DESC.* LIMIT`).
-		WithArgs(uuidArg(ownerID), uuidArg(dayID), 1).
+	mock.ExpectQuery(`SELECT .* FROM "sessions" .*JOIN "program_days".*JOIN "program_weeks".*ORDER BY "sessions"\."created_at" DESC.* LIMIT`).
+		WithArgs(uuidArg(ownerID), uuidArg(dayID), uuidArg(programID), 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}))
 
 	mock.ExpectQuery(`SELECT \* FROM "programs"`).
@@ -395,8 +414,8 @@ func TestRepositoryStartSessionForDay_UnknownProgramRollsBack(t *testing.T) {
 	mock.ExpectBegin()
 
 	// No existing session for the day.
-	mock.ExpectQuery(`SELECT \* FROM "sessions"`).
-		WithArgs(uuidArg(ownerID), uuidArg(dayID), 1).
+	mock.ExpectQuery(`SELECT .* FROM "sessions" .*JOIN "program_days".*JOIN "program_weeks"`).
+		WithArgs(uuidArg(ownerID), uuidArg(dayID), uuidArg(programID), 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}))
 
 	// Program ownership probe finds nothing → not-found bubbles up.
@@ -424,41 +443,21 @@ func TestRepositoryUpdateSetLog_CompletesSessionWhenNoPending(t *testing.T) {
 	sessionID := uuid.New()
 	setLogID := uuid.New()
 	seID := uuid.New()
-	now := time.Now()
 
 	mock.ExpectBegin()
 
 	// Ownership probe: set_log → session_exercise → session.
-	mock.ExpectQuery(`SELECT \* FROM "set_logs" WHERE .*"set_logs"\."id" = \$1.* LIMIT`).
-		WithArgs(uuidArg(setLogID), 1).
+	mock.ExpectQuery(setLogOwnedBySessionQuery).
+		WithArgs(uuidArg(setLogID), uuidArg(sessionID), uuidArg(ownerID), 1).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "session_exercise_id", "sequence", "set_type", "state",
 		}).AddRow(setLogID, seID, 1, "working", "pending"))
-
-	mock.ExpectQuery(`SELECT \* FROM "session_exercises" WHERE .* LIMIT`).
-		WithArgs(uuidArg(seID), uuidArg(sessionID), 1).
-		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "session_id", "sequence", "exercise_id", "exercise_name_snapshot",
-		}).AddRow(seID, sessionID, 1, uuid.New(), "Squat"))
-
-	mock.ExpectQuery(`SELECT \* FROM "sessions" WHERE .* LIMIT`).
-		WithArgs(uuidArg(sessionID), uuidArg(ownerID), 1).
-		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "user_id", "state", "created_at", "updated_at",
-		}).AddRow(sessionID, ownerID, "in_progress", now, now))
 
 	// Apply the field update.
 	mock.ExpectExec(`UPDATE "set_logs" SET`).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
-	// Recompute state: list session exercises, then their set log states.
-	mock.ExpectQuery(`SELECT "session_exercises"\."id" FROM "session_exercises"`).
-		WithArgs(uuidArg(sessionID)).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(seID))
-
-	mock.ExpectQuery(`SELECT "set_logs"\."state" FROM "set_logs"`).
-		WithArgs(uuidArg(seID)).
-		WillReturnRows(sqlmock.NewRows([]string{"state"}).AddRow("completed"))
+	expectSessionStateCounts(mock, sessionID, map[string]int64{"completed": 1})
 
 	// All set logs complete → session transitions to completed.
 	mock.ExpectExec(`UPDATE "sessions" SET`).
@@ -494,8 +493,8 @@ func TestRepositoryUpdateSetLog_MissingSetLogRollsBack(t *testing.T) {
 	setLogID := uuid.New()
 
 	mock.ExpectBegin()
-	mock.ExpectQuery(`SELECT \* FROM "set_logs"`).
-		WithArgs(uuidArg(setLogID), 1).
+	mock.ExpectQuery(setLogOwnedBySessionQuery).
+		WithArgs(uuidArg(setLogID), uuidArg(sessionID), uuidArg(ownerID), 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}))
 	mock.ExpectRollback()
 
@@ -510,6 +509,74 @@ func TestRepositoryUpdateSetLog_MissingSetLogRollsBack(t *testing.T) {
 }
 
 // ─── UpdateSetLogs ──────────────────────────────────────────────────────────
+
+func TestRecomputeSessionState_AllPendingPlansSession(t *testing.T) {
+	db, mock := newMockDB(t)
+	sessionID := uuid.New()
+
+	expectSessionStateCounts(mock, sessionID, map[string]int64{"pending": 2})
+	mock.ExpectBegin()
+	mock.ExpectExec(`UPDATE "sessions" SET`).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	if err := recomputeSessionState(context.Background(), query.Use(db), sessionID); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
+func TestRecomputeSessionState_MixedPendingAndFinishedMarksInProgress(t *testing.T) {
+	db, mock := newMockDB(t)
+	sessionID := uuid.New()
+
+	expectSessionStateCounts(mock, sessionID, map[string]int64{"pending": 1, "completed": 1, "skipped": 1})
+	mock.ExpectBegin()
+	mock.ExpectExec(`UPDATE "sessions" SET`).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	if err := recomputeSessionState(context.Background(), query.Use(db), sessionID); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
+func TestRecomputeSessionState_NoPendingCompletesSession(t *testing.T) {
+	db, mock := newMockDB(t)
+	sessionID := uuid.New()
+
+	expectSessionStateCounts(mock, sessionID, map[string]int64{"completed": 1, "skipped": 1})
+	mock.ExpectBegin()
+	mock.ExpectExec(`UPDATE "sessions" SET`).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	if err := recomputeSessionState(context.Background(), query.Use(db), sessionID); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
+func TestRecomputeSessionState_NoLogsDoesNotUpdateSession(t *testing.T) {
+	db, mock := newMockDB(t)
+	sessionID := uuid.New()
+
+	expectSessionStateCounts(mock, sessionID, map[string]int64{})
+
+	if err := recomputeSessionState(context.Background(), query.Use(db), sessionID); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
 
 func TestRepositoryUpdateSetLogs_AppliesAllInOneTransaction(t *testing.T) {
 	db, mock := newMockDB(t)
@@ -558,16 +625,7 @@ func TestRepositoryUpdateSetLogs_AppliesAllInOneTransaction(t *testing.T) {
 		}).AddRow(logID1, seID, 1, "working", "completed").
 			AddRow(logID2, seID, 2, "working", "completed"))
 
-	// Recompute (once): session exercises, set_log states, UPDATE session.
-	mock.ExpectQuery(`SELECT "session_exercises"\."id" FROM "session_exercises"`).
-		WithArgs(uuidArg(sessionID)).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(seID))
-
-	mock.ExpectQuery(`SELECT "set_logs"\."state" FROM "set_logs"`).
-		WithArgs(uuidArg(seID)).
-		WillReturnRows(sqlmock.NewRows([]string{"state"}).
-			AddRow("completed").
-			AddRow("completed"))
+	expectSessionStateCounts(mock, sessionID, map[string]int64{"completed": 2})
 
 	mock.ExpectExec(`UPDATE "sessions" SET`).
 		WillReturnResult(sqlmock.NewResult(0, 1))

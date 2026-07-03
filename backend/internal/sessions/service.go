@@ -12,7 +12,7 @@ import (
 )
 
 type Service interface {
-	GetCurrentSession(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error)
+	GetCurrentSession(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error)
 	StartSession(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error)
 	UpdateSetLog(ctx context.Context, sessionID, setLogID, ownerUserID uuid.UUID, input UpdateSetLogRequest) (*SetLogResponse, error)
 	UpdateSetLogs(ctx context.Context, sessionID, ownerUserID uuid.UUID, input BatchUpdateSetLogsRequest) ([]SetLogResponse, error)
@@ -29,16 +29,17 @@ func NewService(repo Repository) Service {
 }
 
 const (
-	minLoadKg = 0.0
-	maxLoadKg = 1500.0
-	minRpe    = 0.0
-	maxRpe    = 10.0
-	minReps   = 0
-	maxReps   = 1000
+	minLoadKg           = 0.0
+	maxLoadKg           = 1500.0
+	minRpe              = 0.0
+	maxRpe              = 10.0
+	minReps             = 0
+	maxReps             = 1000
+	maxSessionNoteChars = 4000
 )
 
-func (s *service) GetCurrentSession(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error) {
-	row, err := s.repo.GetCurrentSessionByDay(ctx, programDayID, ownerUserID)
+func (s *service) GetCurrentSession(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*SessionResponse, error) {
+	row, err := s.repo.GetCurrentSessionByDay(ctx, programID, programDayID, ownerUserID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, apierr.ErrNotFound
@@ -126,6 +127,10 @@ func (s *service) UpdateSetLogs(ctx context.Context, sessionID, ownerUserID uuid
 }
 
 func (s *service) UpdateSession(ctx context.Context, sessionID, ownerUserID uuid.UUID, input UpdateSessionRequest) (*SessionResponse, error) {
+	if input.Notes != nil && len([]rune(*input.Notes)) > maxSessionNoteChars {
+		return nil, fmt.Errorf("%w: notes exceeds %d characters", apierr.ErrInvalidInput, maxSessionNoteChars)
+	}
+
 	row, err := s.repo.UpdateSessionNotes(ctx, sessionID, ownerUserID, input.Notes)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

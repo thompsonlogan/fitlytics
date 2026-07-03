@@ -16,10 +16,11 @@ import (
 
 	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 	"github.com/thompsonlogan/fitlytics/backend/internal/query"
+	"github.com/thompsonlogan/fitlytics/backend/internal/repoauth"
 )
 
 type Repository interface {
-	GetCurrentSessionByDay(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*generated.Session, error)
+	GetCurrentSessionByDay(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*generated.Session, error)
 	StartSessionForDay(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*generated.Session, error)
 	UpdateSetLog(ctx context.Context, sessionID, setLogID, ownerUserID uuid.UUID, input UpdateSetLogRequest) (*generated.SetLog, error)
 	UpdateSetLogs(ctx context.Context, sessionID, ownerUserID uuid.UUID, updates []BatchUpdateSetLogItem) ([]*generated.SetLog, error)
@@ -52,13 +53,17 @@ func sortSessionTree(s *generated.Session) {
 	}
 }
 
-func (r *repository) GetCurrentSessionByDay(ctx context.Context, programDayID, ownerUserID uuid.UUID) (*generated.Session, error) {
+func (r *repository) GetCurrentSessionByDay(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*generated.Session, error) {
 	s := r.q.Session
+	pd := r.q.ProgramDay
+	pw := r.q.ProgramWeek
 
 	session, err := s.WithContext(ctx).
 		Preload(s.Exercises).
 		Preload(s.Exercises.SetLogs).
-		Where(s.UserID.Eq(ownerUserID), s.ProgramDayID.Eq(programDayID)).
+		Join(&generated.ProgramDay{}, pd.ID.EqCol(s.ProgramDayID)).
+		Join(&generated.ProgramWeek{}, pw.ID.EqCol(pd.ProgramWeekID)).
+		Where(s.UserID.Eq(ownerUserID), s.ProgramDayID.Eq(programDayID), pw.ProgramID.Eq(programID)).
 		Order(s.CreatedAt.Desc()).
 		First()
 	if err != nil {
@@ -82,12 +87,16 @@ func (r *repository) StartSessionForDay(ctx context.Context, programID, programD
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		q := query.Use(tx)
 		s := q.Session
+		pd := q.ProgramDay
+		pw := q.ProgramWeek
 
 		// 1) Existing session? Reuse it.
 		existing, err := s.WithContext(ctx).
 			Preload(s.Exercises).
 			Preload(s.Exercises.SetLogs).
-			Where(s.UserID.Eq(ownerUserID), s.ProgramDayID.Eq(programDayID)).
+			Join(&generated.ProgramDay{}, pd.ID.EqCol(s.ProgramDayID)).
+			Join(&generated.ProgramWeek{}, pw.ID.EqCol(pd.ProgramWeekID)).
+			Where(s.UserID.Eq(ownerUserID), s.ProgramDayID.Eq(programDayID), pw.ProgramID.Eq(programID)).
 			Order(s.CreatedAt.Desc()).
 			First()
 		if err == nil {
@@ -108,8 +117,6 @@ func (r *repository) StartSessionForDay(ctx context.Context, programID, programD
 			return err
 		}
 
-		pd := q.ProgramDay
-		pw := q.ProgramWeek
 		day, err := pd.WithContext(ctx).
 			Join(&generated.ProgramWeek{}, pw.ID.EqCol(pd.ProgramWeekID)).
 			Where(pd.ID.Eq(programDayID), pw.ProgramID.Eq(programID)).
@@ -257,7 +264,7 @@ func (r *repository) StartSessionForDay(ctx context.Context, programID, programD
 		// A concurrent first-start committed the session before us and our insert
 		// hit sessions_active_day_uq; load and return the winner's row.
 		if isUniqueViolation(err, "sessions_active_day_uq") {
-			return r.GetCurrentSessionByDay(ctx, programDayID, ownerUserID)
+			return r.GetCurrentSessionByDay(ctx, programID, programDayID, ownerUserID)
 		}
 		return nil, err
 	}
@@ -270,26 +277,8 @@ func (r *repository) UpdateSetLog(ctx context.Context, sessionID, setLogID, owne
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		q := query.Use(tx)
 		sl := q.SetLog
-		se := q.SessionExercise
-		ss := q.Session
 
-		// Ownership probe: verify the set_log rolls up to a session owned
-		// by the caller and matches the path session id.
-		setLog, err := sl.WithContext(ctx).Where(sl.ID.Eq(setLogID)).First()
-		if err != nil {
-			return err
-		}
-
-		_, err = se.WithContext(ctx).
-			Where(se.ID.Eq(setLog.SessionExerciseID), se.SessionID.Eq(sessionID)).
-			First()
-		if err != nil {
-			return err
-		}
-
-		_, err = ss.WithContext(ctx).
-			Where(ss.ID.Eq(sessionID), ss.UserID.Eq(ownerUserID)).
-			First()
+		setLog, err := repoauth.SetLogOwnedBySession(ctx, q, sessionID, setLogID, ownerUserID)
 		if err != nil {
 			return err
 		}
@@ -345,39 +334,35 @@ func recomputeSessionState(ctx context.Context, q *query.Query, sessionID uuid.U
 	sl := q.SetLog
 	ss := q.Session
 
-	exercises, err := se.WithContext(ctx).
-		Select(se.ID).
+	var rows []struct {
+		State string
+		Count int64
+	}
+	err := sl.WithContext(ctx).
+		Select(
+			sl.State,
+			sl.ID.Count().As("count"),
+		).
+		Join(&generated.SessionExercise{}, se.ID.EqCol(sl.SessionExerciseID)).
 		Where(se.SessionID.Eq(sessionID)).
-		Find()
-	if err != nil {
-		return fmt.Errorf("find session exercises: %w", err)
-	}
-
-	seIDs := make([]driver.Valuer, len(exercises))
-	for i, ex := range exercises {
-		seIDs[i] = ex.ID
-	}
-
-	logs, err := sl.WithContext(ctx).
-		Select(sl.State).
-		Where(sl.SessionExerciseID.In(seIDs...)).
-		Find()
+		Group(sl.State).
+		Scan(&rows)
 	if err != nil {
 		return fmt.Errorf("count session set_logs: %w", err)
 	}
 
-	var pending, completed, skipped int
-	for _, log := range logs {
-		switch log.State {
+	var total, pending, completed, skipped int64
+	for _, row := range rows {
+		total += row.Count
+		switch row.State {
 		case "pending":
-			pending++
+			pending = row.Count
 		case "completed":
-			completed++
+			completed = row.Count
 		case "skipped":
-			skipped++
+			skipped = row.Count
 		}
 	}
-	total := len(logs)
 
 	switch {
 	case total == 0:

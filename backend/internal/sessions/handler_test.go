@@ -52,7 +52,7 @@ func TestHandlerGetCurrentSession_InvalidProgramID(t *testing.T) {
 
 func TestHandlerGetCurrentSession_NotFoundReturns404(t *testing.T) {
 	svc := &fakeService{
-		findCurrentFn: func(_ context.Context, _, _ uuid.UUID) (*SessionResponse, error) {
+		findCurrentFn: func(_ context.Context, _, _, _ uuid.UUID) (*SessionResponse, error) {
 			return nil, apierr.ErrNotFound
 		},
 	}
@@ -74,13 +74,14 @@ func TestHandlerGetCurrentSession_NotFoundReturns404(t *testing.T) {
 
 func TestHandlerGetCurrentSession_SuccessReturnsBody(t *testing.T) {
 	userID := uuid.New()
+	programID := uuid.New()
 	dayID := uuid.New()
 	sessionID := uuid.New()
 
-	var gotDayID, gotOwnerID uuid.UUID
+	var gotProgramID, gotDayID, gotOwnerID uuid.UUID
 	svc := &fakeService{
-		findCurrentFn: func(_ context.Context, did, oid uuid.UUID) (*SessionResponse, error) {
-			gotDayID, gotOwnerID = did, oid
+		findCurrentFn: func(_ context.Context, pid, did, oid uuid.UUID) (*SessionResponse, error) {
+			gotProgramID, gotDayID, gotOwnerID = pid, did, oid
 			return &SessionResponse{ID: sessionID, State: "in_progress"}, nil
 		},
 	}
@@ -88,7 +89,7 @@ func TestHandlerGetCurrentSession_SuccessReturnsBody(t *testing.T) {
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest(http.MethodGet, "/", nil)
 	c.Params = gin.Params{
-		{Key: "id", Value: uuid.NewString()},
+		{Key: "id", Value: programID.String()},
 		{Key: "dayId", Value: dayID.String()},
 	}
 	withPrincipal(c, userID)
@@ -99,8 +100,8 @@ func TestHandlerGetCurrentSession_SuccessReturnsBody(t *testing.T) {
 		t.Fatalf("status: want 200, got %d (body=%s)", w.Code, w.Body.String())
 	}
 	// Auth boundary — service receives principal id, not anything from the body.
-	if gotDayID != dayID || gotOwnerID != userID {
-		t.Errorf("ids passed to service: day=%v owner=%v (want day=%v owner=%v)", gotDayID, gotOwnerID, dayID, userID)
+	if gotProgramID != programID || gotDayID != dayID || gotOwnerID != userID {
+		t.Errorf("ids passed to service: program=%v day=%v owner=%v", gotProgramID, gotDayID, gotOwnerID)
 	}
 }
 
@@ -427,7 +428,7 @@ func TestHandlerRegister_MountsAllRoutes(t *testing.T) {
 	g := r.Group("/api")
 
 	svc := &fakeService{
-		findCurrentFn: func(_ context.Context, _, _ uuid.UUID) (*SessionResponse, error) {
+		findCurrentFn: func(_ context.Context, _, _, _ uuid.UUID) (*SessionResponse, error) {
 			return &SessionResponse{ID: uuid.New()}, nil
 		},
 		ensureForDayFn: func(_ context.Context, _, _, _ uuid.UUID) (*SessionResponse, error) {
