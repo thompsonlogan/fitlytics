@@ -25,6 +25,10 @@ type SidePanelProps = {
   // sessionNotes / onSaveNotes back the editable "Your notes" section.
   sessionNotes: string
   onSaveNotes: (value: string) => void | Promise<void>
+  // layout controls how the cards are arranged. "panel" (default) fills a fixed
+  // side column — the notes card stretches to the column height. "stack" lays
+  // the cards out at their natural height for the mobile single-column body.
+  layout?: "panel" | "stack"
 }
 
 export function SidePanel({
@@ -35,7 +39,9 @@ export function SidePanel({
   nextDay,
   sessionNotes,
   onSaveNotes,
+  layout = "panel",
 }: SidePanelProps) {
+  const stack = layout === "stack"
   // Previous-week session (same day-index) for the volume comparison. The query
   // is disabled when prevDayId is null/empty (week 1 or a rest placeholder), in
   // which case data is undefined and the delta is hidden. Called unconditionally
@@ -45,7 +51,11 @@ export function SidePanel({
 
   if (day.off) {
     return (
-      <aside className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto] gap-3">
+      <aside
+        className={
+          stack ? "flex flex-col gap-3" : "grid min-h-0 grid-rows-[minmax(0,1fr)_auto] gap-3"
+        }
+      >
         <NotesCard
           coachNotes={day.notes}
           yourNotes={sessionNotes}
@@ -77,7 +87,9 @@ export function SidePanel({
       : `${deltaPct >= 0 ? "+" : "−"}${Math.abs(deltaPct).toFixed(1)}% vs last week`
 
   return (
-    <aside className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-3">
+    <aside
+      className={stack ? "flex flex-col gap-3" : "grid min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-3"}
+    >
       <Card size="sm" className="gap-0 py-0">
         <CardHeader className="flex flex-row items-center gap-2.5 border-b px-3.5 py-2.5">
           <CardTitle className="text-[0.8125rem]">Session summary</CardTitle>
