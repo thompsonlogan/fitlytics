@@ -1,0 +1,29 @@
+# Production Flyway migration runner — VERSIONED migrations only, clean disabled,
+# so it can never wipe data. Run once against the production database whenever you
+# ship a new migration.
+#
+# The Coolify Postgres is internal. Either temporarily expose it (Coolify → the
+# Postgres resource → enable the public port) and run this from your machine, or
+# run it on the VPS attached to the `coolify` network. Then:
+#
+#   FLYWAY_URL="jdbc:postgresql://HOST:PORT/fitlytics" \
+#   FLYWAY_USER=fitlytics FLYWAY_PASSWORD='...' \
+#   docker compose -f docker-compose.prod.yml run --rm flyway
+#
+# Repeatable seed data (R__seed_dev_data.sql) is excluded: only sql_versioned is
+# mounted.
+
+services:
+  flyway:
+    image: flyway/flyway:11-alpine
+    volumes:
+      - ./flyway/sql_versioned:/flyway/sql:ro
+    environment:
+      FLYWAY_URL: ${FLYWAY_URL}
+      FLYWAY_USER: ${FLYWAY_USER}
+      FLYWAY_PASSWORD: ${FLYWAY_PASSWORD}
+      FLYWAY_SCHEMAS: fitlytics
+      FLYWAY_DEFAULT_SCHEMA: fitlytics
+      FLYWAY_LOCATIONS: filesystem:/flyway/sql
+      FLYWAY_CLEAN_DISABLED: "true"
+    command: migrate
