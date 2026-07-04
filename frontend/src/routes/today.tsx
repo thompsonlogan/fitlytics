@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button"
 import { AppHeader } from "@/components/workout/app-header"
 import { DayBoard, DayBoardSkeleton } from "@/components/workout/day-board"
 import { Footer } from "@/components/workout/footer"
+import { MobileToday } from "@/components/workout/mobile-today"
 import { SubBar } from "@/components/workout/sub-bar"
 import { useAuth } from "@/hooks/use-auth"
 import { useDayCompletions } from "@/hooks/use-day-completions"
+import { useIsMobile } from "@/hooks/use-is-mobile"
 import { useWorkoutProgram } from "@/hooks/use-workout-program"
 import { computeTodayPosition, nextWorkoutDay, type ProgramDay } from "@/lib/program-data"
 
@@ -26,6 +28,7 @@ export function TodayPage() {
   const { data: program, isLoading, isError, refetch } = useWorkoutProgram()
   const { data: dayCompletions } = useDayCompletions(program?.id)
   const { user, signOut } = useAuth()
+  const isMobile = useIsMobile()
 
   const weekCount = program?.weeks.length ?? 0
 
@@ -90,6 +93,31 @@ export function TodayPage() {
         </main>
         <Footer />
       </div>
+    )
+  }
+
+  if (isMobile) {
+    return (
+      <MobileToday
+        program={program}
+        isLoading={isLoading}
+        user={user}
+        onLogout={signOut}
+        programName={program?.name ?? "Loading…"}
+        weekCount={Math.max(1, weekCount)}
+        days={days}
+        week={week}
+        dayIndex={dayIndex}
+        todayWeek={todayPos?.week ?? null}
+        todayDayIndex={todayPos?.dayIndex ?? null}
+        dayData={dayData}
+        startDate={program?.startDate}
+        completedDays={completedDays}
+        prevDayId={prevDayId}
+        nextDay={nextDay}
+        onWeekChange={(next) => setSelected({ week: next, dayIndex })}
+        onDayChange={(next) => setSelected({ week, dayIndex: next })}
+      />
     )
   }
 

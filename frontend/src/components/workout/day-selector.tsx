@@ -10,6 +10,9 @@ type DaySelectorProps = {
   startDate?: string
   completedDays: Record<string, boolean>
   onDayChange: (next: number) => void
+  // className extends the pill container — the mobile sub-bar passes overflow
+  // classes so the 7-day strip scrolls horizontally on narrow screens.
+  className?: string
 }
 
 export function DaySelector({
@@ -21,10 +24,11 @@ export function DaySelector({
   startDate,
   completedDays,
   onDayChange,
+  className,
 }: DaySelectorProps) {
   return (
     <div
-      className="flex gap-0.5 rounded-md bg-muted p-0.5"
+      className={cn("flex gap-0.5 rounded-md bg-muted p-0.5", className)}
       role="tablist"
       aria-label="Day selector"
     >
