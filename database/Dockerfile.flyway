@@ -1,0 +1,19 @@
+# syntax=docker/dockerfile:1
+# Production migration runner: applies VERSIONED migrations only, with clean
+# disabled so it can never wipe data. Repeatable seed data (R__seed_dev_data.sql)
+# is intentionally excluded from production.
+#
+# Deploy as a one-off / scheduled task in Coolify, or run the equivalent via
+# docker-compose.prod.yml. Connection details come from FLYWAY_URL /
+# FLYWAY_USER / FLYWAY_PASSWORD at run time. Adjust the base image tag if your
+# registry doesn't have 11-alpine.
+FROM flyway/flyway:11-alpine
+
+COPY flyway/sql_versioned /flyway/sql
+
+ENV FLYWAY_LOCATIONS=filesystem:/flyway/sql \
+    FLYWAY_SCHEMAS=fitlytics \
+    FLYWAY_DEFAULT_SCHEMA=fitlytics \
+    FLYWAY_CLEAN_DISABLED=true
+
+CMD ["migrate"]
