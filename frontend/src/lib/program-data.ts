@@ -12,7 +12,6 @@ export type SetBlock = {
   reps: string
   intensity: string
   cap: number | ""
-  used: number | ""
   rpe: number | null
   // prescribedLoad is the block's planned working load in lb (converted from
   // the backend's prescribed_load_kg). null when the prescription is given by
