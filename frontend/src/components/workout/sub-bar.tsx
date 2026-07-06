@@ -1,4 +1,4 @@
-import { CalendarCheck2, ChevronLeft, ChevronRight, Play } from "lucide-react"
+import { CalendarCheck2, ChevronLeft, ChevronRight } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -105,10 +105,6 @@ export function SubBar({
           Today
         </Button>
       )}
-      <Button size="sm">
-        <Play className="size-3.5" />
-        Start session
-      </Button>
     </div>
   )
 }

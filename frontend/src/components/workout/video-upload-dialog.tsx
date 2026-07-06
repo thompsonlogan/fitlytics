@@ -13,6 +13,7 @@ import { SetVideoPicker } from "@/components/workout/set-video-picker"
 import { type EnsureSetLog, useVideoUpload } from "@/components/workout/use-video-upload"
 import { VideoMediaRegion } from "@/components/workout/video-media-region"
 import { type Exercise, type SetBlock } from "@/lib/program-data"
+import { KG_TO_LB } from "@/lib/program-mapper"
 import { type SetLogResponse, type VideoResponse } from "@/services/generated"
 
 type VideoUploadDialogProps = {
@@ -85,6 +86,9 @@ export function VideoUploadDialog({
     onOpenChange,
   })
 
+  const loadUsedKg = blockLogs[0]?.actualLoadKg
+  const loadUsed = loadUsedKg == null ? "—" : String(KG_TO_LB(loadUsedKg))
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -145,7 +149,7 @@ export function VideoUploadDialog({
         <div className="grid grid-cols-4 overflow-hidden rounded-md border">
           <ContextCell label="Set" value={`${setIdx + 1}`} unit={`/${block.sets}`} />
           <ContextCell label="Reps" value={block.reps} />
-          <ContextCell label="Load" value={block.used === "" ? "—" : String(block.used)} unit="lb" />
+          <ContextCell label="Load" value={loadUsed} unit="lb" />
           <ContextCell label="RPE" value={block.rpe == null ? "—" : String(block.rpe)} last />
         </div>
 
@@ -210,7 +214,9 @@ function ContextCell({
       </span>
       <span className="text-[0.9375rem] font-semibold tabular-nums">
         {value}
-        {unit ? <span className="ml-px text-[0.625rem] font-normal text-muted-foreground">{unit}</span> : null}
+        {unit ? (
+          <span className="ml-px text-[0.625rem] font-normal text-muted-foreground">{unit}</span>
+        ) : null}
       </span>
     </div>
   )

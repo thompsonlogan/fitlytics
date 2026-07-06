@@ -13,7 +13,7 @@ import type { Exercise, Program, ProgramDay, ProgramWeek, SetBlock } from "./pro
 // kg value gets converted here at the boundary. Rounding to the nearest
 // integer lb matches how the seed spreadsheet renders ("300lb" / "285lb").
 const KG_PER_LB = 2.20462
-const KG_TO_LB = (kg: number) => Math.round(kg * KG_PER_LB)
+export const KG_TO_LB = (kg: number) => Math.round(kg * KG_PER_LB)
 // Used by callers (e.g. the cell-edit mutation) that need to convert user-
 // entered lb input back to kg before sending to the API. Not rounded — the
 // backend column is numeric(7,2).
@@ -51,7 +51,6 @@ export function mapGroup(g: ProgramSetGroupResponse): SetBlock {
     reps: formatReps(first?.repsMin, first?.repsMax),
     intensity: first?.intensityText ?? "",
     cap: capLb,
-    used: "",
     rpe: first?.prescribedRpe ?? null,
     prescribedLoad: first?.prescribedLoadKg != null ? KG_TO_LB(first.prescribedLoadKg) : null,
   }
