@@ -1,7 +1,6 @@
-import { ChevronLeft, ChevronRight, Play } from "lucide-react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { DaySelector } from "@/components/workout/day-selector"
 import { type ProgramDay } from "@/lib/program-data"
 
@@ -21,9 +20,9 @@ type MobileSubBarProps = {
 }
 
 // MobileSubBar is the phone reflow of the desktop SubBar: the same breadcrumb,
-// title, week pager, day strip and "Start session" action, stacked into a
-// single column. The desktop "back to Today" button is dropped — tapping a day
-// chip is the touch equivalent and the "Today" badge already marks the spot.
+// title, week pager and day strip, stacked into a single column. The desktop
+// "back to Today" button is dropped — tapping a day chip is the touch
+// equivalent and the "Today" badge already marks the spot.
 export function MobileSubBar({
   programName,
   weekCount,
@@ -104,11 +103,6 @@ export function MobileSubBar({
         onDayChange={onDayChange}
         className="mt-2.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>button]:min-w-13 [&>button]:flex-1"
       />
-
-      <Button size="lg" className="mt-3.5 h-10 w-full justify-center text-sm">
-        <Play className="size-3.5" />
-        Start session
-      </Button>
     </div>
   )
 }

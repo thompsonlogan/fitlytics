@@ -39,7 +39,7 @@ export function DaySelector({
         const calDay = startDate ? calendarDayOfMonth(startDate, week, i) : i + 1
         return (
           <button
-            key={d.id}
+            key={i}
             type="button"
             role="tab"
             aria-selected={isActive}
