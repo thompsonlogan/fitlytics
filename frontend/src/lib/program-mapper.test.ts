@@ -45,10 +45,6 @@ describe("mapGroup", () => {
     expect(mapGroup({ sets: [{}] }).cap).toBe("")
   })
 
-  it("leaves `used` blank — actuals come from session set_logs, not prescription", () => {
-    expect(mapGroup({ sets: [{ prescribedLoadKg: 129.27 }] }).used).toBe("")
-  })
-
   it("converts prescribedLoadKg → lb for the side panel's planned stats", () => {
     // 129.27 kg → 285 lb.
     expect(mapGroup({ sets: [{ prescribedLoadKg: 129.27 }] }).prescribedLoad).toBe(285)

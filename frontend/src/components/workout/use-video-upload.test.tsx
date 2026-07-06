@@ -44,7 +44,6 @@ function makeOpts(overrides: Partial<Opts> = {}): Opts {
       reps: "5",
       intensity: "",
       cap: "",
-      used: "",
       rpe: null,
       prescribedLoad: null,
     } as SetBlock,

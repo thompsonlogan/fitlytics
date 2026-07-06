@@ -21,7 +21,6 @@ function block(sets: number, reps = "3", intensity = "100lb") {
     reps,
     intensity,
     cap: 100 as const,
-    used: 100 as const,
     rpe: 8,
     prescribedLoad: 100,
   }
@@ -162,7 +161,6 @@ function blockWith(overrides: Partial<SetBlock>): SetBlock {
     reps: "5",
     intensity: "",
     cap: "",
-    used: "",
     rpe: null,
     prescribedLoad: null,
     ...overrides,
