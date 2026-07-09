@@ -377,8 +377,9 @@ describe("blurLoad", () => {
     expect(result.current.cellErrors["0-0:load"]).toBeUndefined()
   })
 
-  it("currently maps a 401 to the load cell as 'Invalid value'", async () => {
-    // NOTE: plan 002 changes 401 handling — update this test when it lands.
+  it("treats a surfaced 401 as a dead session: toasts, no cell error", async () => {
+    // The auth-refresh middleware already tried to recover this 401 before it
+    // reached the hook (see plan 002), so 401/403 fall through to the toast.
     const logSetBatch = vi.fn().mockRejectedValue(makeResponseError(401))
     const { result } = makeHook(twoSetBlock(), { logSetBatch })
 
@@ -386,7 +387,8 @@ describe("blurLoad", () => {
       await result.current.blurLoad("0-0", "225")
     })
 
-    expect(result.current.cellErrors["0-0:load"]).toBe("Invalid value")
+    expect(toast.error).toHaveBeenCalledTimes(1)
+    expect(result.current.cellErrors["0-0:load"]).toBeUndefined()
   })
 })
 

@@ -43,8 +43,18 @@ async function readApiErrorMessage(err: unknown): Promise<string | undefined> {
   return undefined
 }
 
+// 401/403 are excluded: the auth-refresh middleware already tried (and failed)
+// to recover a 401 before it reached here, so the session is dead — surfacing
+// "Invalid value" on the cell would be a lie. Let auth failures fall through to
+// the generic connection toast instead.
 function is4xx(err: unknown): err is ResponseError {
-  return err instanceof ResponseError && err.response.status >= 400 && err.response.status < 500
+  return (
+    err instanceof ResponseError &&
+    err.response.status >= 400 &&
+    err.response.status < 500 &&
+    err.response.status !== 401 &&
+    err.response.status !== 403
+  )
 }
 
 // buildBlockIndex groups each session exercise's per-set logs back under their
