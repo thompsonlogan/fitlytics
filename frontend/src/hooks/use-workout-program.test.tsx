@@ -54,19 +54,19 @@ describe("fetchActiveProgram", () => {
 
     expect(list).toHaveBeenCalledOnce()
     expect(get).toHaveBeenCalledWith("first-id")
-    expect(result.name).toBe("Logan PL")
+    expect(result?.name).toBe("Logan PL")
   })
 
-  it("throws when the user has no programs (auth-gated misconfig)", async () => {
+  it("returns null when the user has no programs (fresh account)", async () => {
     const api = fakeProgramsApi({ list: () => Promise.resolve([]) })
-    await expect(fetchActiveProgram(api)).rejects.toThrow(/no programs/i)
+    await expect(fetchActiveProgram(api)).resolves.toBeNull()
   })
 
-  it("throws when a summary is missing an id (defensive)", async () => {
+  it("returns null when a summary is missing an id (defensive)", async () => {
     const api = fakeProgramsApi({
       list: () => Promise.resolve([{ name: "anon" }] as ProgramSummaryResponse[]),
     })
-    await expect(fetchActiveProgram(api)).rejects.toThrow(/no programs/i)
+    await expect(fetchActiveProgram(api)).resolves.toBeNull()
   })
 })
 
