@@ -12,6 +12,7 @@
 > "Current state" excerpts against the live code before proceeding; on a
 > mismatch, treat it as a STOP condition.
 
+## Status
 
 - **Priority**: P2
 - **Effort**: S
