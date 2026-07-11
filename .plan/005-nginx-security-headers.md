@@ -4,7 +4,7 @@
 > verification command and confirm the expected result before moving to the
 > next step. If anything in the "STOP conditions" section occurs, stop and
 > report — do not improvise. When done, update the status row for this plan
-> in `plans/README.md` — unless a reviewer dispatched you and told you they
+> in `.plan/README.md` — unless a reviewer dispatched you and told you they
 > maintain the index.
 >
 > **Drift check (run first)**: `git diff --stat 84d129d..HEAD -- frontend/nginx.conf frontend/Dockerfile`
@@ -125,7 +125,7 @@ add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
 # only runs over HTTPS in production (cookies are Secure), so HSTS is safe.
 add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 # Report-Only first: observe violations in the browser console for a release,
-# then promote to Content-Security-Policy (see plans/README.md follow-up).
+# then promote to Content-Security-Policy (see .plan/README.md follow-up).
 add_header Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; media-src 'self' https://*.r2.cloudflarestorage.com; connect-src 'self' https://*.r2.cloudflarestorage.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
 ```
 
@@ -194,7 +194,7 @@ Machine-checkable. ALL must hold:
 - [ ] `grep -n "security-headers.conf" frontend/Dockerfile` → one COPY line
 - [ ] Docker image builds; all three curl header checks in Step 3 pass
 - [ ] Only the three in-scope files are modified (`git status`)
-- [ ] `plans/README.md` status row updated
+- [ ] `.plan/README.md` status row updated
 
 ## STOP conditions
 

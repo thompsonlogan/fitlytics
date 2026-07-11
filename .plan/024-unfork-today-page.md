@@ -4,7 +4,7 @@
 > verification command and confirm the expected result before moving to the
 > next step. If anything in the "STOP conditions" section occurs, stop and
 > report — do not improvise. When done, update the status row for this plan
-> in `plans/README.md` — unless a reviewer dispatched you and told you they
+> in `.plan/README.md` — unless a reviewer dispatched you and told you they
 > maintain the index.
 >
 > **Drift check (run first)**: `git diff --stat 84d129d..HEAD -- frontend/src/routes/today.tsx frontend/src/components/workout/day-board.tsx frontend/src/components/workout/mobile-day-board.tsx frontend/src/components/workout/mobile-today.tsx frontend/src/components/workout/sub-bar.tsx`
@@ -310,13 +310,13 @@ Machine-checkable. ALL must hold:
 - [ ] `pnpm test`, `pnpm lint`, `pnpm typecheck` all exit 0; no test assertions changed
 - [ ] Visual + resize-with-draft-edit check performed on both viewports
 - [ ] Only in-scope files modified (`git status`)
-- [ ] `plans/README.md` status row updated
+- [ ] `.plan/README.md` status row updated
 
 ## STOP conditions
 
 Stop and report back (do not improvise) if:
 
-- Prerequisites 003/011/023 are not DONE (`plans/README.md`).
+- Prerequisites 003/011/023 are not DONE (`.plan/README.md`).
 - The desktop grid→flex shell swap in Step 1 visibly changes the layout and
   can't be matched within two attempts — report with a screenshot; forcing
   it with `!important`-style utilities is not acceptable.

@@ -4,7 +4,7 @@
 > verification command and confirm the expected result before moving to the
 > next step. If anything in the "STOP conditions" section occurs, stop and
 > report — do not improvise. When done, update the status row for this plan
-> in `plans/README.md` — unless a reviewer dispatched you and told you they
+> in `.plan/README.md` — unless a reviewer dispatched you and told you they
 > maintain the index.
 >
 > **Drift check (run first)**: `git diff --stat 84d129d..HEAD -- backend/internal/programs/dto.go backend/internal/sessions/dto.go backend/internal/videos/dto.go backend/internal/handlers/me.go backend/internal/storage/store.go frontend/src/lib/program-mapper.ts frontend/src/services/generated/`
@@ -276,7 +276,7 @@ Machine-checkable. ALL must hold:
 - [ ] `?? ` count in `program-mapper.ts` dropped (report before/after; expected roughly 21 → ≤ 10)
 - [ ] `go test ./...`, `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build` all pass
 - [ ] No test ASSERTION changed (factories may gain fields)
-- [ ] `plans/README.md` status row updated
+- [ ] `.plan/README.md` status row updated
 
 ## STOP conditions
 
@@ -291,7 +291,7 @@ Stop and report back (do not improvise) if:
 - The regenerated client diff shows changes beyond optionality (renamed
   models, different serializers) — the generator image moved under you;
   report the image digest and diff summary.
-- Prerequisite plans (001/002/013/019) are not DONE in `plans/README.md`.
+- Prerequisite plans (001/002/013/019) are not DONE in `.plan/README.md`.
 
 ## Maintenance notes
 

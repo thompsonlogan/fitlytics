@@ -4,7 +4,7 @@
 > verification command and confirm the expected result before moving to the
 > next step. If anything in the "STOP conditions" section occurs, stop and
 > report — do not improvise. When done, update the status row for this plan
-> in `plans/README.md` — unless a reviewer dispatched you and told you they
+> in `.plan/README.md` — unless a reviewer dispatched you and told you they
 > maintain the index.
 >
 > **Drift check (run first)**: `git diff --stat 84d129d..HEAD -- frontend/src/services/data.ts frontend/src/main.tsx frontend/src/hooks/use-auth.ts frontend/src/components/workout/use-cell-logging.ts frontend/src/services/generated/runtime.ts`
@@ -19,7 +19,7 @@
 - **Risk**: MED — touches the shared HTTP path of every API call; a bug here
   breaks all data access. Mitigated by plan 001's characterization tests and
   the new middleware tests below.
-- **Depends on**: plans/001-cell-logging-characterization-tests.md
+- **Depends on**: .plan/001-cell-logging-characterization-tests.md
 - **Category**: bug
 - **Planned at**: commit `84d129d`, 2026-07-04
 
@@ -341,7 +341,7 @@ Machine-checkable. ALL must hold:
 - [ ] `grep -n "status !== 401" frontend/src/components/workout/use-cell-logging.ts` returns a match
 - [ ] `pnpm test`, `pnpm lint`, `pnpm typecheck` all exit 0
 - [ ] `git status` shows no modified files outside the in-scope list (in particular, nothing under `src/services/generated/`)
-- [ ] `plans/README.md` status row updated
+- [ ] `.plan/README.md` status row updated
 
 ## STOP conditions
 

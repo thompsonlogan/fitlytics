@@ -4,7 +4,7 @@
 > verification command and confirm the expected result before moving to the
 > next step. If anything in the "STOP conditions" section occurs, stop and
 > report — do not improvise. When done, update the status row for this plan
-> in `plans/README.md` — unless a reviewer dispatched you and told you they
+> in `.plan/README.md` — unless a reviewer dispatched you and told you they
 > maintain the index.
 >
 > **Drift check (run first)**: `git diff --stat 84d129d..HEAD -- backend/internal/logger/ backend/internal/middleware/ backend/internal/server/router.go backend/internal/sessions/handler.go backend/internal/programs/handler.go backend/internal/videos/ frontend/nginx.conf`
@@ -19,7 +19,7 @@
 - **Priority**: P2
 - **Effort**: M
 - **Risk**: LOW — additive logging plumbing; no business logic changes.
-- **Depends on**: plans/006-rate-limit-and-body-cap.md (same `nginx.conf`;
+- **Depends on**: .plan/006-rate-limit-and-body-cap.md (same `nginx.conf`;
   land in order to avoid conflicts). The Go changes are independent.
 - **Category**: dx / observability
 - **Planned at**: commit `84d129d`, 2026-07-04
@@ -283,7 +283,7 @@ Machine-checkable. ALL must hold:
 - [ ] `grep -c "X-Request-ID" frontend/nginx.conf` → `2`
 - [ ] `grep -n "middleware.RequestID()" backend/internal/server/router.go` → present, before `RequestLogger`
 - [ ] Only in-scope files modified (`git status`)
-- [ ] `plans/README.md` status row updated
+- [ ] `.plan/README.md` status row updated
 
 ## STOP conditions
 

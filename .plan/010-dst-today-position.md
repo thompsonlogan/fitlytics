@@ -4,7 +4,7 @@
 > verification command and confirm the expected result before moving to the
 > next step. If anything in the "STOP conditions" section occurs, stop and
 > report — do not improvise. When done, update the status row for this plan
-> in `plans/README.md` — unless a reviewer dispatched you and told you they
+> in `.plan/README.md` — unless a reviewer dispatched you and told you they
 > maintain the index.
 >
 > **Drift check (run first)**: `git diff --stat 84d129d..HEAD -- frontend/src/lib/program-data.ts frontend/src/lib/program-data.test.ts`
@@ -226,7 +226,7 @@ Machine-checkable. ALL must hold:
 - [ ] `TZ=America/New_York pnpm vitest run program-data` → all pass, spring-forward test executed (not skipped)
 - [ ] `pnpm test`, `pnpm lint`, `pnpm typecheck` all exit 0
 - [ ] Only in-scope files modified (`git status`)
-- [ ] `plans/README.md` status row updated
+- [ ] `.plan/README.md` status row updated
 
 ## STOP conditions
 
@@ -244,7 +244,7 @@ Stop and report back (do not improvise) if:
 ## Maintenance notes
 
 - If a real timezone preference ships (users.timezone is already in the
-  schema/API — see Direction notes in `plans/README.md`), this function is
+  schema/API — see Direction notes in `.plan/README.md`), this function is
   where "browser-local" would become "user-preference-local"; the injectable
   `now` makes that change testable.
 - Reviewer scrutiny: confirm `week`'s `Math.floor` was NOT changed — only the

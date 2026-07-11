@@ -4,7 +4,7 @@
 > verification command and confirm the expected result before moving to the
 > next step. If anything in the "STOP conditions" section occurs, stop and
 > report — do not improvise. When done, update the status row for this plan
-> in `plans/README.md` — unless a reviewer dispatched you and told you they
+> in `.plan/README.md` — unless a reviewer dispatched you and told you they
 > maintain the index.
 >
 > **Drift check (run first)**: `git diff --stat 84d129d..HEAD -- frontend/src/lib/program-mapper.ts frontend/src/lib/session-metrics.ts frontend/src/components/workout/use-cell-logging.ts`
@@ -36,7 +36,7 @@ currently consistent, but three independent copies of a unit boundary (one
 misnamed) is exactly how a future edit corrupts volume math in one place and
 not the others. One `lib/units.ts` module ends that — and becomes the seam
 where a metric/imperial user preference (already in the schema and `/api/me`;
-see Direction notes in `plans/README.md`) would plug in later.
+see Direction notes in `.plan/README.md`) would plug in later.
 
 ## Current state
 
@@ -195,7 +195,7 @@ Machine-checkable. ALL must hold:
 - [ ] All existing conversion tests pass unmodified; `units.test.ts` passes
 - [ ] `pnpm test`, `pnpm lint`, `pnpm typecheck` all exit 0
 - [ ] Only in-scope files modified (`git status`)
-- [ ] `plans/README.md` status row updated
+- [ ] `.plan/README.md` status row updated
 
 ## STOP conditions
 
@@ -210,7 +210,7 @@ Stop and report back (do not improvise) if:
 
 ## Maintenance notes
 
-- The metric/imperial preference feature (Direction notes, `plans/README.md`)
+- The metric/imperial preference feature (Direction notes, `.plan/README.md`)
   should extend `units.ts` (e.g. `formatLoad(kg, pref)`) rather than adding
   call-site branches.
 - The `LB_TO_KG` back-compat alias in program-mapper can be dropped in any

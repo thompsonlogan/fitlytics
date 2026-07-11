@@ -6,7 +6,7 @@
 > operator can reach. Steps tagged **[OPERATOR]** must be written into the
 > runbook and the final report as instructions — do NOT attempt to perform
 > them, and do NOT mark this plan DONE on their behalf (see Done criteria).
-> When finished, update the status row in `plans/README.md`.
+> When finished, update the status row in `.plan/README.md`.
 >
 > **Drift check (run first)**: `git diff --stat 84d129d..HEAD -- database/`
 > Only doc-level drift matters here; if a `database/BACKUPS.md` already
@@ -197,7 +197,7 @@ Machine-checkable (executor side). ALL must hold:
 - [ ] The Step 1 rehearsal completed: dump → restore → sanity query, output included in the report
 - [ ] CLAUDE.md links the runbook
 - [ ] Only the two in-scope files modified (`git status`)
-- [ ] `plans/README.md` status row updated to **BLOCKED (operator checklist pending)** — NOT "DONE"; only the operator flips it to DONE after Step 4 item 5 (the production-backup restore drill) succeeds
+- [ ] `.plan/README.md` status row updated to **BLOCKED (operator checklist pending)** — NOT "DONE"; only the operator flips it to DONE after Step 4 item 5 (the production-backup restore drill) succeeds
 
 ## STOP conditions
 

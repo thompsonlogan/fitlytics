@@ -4,7 +4,7 @@
 > verification command and confirm the expected result before moving to the
 > next step. If anything in the "STOP conditions" section occurs, stop and
 > report — do not improvise. When done, update the status row for this plan
-> in `plans/README.md` — unless a reviewer dispatched you and told you they
+> in `.plan/README.md` — unless a reviewer dispatched you and told you they
 > maintain the index.
 >
 > **Drift check (run first)**: `git diff --stat 84d129d..HEAD -- frontend/src/hooks/use-workout-program.ts frontend/src/routes/today.tsx frontend/src/hooks/use-workout-program.test.tsx frontend/src/components/workout/mobile-today.tsx`
@@ -33,7 +33,7 @@ the list is empty, so every brand-new production signup lands on the generic
 "We couldn't load your program… Try again" error with a retry button that can
 never succeed. This plan turns "zero programs" into a first-class empty state.
 (An actual program-creation flow is a separate product decision — see the
-Direction notes in `plans/README.md`.)
+Direction notes in `.plan/README.md`.)
 
 ## Current state
 
@@ -234,7 +234,7 @@ Machine-checkable. ALL must hold:
 - [ ] `pnpm vitest run use-workout-program` → all pass, including the null-on-empty case
 - [ ] `pnpm test`, `pnpm lint`, `pnpm typecheck` all exit 0
 - [ ] `git status` shows no modified files outside the in-scope list
-- [ ] `plans/README.md` status row updated
+- [ ] `.plan/README.md` status row updated
 
 ## STOP conditions
 
@@ -252,7 +252,7 @@ Stop and report back (do not improvise) if:
 ## Maintenance notes
 
 - When a program-creation flow lands (see Direction notes in
-  `plans/README.md`), `NoProgramCard` is where its CTA goes.
+  `.plan/README.md`), `NoProgramCard` is where its CTA goes.
 - The "first program in the list = active" heuristic in `fetchActiveProgram`
   is unchanged and remains the place a real program picker would slot in.
 - Reviewers should check the empty state against both themes (the copy uses

@@ -4,7 +4,7 @@
 > verification command and confirm the expected result before moving to the
 > next step. If anything in the "STOP conditions" section occurs, stop and
 > report — do not improvise. When done, update the status row for this plan
-> in `plans/README.md` — unless a reviewer dispatched you and told you they
+> in `.plan/README.md` — unless a reviewer dispatched you and told you they
 > maintain the index.
 >
 > **Drift check (run first)**: `git diff --stat 84d129d..HEAD -- frontend/nginx.conf backend/internal/server/router.go backend/internal/middleware/`
@@ -19,7 +19,7 @@
 - **Risk**: MED — a too-tight rate limit can lock out legitimate users
   (especially plan 002's refresh bursts); limits below are sized for that.
   The body cap is LOW risk (largest legitimate JSON body is a 4000-char note).
-- **Depends on**: plans/005-nginx-security-headers.md (touches the same
+- **Depends on**: .plan/005-nginx-security-headers.md (touches the same
   `frontend/nginx.conf`; execute 005 first to avoid merge conflicts)
 - **Category**: security
 - **Planned at**: commit `84d129d`, 2026-07-04
@@ -269,7 +269,7 @@ Machine-checkable. ALL must hold:
 - [ ] `go vet ./...` → exit 0
 - [ ] If Docker was available: the 429 check in Step 5 passed
 - [ ] Only in-scope files modified (`git status`)
-- [ ] `plans/README.md` status row updated
+- [ ] `.plan/README.md` status row updated
 
 ## STOP conditions
 

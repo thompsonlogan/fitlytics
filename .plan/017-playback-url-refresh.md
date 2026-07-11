@@ -4,7 +4,7 @@
 > verification command and confirm the expected result before moving to the
 > next step. If anything in the "STOP conditions" section occurs, stop and
 > report — do not improvise. When done, update the status row for this plan
-> in `plans/README.md` — unless a reviewer dispatched you and told you they
+> in `.plan/README.md` — unless a reviewer dispatched you and told you they
 > maintain the index.
 >
 > **Drift check (run first)**: `git diff --stat 84d129d..HEAD -- frontend/src/components/workout/use-video-upload.ts frontend/src/components/workout/video-media-region.tsx frontend/src/components/workout/video-upload-dialog.tsx frontend/src/components/workout/use-video-upload.test.tsx`
@@ -197,7 +197,7 @@ Machine-checkable. ALL must hold:
 - [ ] `pnpm vitest run use-video-upload` → ≥ 13 tests pass, including the silent-refresh and second-error cases
 - [ ] `pnpm test`, `pnpm lint`, `pnpm typecheck` all exit 0
 - [ ] Only in-scope files modified (`git status`)
-- [ ] `plans/README.md` status row updated
+- [ ] `.plan/README.md` status row updated
 
 ## STOP conditions
 

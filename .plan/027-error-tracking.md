@@ -4,7 +4,7 @@
 > verification command and confirm the expected result before moving to the
 > next step. If anything in the "STOP conditions" section occurs, stop and
 > report — do not improvise. When done, update the status row for this plan
-> in `plans/README.md` — unless a reviewer dispatched you and told you they
+> in `.plan/README.md` — unless a reviewer dispatched you and told you they
 > maintain the index.
 >
 > **Drift check (run first)**: `git diff --stat 84d129d..HEAD -- backend/internal/config/config.go backend/cmd/api/main.go backend/internal/server/router.go backend/internal/logger/ frontend/src/main.tsx frontend/security-headers.conf frontend/.env.example frontend/Dockerfile`
@@ -340,7 +340,7 @@ Machine-checkable. ALL must hold:
 - [ ] `.env.example` (both), Dockerfile, and CLAUDE.md document the new vars
 - [ ] `go test ./...`, `go vet ./...`, `pnpm test/lint/typecheck/build` all pass
 - [ ] Only in-scope files modified (`git status`)
-- [ ] `plans/README.md` status row updated (operator checklist in the report)
+- [ ] `.plan/README.md` status row updated (operator checklist in the report)
 
 ## STOP conditions
 

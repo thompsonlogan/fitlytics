@@ -4,7 +4,7 @@
 > verification command and confirm the expected result before moving to the
 > next step. If anything in the "STOP conditions" section occurs, stop and
 > report — do not improvise. When done, update the status row for this plan
-> in `plans/README.md` — unless a reviewer dispatched you and told you they
+> in `.plan/README.md` — unless a reviewer dispatched you and told you they
 > maintain the index.
 >
 > **Drift check (run first)**: `git diff --stat 84d129d..HEAD -- frontend/src/components/workout/workout-table.tsx frontend/src/components/workout/mobile-day-board.tsx frontend/src/components/workout/sub-bar.tsx frontend/src/components/workout/mobile-sub-bar.tsx`
@@ -33,7 +33,7 @@ in `use-day-board.ts`), so the button implies a step that doesn't exist. They ar
 features that don't exist yet (exercise editing, activity logging). Until
 those features are built, the honest UI is no button at all. The removed
 markup stays recoverable via git history, and the roadmap intent is already
-recorded in `plans/README.md` (Direction notes: ad-hoc sessions / activity
+recorded in `.plan/README.md` (Direction notes: ad-hoc sessions / activity
 logging).
 
 ## Current state
@@ -218,7 +218,7 @@ Machine-checkable. ALL must hold:
 - [ ] Zero `<Button` elements without an `onClick`/handler remain in the four in-scope files (manual scan of the diff)
 - [ ] `pnpm lint`, `pnpm typecheck`, `pnpm test` all exit 0
 - [ ] Only the four in-scope files are modified (`git status`)
-- [ ] `plans/README.md` status row updated
+- [ ] `.plan/README.md` status row updated
 
 ## STOP conditions
 
@@ -239,4 +239,4 @@ Stop and report back (do not improvise) if:
   already reviewed.
 - The related product intent (ad-hoc sessions — the schema already allows
   `sessions.program_day_id IS NULL`) is recorded in the Direction notes of
-  `plans/README.md`.
+  `.plan/README.md`.

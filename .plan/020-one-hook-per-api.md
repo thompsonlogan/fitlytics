@@ -4,7 +4,7 @@
 > verification command and confirm the expected result before moving to the
 > next step. If anything in the "STOP conditions" section occurs, stop and
 > report — do not improvise. When done, update the status row for this plan
-> in `plans/README.md` — unless a reviewer dispatched you and told you they
+> in `.plan/README.md` — unless a reviewer dispatched you and told you they
 > maintain the index.
 >
 > **Drift check (run first)**: `git diff --stat 84d129d..HEAD -- frontend/src/hooks/use-day-completions.ts frontend/src/hooks/use-session.ts frontend/src/routes/today.tsx CLAUDE.md`
@@ -19,7 +19,7 @@
 - **Risk**: LOW — a file merge plus import updates; no logic changes.
 - **Depends on**: none (coordinate with 001/002/013 only in the sense of not
   running concurrently on `use-session.ts` — 002 doesn't touch it, but check
-  `plans/README.md` statuses first)
+  `.plan/README.md` statuses first)
 - **Category**: tech-debt (conventions)
 - **Planned at**: commit `84d129d`, 2026-07-04
 
@@ -150,7 +150,7 @@ Machine-checkable. ALL must hold:
 - [ ] CLAUDE.md contains the convention bullet
 - [ ] `pnpm test`, `pnpm lint`, `pnpm typecheck` all exit 0
 - [ ] Only in-scope files modified (`git status`)
-- [ ] `plans/README.md` status row updated
+- [ ] `.plan/README.md` status row updated
 
 ## STOP conditions
 
@@ -160,7 +160,7 @@ Stop and report back (do not improvise) if:
   report them (mechanical to fix, but the plan's scope list must be honest).
 - Any moved test needs an ASSERTION change to pass — behavior drifted during
   the move; diff the moved code against the original.
-- Plans 001/002 are IN PROGRESS (check `plans/README.md`) — `use-session.ts`
+- Plans 001/002 are IN PROGRESS (check `.plan/README.md`) — `use-session.ts`
   churn should serialize, not merge.
 
 ## Maintenance notes

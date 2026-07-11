@@ -4,7 +4,7 @@
 > verification command and confirm the expected result before moving to the
 > next step. If anything in the "STOP conditions" section occurs, stop and
 > report — do not improvise. When done, update the status row for this plan
-> in `plans/README.md` — unless a reviewer dispatched you and told you they
+> in `.plan/README.md` — unless a reviewer dispatched you and told you they
 > maintain the index.
 >
 > **This plan starts with a mandatory spike (Step 1).** The unknown is not
@@ -268,7 +268,7 @@ Machine-checkable. ALL must hold:
 - [ ] The frontend Docker image builds (musl native binary resolves) — or the
       Alpine/musl risk is explicitly reported if Docker was unavailable
 - [ ] `git status` shows no modified files outside the in-scope list
-- [ ] `plans/README.md` status row updated
+- [ ] `.plan/README.md` status row updated
 
 ## STOP conditions
 

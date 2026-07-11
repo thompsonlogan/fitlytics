@@ -4,7 +4,7 @@
 > verification command and confirm the expected result before moving to the
 > next step. If anything in the "STOP conditions" section occurs, stop and
 > report — do not improvise. When done, update the status row for this plan
-> in `plans/README.md` — unless a reviewer dispatched you and told you they
+> in `.plan/README.md` — unless a reviewer dispatched you and told you they
 > maintain the index.
 >
 > **Drift check (run first)**: `git diff --stat 84d129d..HEAD -- frontend/src/components/workout/use-cell-logging.ts frontend/src/hooks/use-session.ts`
@@ -287,7 +287,7 @@ Machine-checkable. ALL must hold:
 - [ ] `pnpm typecheck` exits 0; `pnpm lint` exits 0
 - [ ] `git status` shows no modified files outside the in-scope list
 - [ ] The 401 characterization test contains the plan-002 note comment
-- [ ] `plans/README.md` status row updated
+- [ ] `.plan/README.md` status row updated
 
 ## STOP conditions
 
