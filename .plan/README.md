@@ -24,7 +24,7 @@ Note: plan 011 was amended after the round-4 review to also cover the dead
 | [010](010-dst-today-position.md) | Fix the DST off-by-one in Today-page date resolution | P1 | S | — | TODO |
 | [011](011-remove-dead-buttons.md) | Remove non-functional buttons from the workout views | P1 | S | — | TODO |
 | [004](004-prune-prod-dependencies.md) | Move build-time packages out of prod dependencies | P2 | S | — | DONE |
-| [005](005-nginx-security-headers.md) | Security headers in the production nginx config | P2 | S | — | TODO |
+| [005](005-nginx-security-headers.md) | Security headers in the production nginx config | P2 | S | — | DONE |
 | [006](006-rate-limit-and-body-cap.md) | Rate-limit auth endpoints + cap API request bodies | P2 | M | 005 | TODO |
 | [007](007-request-id-correlation.md) | Correlate logs with a per-request ID | P2 | M | 006 | TODO |
 | [012](012-makefile-swagger-deps.md) | Makefile: swagger docs depend on all annotated packages | P2 | S | — | TODO |
