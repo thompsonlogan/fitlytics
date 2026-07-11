@@ -5,11 +5,7 @@ import { toast } from "sonner"
 import { buildBlockIndex, useCellLogging } from "./use-cell-logging"
 import { useLogSet, useLogSetBatch } from "@/hooks/use-session"
 import { ResponseError } from "@/services/generated"
-import type {
-  SessionExerciseResponse,
-  SessionResponse,
-  SetLogResponse,
-} from "@/services/generated"
+import type { SessionExerciseResponse, SessionResponse, SetLogResponse } from "@/services/generated"
 
 // The hook toasts on network-class failures; mock sonner so we can assert on it.
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
@@ -92,10 +88,7 @@ afterEach(() => {
 describe("buildBlockIndex", () => {
   it("groups logs sharing a groupId under one key, in input order", () => {
     const session = makeSession("s", [
-      makeExercise([
-        makeSetLog("a", { groupId: "g1" }),
-        makeSetLog("b", { groupId: "g1" }),
-      ]),
+      makeExercise([makeSetLog("a", { groupId: "g1" }), makeSetLog("b", { groupId: "g1" })]),
     ])
 
     const idx = buildBlockIndex(session)
@@ -199,9 +192,7 @@ describe("derived cellState / completed", () => {
   })
 
   it("treats a set with undefined state as pending", () => {
-    const session = makeSession("s", [
-      makeExercise([makeSetLog("a", { groupId: "g1" })]),
-    ])
+    const session = makeSession("s", [makeExercise([makeSetLog("a", { groupId: "g1" })])])
 
     const { result } = makeHook(session)
 
@@ -302,10 +293,7 @@ describe("cycleSet", () => {
 describe("blurLoad", () => {
   function twoSetBlock() {
     return makeSession("s", [
-      makeExercise([
-        makeSetLog("a", { groupId: "g1" }),
-        makeSetLog("b", { groupId: "g1" }),
-      ]),
+      makeExercise([makeSetLog("a", { groupId: "g1" }), makeSetLog("b", { groupId: "g1" })]),
     ])
   }
 
@@ -377,8 +365,7 @@ describe("blurLoad", () => {
     expect(result.current.cellErrors["0-0:load"]).toBeUndefined()
   })
 
-  it("currently maps a 401 to the load cell as 'Invalid value'", async () => {
-    // NOTE: plan 002 changes 401 handling — update this test when it lands.
+  it("treats a surfaced 401 as a network-class error (toast, no cell error)", async () => {
     const logSetBatch = vi.fn().mockRejectedValue(makeResponseError(401))
     const { result } = makeHook(twoSetBlock(), { logSetBatch })
 
@@ -386,7 +373,8 @@ describe("blurLoad", () => {
       await result.current.blurLoad("0-0", "225")
     })
 
-    expect(result.current.cellErrors["0-0:load"]).toBe("Invalid value")
+    expect(toast.error).toHaveBeenCalledTimes(1)
+    expect(result.current.cellErrors["0-0:load"]).toBeUndefined()
   })
 })
 

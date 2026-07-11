@@ -1,8 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 
+import { isResponseErrorWithStatus } from "@/services/api-error"
 import { useServices } from "@/services/context"
 import type { AuthApi, MeResponse } from "@/services/generated"
-import { ResponseError } from "@/services/generated/runtime"
 
 // ME_KEY is exported so route guards (beforeLoad in the router) can read the
 // cached value via queryClient.ensureQueryData without re-declaring the key.
@@ -16,7 +16,7 @@ export async function fetchMe(authApi: AuthApi): Promise<MeResponse | null> {
   try {
     return await authApi.apiMeGet()
   } catch (err) {
-    if (!(err instanceof ResponseError) || err.response.status !== 401) {
+    if (!isResponseErrorWithStatus(err, 401)) {
       throw err
     }
     try {
@@ -27,7 +27,7 @@ export async function fetchMe(authApi: AuthApi): Promise<MeResponse | null> {
     try {
       return await authApi.apiMeGet()
     } catch (retryErr) {
-      if (retryErr instanceof ResponseError && retryErr.response.status === 401) {
+      if (isResponseErrorWithStatus(retryErr, 401)) {
         return null
       }
       throw retryErr

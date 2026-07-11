@@ -17,7 +17,7 @@ Note: plan 011 was amended after the round-4 review to also cover the dead
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
 | [001](001-cell-logging-characterization-tests.md) | Characterization tests for the workout cell-logging hook | P1 | M | — | DONE |
-| [002](002-session-refresh-middleware.md) | Auto-refresh expired sessions on any API call (fix mid-workout 401s) | P1 | M | 001 | TODO |
+| [002](002-session-refresh-middleware.md) | Auto-refresh expired sessions on any API call (fix mid-workout 401s) | P1 | M | 001 | DONE |
 | [003](003-new-user-empty-state.md) | Empty state for users with no programs | P1 | S | — | TODO |
 | [010](010-dst-today-position.md) | Fix the DST off-by-one in Today-page date resolution | P1 | S | — | TODO |
 | [011](011-remove-dead-buttons.md) | Remove non-functional buttons from the workout views | P1 | S | — | TODO |
