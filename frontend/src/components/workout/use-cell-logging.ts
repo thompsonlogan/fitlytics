@@ -4,11 +4,8 @@ import { toast } from "sonner"
 import { CYCLE_NEXT, type SetState } from "@/components/workout/set-state"
 import { useLogSet, useLogSetBatch } from "@/hooks/use-session"
 import { LB_TO_KG } from "@/lib/program-mapper"
-import {
-  ResponseError,
-  type SessionResponse,
-  type SetLogResponse,
-} from "@/services/generated"
+import { isFieldValidationError, readApiErrorMessage } from "@/services/api-error"
+import { type SessionResponse, type SetLogResponse } from "@/services/generated"
 
 // SET_STATE_DEBOUNCE_MS — how long to wait after the last click before firing
 // the PATCH. Lets the user cycle pending → completed → skipped → pending in
@@ -26,25 +23,6 @@ function readState(log: SetLogResponse | undefined): SetState {
   const raw = log?.state
   if (raw === "completed" || raw === "skipped") return raw
   return "pending"
-}
-
-// Pull the API error message out of the typed fetch client's thrown
-// ResponseError. The server returns ErrorResponse {error: string} for 4xx;
-// anything else falls through to the generic toast copy.
-async function readApiErrorMessage(err: unknown): Promise<string | undefined> {
-  if (err instanceof ResponseError) {
-    try {
-      const body = (await err.response.clone().json()) as { error?: string }
-      return body.error
-    } catch {
-      return undefined
-    }
-  }
-  return undefined
-}
-
-function is4xx(err: unknown): err is ResponseError {
-  return err instanceof ResponseError && err.response.status >= 400 && err.response.status < 500
 }
 
 // buildBlockIndex groups each session exercise's per-set logs back under their
@@ -249,7 +227,7 @@ export function useCellLogging({
       clearEdit("load", key)
     } catch (err) {
       const apiMsg = await readApiErrorMessage(err)
-      if (is4xx(err)) {
+      if (isFieldValidationError(err)) {
         setErr(`${key}:load`, apiMsg ?? "Invalid value")
       } else {
         toast.error("Couldn't save load. Check your connection and try again.")
@@ -288,7 +266,7 @@ export function useCellLogging({
       clearEdit("rpe", key)
     } catch (err) {
       const apiMsg = await readApiErrorMessage(err)
-      if (is4xx(err)) {
+      if (isFieldValidationError(err)) {
         setErr(`${key}:rpe`, apiMsg ?? "Invalid value")
       } else {
         toast.error("Couldn't save RPE. Check your connection and try again.")

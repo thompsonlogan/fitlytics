@@ -2,6 +2,7 @@ import { AuthApi } from "./generated/apis/AuthApi"
 import { ProgramsApi } from "./generated/apis/ProgramsApi"
 import { SessionsApi } from "./generated/apis/SessionsApi"
 import { VideosApi } from "./generated/apis/VideosApi"
+import { createAuthRefreshMiddleware } from "./auth-refresh-middleware"
 import { Configuration, type ConfigurationParameters } from "./generated/runtime"
 
 // ServiceApis is the bundle of OpenAPI-generated clients exposed to the app
@@ -18,7 +19,13 @@ export interface ServiceApis {
 // shared Configuration so things like basePath, credentials, and middleware
 // stay consistent across endpoints. Called once from main.tsx.
 export function createServiceApis(configParams?: ConfigurationParameters): ServiceApis {
-  const config = new Configuration(configParams)
+  const config = new Configuration({
+    ...configParams,
+    middleware: [
+      createAuthRefreshMiddleware(configParams?.basePath ?? ""),
+      ...(configParams?.middleware ?? []),
+    ],
+  })
 
   return {
     authApi: new AuthApi(config),

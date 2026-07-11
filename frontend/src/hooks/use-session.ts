@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { dayCompletionsQueryKey } from "@/hooks/use-day-completions"
+import { isResponseErrorWithStatus } from "@/services/api-error"
 import { useServices } from "@/services/context"
 import {
-  ResponseError,
   type SessionResponse,
   type SetLogResponse,
   type UpdateSetLogRequest,
@@ -37,7 +37,7 @@ export function useCurrentSession(programId: string | undefined, programDayId: s
           dayId: programDayId!,
         })
       } catch (err) {
-        if (err instanceof ResponseError && err.response.status === 404) {
+        if (isResponseErrorWithStatus(err, 404)) {
           return null
         }
         throw err
