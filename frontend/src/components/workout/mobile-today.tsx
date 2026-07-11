@@ -1,15 +1,10 @@
-import { MobileAppBar } from "@/components/workout/mobile-app-bar"
 import { MobileDayBoard, MobileDayBoardSkeleton } from "@/components/workout/mobile-day-board"
 import { MobileSubBar } from "@/components/workout/mobile-sub-bar"
-import { MobileTabBar } from "@/components/workout/mobile-tab-bar"
 import { type Program, type ProgramDay } from "@/lib/program-data"
-import { type MeResponse } from "@/services/generated"
 
 type MobileTodayProps = {
   program: Program | undefined
   isLoading: boolean
-  user: MeResponse | null
-  onLogout: () => void
   programName: string
   weekCount: number
   days: ProgramDay[]
@@ -26,16 +21,9 @@ type MobileTodayProps = {
   onDayChange: (next: number) => void
 }
 
-// MobileToday is the phone-width shell for the Today page. It receives the same
-// program + selection state the desktop layout computes (from TodayPage) and
-// arranges it as: sticky app bar → sub-bar → scrolling body (plan cards +
-// summary/notes) → fixed bottom tab bar. Bottom padding clears the tab bar and
-// the home-indicator safe area.
 export function MobileToday({
   program,
   isLoading,
-  user,
-  onLogout,
   programName,
   weekCount,
   days,
@@ -52,8 +40,7 @@ export function MobileToday({
   onDayChange,
 }: MobileTodayProps) {
   return (
-    <div className="flex min-h-svh flex-col bg-background text-foreground">
-      <MobileAppBar user={user} onLogout={onLogout} />
+    <>
       <MobileSubBar
         programName={programName}
         weekCount={weekCount}
@@ -93,8 +80,6 @@ export function MobileToday({
           <span>Fitlytics v0.0.1</span>
         </div>
       </main>
-
-      <MobileTabBar />
-    </div>
+    </>
   )
 }
