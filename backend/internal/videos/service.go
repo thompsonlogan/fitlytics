@@ -127,7 +127,7 @@ func (s *service) CreateUpload(ctx context.Context, sessionID, setLogID, ownerID
 	// object is recoverable, but the row swap has already committed.
 	if oldKey != "" {
 		if derr := s.store.Delete(ctx, oldKey); derr != nil {
-			s.log.Warn("failed to delete replaced video object", slog.String("key", oldKey), slog.Any("error", derr))
+			s.log.WarnContext(ctx, "failed to delete replaced video object", slog.String("key", oldKey), slog.Any("error", derr))
 		}
 	}
 
@@ -156,20 +156,20 @@ func (s *service) Finalize(ctx context.Context, videoID, ownerID uuid.UUID) (*Vi
 	}
 	if head.SizeBytes > s.limits.MaxBytes {
 		if derr := s.store.Delete(ctx, row.StorageKey); derr != nil {
-			s.log.Warn("failed to delete oversize video object", slog.String("key", row.StorageKey), slog.Any("error", derr))
+			s.log.WarnContext(ctx, "failed to delete oversize video object", slog.String("key", row.StorageKey), slog.Any("error", derr))
 		}
 		_ = s.repo.MarkFailed(ctx, videoID)
 		return nil, fmt.Errorf("%w: uploaded file exceeds the size limit", apierr.ErrInvalidInput)
 	}
 
 	if row.SizeBytes != nil && *row.SizeBytes != head.SizeBytes {
-		s.log.Warn("video upload size mismatch; rejecting",
+		s.log.WarnContext(ctx, "video upload size mismatch; rejecting",
 			slog.String("key", row.StorageKey),
 			slog.Int64("reserved_bytes", *row.SizeBytes),
 			slog.Int64("stored_bytes", head.SizeBytes),
 		)
 		if derr := s.store.Delete(ctx, row.StorageKey); derr != nil {
-			s.log.Warn("failed to delete mismatched video object", slog.String("key", row.StorageKey), slog.Any("error", derr))
+			s.log.WarnContext(ctx, "failed to delete mismatched video object", slog.String("key", row.StorageKey), slog.Any("error", derr))
 		}
 		_ = s.repo.MarkFailed(ctx, videoID)
 		return nil, fmt.Errorf("%w: upload did not complete (size mismatch); please try again", apierr.ErrInvalidInput)
@@ -178,13 +178,13 @@ func (s *service) Finalize(ctx context.Context, videoID, ownerID uuid.UUID) (*Vi
 	// Reject if the object that actually landed isn't the content-type we
 	// reserved the slot for.
 	if row.ContentType != nil && head.ContentType != "" && head.ContentType != *row.ContentType {
-		s.log.Warn("video upload content-type mismatch; rejecting",
+		s.log.WarnContext(ctx, "video upload content-type mismatch; rejecting",
 			slog.String("key", row.StorageKey),
 			slog.String("reserved_type", *row.ContentType),
 			slog.String("stored_type", head.ContentType),
 		)
 		if derr := s.store.Delete(ctx, row.StorageKey); derr != nil {
-			s.log.Warn("failed to delete mismatched-type video object", slog.String("key", row.StorageKey), slog.Any("error", derr))
+			s.log.WarnContext(ctx, "failed to delete mismatched-type video object", slog.String("key", row.StorageKey), slog.Any("error", derr))
 		}
 		_ = s.repo.MarkFailed(ctx, videoID)
 		return nil, fmt.Errorf("%w: uploaded file type does not match the reserved type", apierr.ErrInvalidInput)
@@ -248,7 +248,7 @@ func (s *service) Delete(ctx context.Context, videoID, ownerID uuid.UUID) error 
 		return fmt.Errorf("delete video: %w", err)
 	}
 	if derr := s.store.Delete(ctx, key); derr != nil {
-		s.log.Warn("failed to delete video object", slog.String("key", key), slog.Any("error", derr))
+		s.log.WarnContext(ctx, "failed to delete video object", slog.String("key", key), slog.Any("error", derr))
 	}
 	return nil
 }
@@ -256,7 +256,7 @@ func (s *service) Delete(ctx context.Context, videoID, ownerID uuid.UUID) error 
 func (s *service) playbackURL(ctx context.Context, key string) *string {
 	url, err := s.store.PresignGet(ctx, key, playbackURLTTL)
 	if err != nil {
-		s.log.Warn("failed to presign playback url", slog.String("key", key), slog.Any("error", err))
+		s.log.WarnContext(ctx, "failed to presign playback url", slog.String("key", key), slog.Any("error", err))
 		return nil
 	}
 	return &url

@@ -43,7 +43,7 @@ func (h *Handler) GetProgramsByUserId(c *gin.Context) {
 
 	programs, err := h.service.GetProgramsByUserId(c.Request.Context(), principal.User.ID)
 	if err != nil {
-		h.log.Error("GetProgramsByUserId failed",
+		h.log.ErrorContext(c.Request.Context(), "GetProgramsByUserId failed",
 			slog.String("user_id", principal.User.ID.String()),
 			slog.Any("error", err),
 		)
@@ -84,7 +84,7 @@ func (h *Handler) GetProgramById(c *gin.Context) {
 			apierr.NotFound(c, "program not found")
 			return
 		}
-		h.log.Error("GetProgramById failed",
+		h.log.ErrorContext(c.Request.Context(), "GetProgramById failed",
 			slog.String("program_id", programID.String()),
 			slog.String("user_id", principal.User.ID.String()),
 			slog.Any("error", err),
