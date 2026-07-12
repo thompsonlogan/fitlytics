@@ -10,9 +10,11 @@ build: docs/docs.go
 	go build -o bin/api ./cmd/api
 
 # File rule for the swag-generated package. Re-runs whenever the entrypoint or
-# any handler / DTO source changes, which catches most doc-comment edits. Force
-# a regeneration regardless by running `make swagger`.
-docs/docs.go: cmd/api/main.go $(wildcard internal/programs/*.go) $(wildcard internal/handlers/*.go)
+# any internal package source changes — swag annotations live across the
+# feature slices (handlers, programs, sessions, videos) plus apierr/storage
+# response models, so depend on all of internal/ rather than a hand-kept list
+# that goes stale when the next feature slice is added.
+docs/docs.go: cmd/api/main.go $(wildcard internal/*/*.go) $(wildcard internal/*/*/*.go)
 	swag init --generalInfo cmd/api/main.go --output docs --parseInternal
 
 tidy:
