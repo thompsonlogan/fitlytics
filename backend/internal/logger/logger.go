@@ -2,13 +2,40 @@
 package logger
 
 import (
+	"context"
 	"log/slog"
 	"os"
 	"strings"
 )
 
-// New returns a slog.Logger: JSON output in production, human-readable text in
-// development. level is one of debug|info|warn|error.
+type ctxKey struct{}
+
+func WithRequestID(ctx context.Context, id string) context.Context {
+	return context.WithValue(ctx, ctxKey{}, id)
+}
+
+func RequestID(ctx context.Context) string {
+	id, _ := ctx.Value(ctxKey{}).(string)
+	return id
+}
+
+type ctxHandler struct{ slog.Handler }
+
+func (h ctxHandler) Handle(ctx context.Context, r slog.Record) error {
+	if id := RequestID(ctx); id != "" {
+		r.AddAttrs(slog.String("request_id", id))
+	}
+	return h.Handler.Handle(ctx, r)
+}
+
+func (h ctxHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	return ctxHandler{h.Handler.WithAttrs(attrs)}
+}
+
+func (h ctxHandler) WithGroup(name string) slog.Handler {
+	return ctxHandler{h.Handler.WithGroup(name)}
+}
+
 func New(level, env string) *slog.Logger {
 	opts := &slog.HandlerOptions{Level: parseLevel(level)}
 
@@ -19,7 +46,7 @@ func New(level, env string) *slog.Logger {
 		handler = slog.NewTextHandler(os.Stdout, opts)
 	}
 
-	log := slog.New(handler)
+	log := slog.New(ctxHandler{handler})
 	slog.SetDefault(log)
 	return log
 }

@@ -66,7 +66,7 @@ func (h *Handler) GetCurrentSession(c *gin.Context) {
 			apierr.NotFound(c, "no current session")
 			return
 		}
-		h.log.Error("find current session failed",
+		h.log.ErrorContext(c.Request.Context(), "find current session failed",
 			slog.String("program_id", programID.String()),
 			slog.String("program_day_id", programDayID.String()),
 			slog.String("user_id", principal.User.ID.String()),
@@ -115,7 +115,7 @@ func (h *Handler) StartSession(c *gin.Context) {
 			apierr.NotFound(c, "program day not found")
 			return
 		}
-		h.log.Error("ensure session failed",
+		h.log.ErrorContext(c.Request.Context(), "ensure session failed",
 			slog.String("program_id", programID.String()),
 			slog.String("program_day_id", programDayID.String()),
 			slog.String("user_id", principal.User.ID.String()),
@@ -175,7 +175,7 @@ func (h *Handler) UpdateSetLog(c *gin.Context) {
 			apierr.BadRequest(c, err.Error())
 			return
 		}
-		h.log.Error("update set log failed",
+		h.log.ErrorContext(c.Request.Context(), "update set log failed",
 			slog.String("session_id", sessionID.String()),
 			slog.String("set_log_id", setLogID.String()),
 			slog.String("user_id", principal.User.ID.String()),
@@ -230,7 +230,7 @@ func (h *Handler) UpdateSetLogs(c *gin.Context) {
 			apierr.BadRequest(c, err.Error())
 			return
 		}
-		h.log.Error("batch update set logs failed",
+		h.log.ErrorContext(c.Request.Context(), "batch update set logs failed",
 			slog.String("session_id", sessionID.String()),
 			slog.String("user_id", principal.User.ID.String()),
 			slog.Any("error", err),
@@ -280,7 +280,7 @@ func (h *Handler) UpdateSession(c *gin.Context) {
 			apierr.NotFound(c, "session not found")
 			return
 		}
-		h.log.Error("update session failed",
+		h.log.ErrorContext(c.Request.Context(), "update session failed",
 			slog.String("session_id", sessionID.String()),
 			slog.String("user_id", principal.User.ID.String()),
 			slog.Any("error", err),
@@ -317,7 +317,7 @@ func (h *Handler) GetCompletedDays(c *gin.Context) {
 
 	rows, err := h.service.GetCompletedDays(c.Request.Context(), programID, principal.User.ID)
 	if err != nil {
-		h.log.Error("list day completions failed",
+		h.log.ErrorContext(c.Request.Context(), "list day completions failed",
 			slog.String("program_id", programID.String()),
 			slog.String("user_id", principal.User.ID.String()),
 			slog.Any("error", err),

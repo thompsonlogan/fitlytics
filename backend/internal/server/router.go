@@ -40,7 +40,7 @@ func NewRouter(deps Dependencies, isProduction bool) *gin.Engine {
 	}
 
 	r := gin.New()
-	r.Use(middleware.RequestLogger(deps.Log), gin.Recovery())
+	r.Use(middleware.RequestID(), middleware.RequestLogger(deps.Log), gin.Recovery())
 
 	// Public routes.
 	r.GET("/healthz", handlers.Health(deps.DB))
