@@ -49,7 +49,7 @@ bypass the API (browser→R2 presigned PUT).
 | [027](027-error-tracking.md) | Sentry error tracking, backend + frontend, request-id correlated | P2 | M | 005, 007, 009 | TODO |
 | [029](029-upgrade-go-toolchain.md) | Upgrade the Go toolchain to 1.26.x | P2 | S | — | TODO |
 | [030](030-adopt-typescript-native-compiler.md) | Adopt the TypeScript 7.0 native (Go) compiler for the frontend | P2 | L | 018* | TODO |
-| [008](008-pgconn-unique-violation.md) | Detect unique violations via pgconn error codes | P3 | S | — | TODO |
+| [008](008-pgconn-unique-violation.md) | Detect unique violations via pgconn error codes | P3 | S | — | DONE |
 | [009](009-configurable-db-pool.md) | Configurable DB connection pool | P3 | S | — | TODO |
 | [016](016-dev-db-bind-localhost.md) | Bind the dev Postgres to localhost only | P3 | S | — | TODO |
 | [017](017-playback-url-refresh.md) | Refresh expired playback URLs before the codec warning | P3 | S | — | TODO |

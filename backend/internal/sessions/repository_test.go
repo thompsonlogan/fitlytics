@@ -4,11 +4,14 @@ import (
 	"context"
 	"database/sql/driver"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -431,6 +434,62 @@ func TestRepositoryStartSessionForDay_UnknownProgramRollsBack(t *testing.T) {
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
+// ─── isUniqueViolation ──────────────────────────────────────────────────────
+
+func TestIsUniqueViolation(t *testing.T) {
+	const constraint = "sessions_active_day_uq"
+
+	pgUnique := &pgconn.PgError{Code: pgerrcode.UniqueViolation, ConstraintName: constraint}
+
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{
+			name: "direct unique violation on the constraint",
+			err:  pgUnique,
+			want: true,
+		},
+		{
+			name: "wrapped twice (mirrors repository error wrapping)",
+			err:  fmt.Errorf("create session: %w", fmt.Errorf("insert: %w", pgUnique)),
+			want: true,
+		},
+		{
+			name: "unique violation on a different constraint",
+			err:  &pgconn.PgError{Code: pgerrcode.UniqueViolation, ConstraintName: "set_logs_id_user_uq"},
+			want: false,
+		},
+		{
+			name: "foreign-key violation on the same constraint name",
+			err:  &pgconn.PgError{Code: pgerrcode.ForeignKeyViolation, ConstraintName: constraint},
+			want: false,
+		},
+		{
+			// Regression lock: the old implementation matched on message text,
+			// so a plain error merely containing the constraint name returned
+			// true. The code-based matcher must reject it.
+			name: "plain error whose text contains the constraint name",
+			err:  errors.New(`duplicate key value violates unique constraint "sessions_active_day_uq"`),
+			want: false,
+		},
+		{
+			name: "nil error",
+			err:  nil,
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isUniqueViolation(tt.err, constraint); got != tt.want {
+				t.Fatalf("isUniqueViolation(%v) = %v, want %v", tt.err, got, tt.want)
+			}
+		})
 	}
 }
 

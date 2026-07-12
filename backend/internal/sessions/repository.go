@@ -7,10 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/gen/field"
 	"gorm.io/gorm"
 
@@ -74,11 +75,11 @@ func (r *repository) GetCurrentSessionByDay(ctx context.Context, programID, prog
 	return session, nil
 }
 
-// isUniqueViolation reports whether err (possibly wrapped) is a Postgres
-// unique-constraint violation on the named constraint. Matched by name so it
-// stays independent of the SQL driver's concrete error type.
 func isUniqueViolation(err error, constraint string) bool {
-	return err != nil && strings.Contains(err.Error(), constraint)
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) &&
+		pgErr.Code == pgerrcode.UniqueViolation &&
+		pgErr.ConstraintName == constraint
 }
 
 func (r *repository) StartSessionForDay(ctx context.Context, programID, programDayID, ownerUserID uuid.UUID) (*generated.Session, error) {
