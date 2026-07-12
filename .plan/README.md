@@ -28,7 +28,7 @@ bypass the API (browser→R2 presigned PUT).
 | [002](002-session-refresh-middleware.md) | Auto-refresh expired sessions on any API call (fix mid-workout 401s) | P1 | M | 001 | DONE |
 | [003](003-new-user-empty-state.md) | Empty state for users with no programs | P1 | S | — | DONE |
 | [010](010-dst-today-position.md) | Fix the DST off-by-one in Today-page date resolution | P1 | S | — | DONE |
-| [011](011-remove-dead-buttons.md) | Remove non-functional buttons from the workout views | P1 | S | — | TODO |
+| [011](011-remove-dead-buttons.md) | Remove non-functional buttons from the workout views | P1 | S | — | DONE |
 | [004](004-prune-prod-dependencies.md) | Move build-time packages out of prod dependencies | P2 | S | — | DONE |
 | [005](005-nginx-security-headers.md) | Security headers in the production nginx config | P2 | S | — | DONE |
 | [006](006-rate-limit-and-body-cap.md) | Rate-limit auth endpoints + cap API request bodies | P2 | M | 005 | DONE |
