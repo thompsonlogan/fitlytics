@@ -66,12 +66,12 @@ export function calendarDayOfMonth(startDate: string, week: number, dayIndex: nu
 
 export function computeTodayPosition(
   startDate: string,
-  weekCount: number
+  weekCount: number,
+  now: Date = new Date()
 ): { week: number; dayIndex: number } | null {
   const start = new Date(startDate + "T00:00:00")
-  const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const diffDays = Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+  const diffDays = Math.round((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
   if (diffDays < 0) return null
   const week = Math.floor(diffDays / 7) + 1
   if (week > weekCount) return null
@@ -171,9 +171,7 @@ export function topSet(day: ProgramDay): { load: number; exercise: string | null
 // avgTargetRpe returns the sets-weighted mean prescribed RPE for the day plus
 // the min/max of the prescribed values (for a "5–8 target" sub-line). Returns
 // null when no block prescribes an RPE, so callers can render an em dash.
-export function avgTargetRpe(
-  day: ProgramDay
-): { avg: number; min: number; max: number } | null {
+export function avgTargetRpe(day: ProgramDay): { avg: number; min: number; max: number } | null {
   let weighted = 0
   let sets = 0
   let min = Infinity

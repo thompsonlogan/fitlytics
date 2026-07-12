@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import {
   avgTargetRpe,
+  computeTodayPosition,
   estimateDuration,
   flattenRows,
   nextWorkoutDay,
@@ -180,7 +181,13 @@ describe("plannedVolume", () => {
       id: "d",
       name: "d",
       tag: "d",
-      exercises: [{ name: "Squat", rest: 2, blocks: [blockWith({ reps: "6–10", prescribedLoad: 200, sets: 2 })] }],
+      exercises: [
+        {
+          name: "Squat",
+          rest: 2,
+          blocks: [blockWith({ reps: "6–10", prescribedLoad: 200, sets: 2 })],
+        },
+      ],
     }
     // 200 × 6 × 2 = 2400
     expect(plannedVolume(day)).toBe(2400)
@@ -192,8 +199,16 @@ describe("plannedVolume", () => {
       name: "d",
       tag: "d",
       exercises: [
-        { name: "Squat", rest: 2, blocks: [blockWith({ reps: "3", prescribedLoad: 300, sets: 1 })] },
-        { name: "Curl", rest: 1, blocks: [blockWith({ reps: "10", prescribedLoad: null, sets: 3 })] },
+        {
+          name: "Squat",
+          rest: 2,
+          blocks: [blockWith({ reps: "3", prescribedLoad: 300, sets: 1 })],
+        },
+        {
+          name: "Curl",
+          rest: 1,
+          blocks: [blockWith({ reps: "10", prescribedLoad: null, sets: 3 })],
+        },
       ],
     }
     // Only the squat counts: 300 × 3 × 1 = 900
@@ -297,5 +312,40 @@ describe("nextWorkoutDay", () => {
 
   it("returns null at the end of the program", () => {
     expect(nextWorkoutDay(program, 2, 0)).toBeNull()
+  })
+})
+
+describe("computeTodayPosition", () => {
+  it("resolves a whole-day offset to the right (week, dayIndex)", () => {
+    const now = new Date(2026, 0, 15, 12, 0, 0)
+    expect(computeTodayPosition("2026-01-05", 12, now)).toEqual({ week: 2, dayIndex: 3 })
+  })
+
+  it("returns null before the program starts", () => {
+    const now = new Date(2026, 0, 4, 12, 0, 0)
+    expect(computeTodayPosition("2026-01-05", 12, now)).toBeNull()
+  })
+
+  it("returns null past the last week", () => {
+    const now = new Date(2026, 0, 15, 12, 0, 0)
+    expect(computeTodayPosition("2026-01-05", 1, now)).toBeNull()
+  })
+
+  const springHasDst =
+    new Date("2026-03-02T00:00:00").getTimezoneOffset() !==
+    new Date("2026-03-12T00:00:00").getTimezoneOffset()
+
+  it.skipIf(!springHasDst)("keeps the day index across a spring-forward transition", () => {
+    const now = new Date("2026-03-12T00:00:00")
+    expect(computeTodayPosition("2026-03-02", 12, now)).toEqual({ week: 2, dayIndex: 3 })
+  })
+
+  const fallHasDst =
+    new Date("2026-10-26T00:00:00").getTimezoneOffset() !==
+    new Date("2026-11-05T00:00:00").getTimezoneOffset()
+
+  it.skipIf(!fallHasDst)("keeps the day index across a fall-back transition", () => {
+    const now = new Date("2026-11-05T00:00:00")
+    expect(computeTodayPosition("2026-10-26", 12, now)).toEqual({ week: 2, dayIndex: 3 })
   })
 })
