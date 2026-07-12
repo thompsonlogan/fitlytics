@@ -124,6 +124,9 @@ Optional:
 | `MAX_VIDEO_BYTES` | Per-upload size cap in bytes (default `524288000` = 500 MB) |
 | `MAX_VIDEOS_PER_USER` | Max active videos per user (default `200`) |
 | `MAX_VIDEOS_PER_DAY` | Max videos a user can upload per rolling 24h (default `50`) |
+| `DB_MAX_OPEN_CONNS` | Max open DB connections (default `25`) |
+| `DB_MAX_IDLE_CONNS` | Max idle DB connections; must not exceed open (default `5`) |
+| `DB_CONN_MAX_LIFETIME_MINUTES` | Recycle a connection after this many minutes (default `60`) |
 
 > Set videos require all four `R2_*` vars; the API fails to start if any is missing. The bucket must be private with a CORS rule allowing PUT/GET from `APP_URL`.
 

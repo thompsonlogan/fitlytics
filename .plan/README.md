@@ -50,7 +50,7 @@ bypass the API (browser→R2 presigned PUT).
 | [029](029-upgrade-go-toolchain.md) | Upgrade the Go toolchain to 1.26.x | P2 | S | — | TODO |
 | [030](030-adopt-typescript-native-compiler.md) | Adopt the TypeScript 7.0 native (Go) compiler for the frontend | P2 | L | 018* | TODO |
 | [008](008-pgconn-unique-violation.md) | Detect unique violations via pgconn error codes | P3 | S | — | DONE |
-| [009](009-configurable-db-pool.md) | Configurable DB connection pool | P3 | S | — | TODO |
+| [009](009-configurable-db-pool.md) | Configurable DB connection pool | P3 | S | — | DONE |
 | [016](016-dev-db-bind-localhost.md) | Bind the dev Postgres to localhost only | P3 | S | — | TODO |
 | [017](017-playback-url-refresh.md) | Refresh expired playback URLs before the codec warning | P3 | S | — | TODO |
 | [020](020-one-hook-per-api.md) | One hook module per backend API (merge day-completions into use-session) | P3 | S | — | TODO |
