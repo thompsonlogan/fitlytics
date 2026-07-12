@@ -4,7 +4,6 @@ package database
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"gorm.io/driver/postgres"
@@ -12,8 +11,15 @@ import (
 	gormlogger "gorm.io/gorm/logger"
 )
 
+// Pool controls the sql.DB connection pool.
+type Pool struct {
+	MaxOpenConns    int
+	MaxIdleConns    int
+	ConnMaxLifetime time.Duration
+}
+
 // Connect opens a pooled connection to Postgres and verifies it with a ping.
-func Connect(ctx context.Context, dsn string, _ *slog.Logger) (*gorm.DB, error) {
+func Connect(ctx context.Context, dsn string, pool Pool) (*gorm.DB, error) {
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		// The schema is migration-owned; keep GORM from issuing DDL.
 		Logger: gormlogger.Default.LogMode(gormlogger.Warn),
@@ -26,9 +32,9 @@ func Connect(ctx context.Context, dsn string, _ *slog.Logger) (*gorm.DB, error) 
 	if err != nil {
 		return nil, fmt.Errorf("access sql.DB: %w", err)
 	}
-	sqlDB.SetMaxOpenConns(25)
-	sqlDB.SetMaxIdleConns(5)
-	sqlDB.SetConnMaxLifetime(time.Hour)
+	sqlDB.SetMaxOpenConns(pool.MaxOpenConns)
+	sqlDB.SetMaxIdleConns(pool.MaxIdleConns)
+	sqlDB.SetConnMaxLifetime(pool.ConnMaxLifetime)
 
 	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()

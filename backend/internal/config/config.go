@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -31,6 +32,10 @@ type Config struct {
 	MaxVideoBytes     int64
 	MaxVideosPerUser  int
 	MaxVideosPerDay   int
+
+	DBMaxOpenConns    int
+	DBMaxIdleConns    int
+	DBConnMaxLifetime time.Duration
 }
 
 func (c Config) IsProduction() bool { return c.Env == "production" }
@@ -48,6 +53,18 @@ func Load() (Config, error) {
 		invalid = append(invalid, err.Error())
 	}
 	maxVideosPerDay, err := envInt("MAX_VIDEOS_PER_DAY", 50)
+	if err != nil {
+		invalid = append(invalid, err.Error())
+	}
+	dbMaxOpen, err := envInt("DB_MAX_OPEN_CONNS", 25)
+	if err != nil {
+		invalid = append(invalid, err.Error())
+	}
+	dbMaxIdle, err := envInt("DB_MAX_IDLE_CONNS", 5)
+	if err != nil {
+		invalid = append(invalid, err.Error())
+	}
+	dbLifetimeMin, err := envInt("DB_CONN_MAX_LIFETIME_MINUTES", 60)
 	if err != nil {
 		invalid = append(invalid, err.Error())
 	}
@@ -72,6 +89,10 @@ func Load() (Config, error) {
 		MaxVideoBytes:     maxVideoBytes,
 		MaxVideosPerUser:  maxVideosPerUser,
 		MaxVideosPerDay:   maxVideosPerDay,
+
+		DBMaxOpenConns:    dbMaxOpen,
+		DBMaxIdleConns:    dbMaxIdle,
+		DBConnMaxLifetime: time.Duration(dbLifetimeMin) * time.Minute,
 	}
 
 	var missing []string
@@ -113,6 +134,18 @@ func Load() (Config, error) {
 	}
 	if c.MaxVideosPerDay <= 0 {
 		invalid = append(invalid, "MAX_VIDEOS_PER_DAY must be positive")
+	}
+	if c.DBMaxOpenConns <= 0 {
+		invalid = append(invalid, "DB_MAX_OPEN_CONNS must be positive")
+	}
+	if c.DBMaxIdleConns <= 0 {
+		invalid = append(invalid, "DB_MAX_IDLE_CONNS must be positive")
+	}
+	if c.DBMaxIdleConns > c.DBMaxOpenConns {
+		invalid = append(invalid, "DB_MAX_IDLE_CONNS must not exceed DB_MAX_OPEN_CONNS")
+	}
+	if c.DBConnMaxLifetime <= 0 {
+		invalid = append(invalid, "DB_CONN_MAX_LIFETIME_MINUTES must be positive")
 	}
 	if len(missing) > 0 || len(invalid) > 0 {
 		var problems []string

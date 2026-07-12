@@ -49,7 +49,11 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	db, err := database.Connect(ctx, cfg.DatabaseURL, log)
+	db, err := database.Connect(ctx, cfg.DatabaseURL, database.Pool{
+		MaxOpenConns:    cfg.DBMaxOpenConns,
+		MaxIdleConns:    cfg.DBMaxIdleConns,
+		ConnMaxLifetime: cfg.DBConnMaxLifetime,
+	})
 	if err != nil {
 		log.Error("database connection failed", "error", err)
 		os.Exit(1)

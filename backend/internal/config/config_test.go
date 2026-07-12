@@ -3,6 +3,7 @@ package config
 import (
 	"strings"
 	"testing"
+	"time"
 )
 
 func setRequiredEnv(t *testing.T) {
@@ -27,6 +28,9 @@ func setRequiredEnv(t *testing.T) {
 	t.Setenv("MAX_VIDEO_BYTES", "")
 	t.Setenv("MAX_VIDEOS_PER_USER", "")
 	t.Setenv("MAX_VIDEOS_PER_DAY", "")
+	t.Setenv("DB_MAX_OPEN_CONNS", "")
+	t.Setenv("DB_MAX_IDLE_CONNS", "")
+	t.Setenv("DB_CONN_MAX_LIFETIME_MINUTES", "")
 }
 
 func TestLoadUsesOptionalDefaults(t *testing.T) {
@@ -55,6 +59,15 @@ func TestLoadUsesOptionalDefaults(t *testing.T) {
 	if cfg.MaxVideosPerDay != 50 {
 		t.Errorf("MaxVideosPerDay = %d, want 50", cfg.MaxVideosPerDay)
 	}
+	if cfg.DBMaxOpenConns != 25 {
+		t.Errorf("DBMaxOpenConns = %d, want 25", cfg.DBMaxOpenConns)
+	}
+	if cfg.DBMaxIdleConns != 5 {
+		t.Errorf("DBMaxIdleConns = %d, want 5", cfg.DBMaxIdleConns)
+	}
+	if cfg.DBConnMaxLifetime != 60*time.Minute {
+		t.Errorf("DBConnMaxLifetime = %v, want 60m", cfg.DBConnMaxLifetime)
+	}
 	if cfg.JWKSURL != "https://api.workos.com/sso/jwks/client_123" {
 		t.Errorf("JWKSURL = %q", cfg.JWKSURL)
 	}
@@ -68,6 +81,9 @@ func TestLoadRejectsInvalidIntegerEnv(t *testing.T) {
 		"MAX_VIDEO_BYTES",
 		"MAX_VIDEOS_PER_USER",
 		"MAX_VIDEOS_PER_DAY",
+		"DB_MAX_OPEN_CONNS",
+		"DB_MAX_IDLE_CONNS",
+		"DB_CONN_MAX_LIFETIME_MINUTES",
 	}
 
 	for _, key := range tests {
@@ -86,6 +102,41 @@ func TestLoadRejectsInvalidIntegerEnv(t *testing.T) {
 				t.Fatalf("error exposes invalid value: %q", err.Error())
 			}
 		})
+	}
+}
+
+func TestLoadDBPoolOverrides(t *testing.T) {
+	setRequiredEnv(t)
+	t.Setenv("DB_MAX_OPEN_CONNS", "10")
+	t.Setenv("DB_MAX_IDLE_CONNS", "2")
+	t.Setenv("DB_CONN_MAX_LIFETIME_MINUTES", "5")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.DBMaxOpenConns != 10 {
+		t.Errorf("DBMaxOpenConns = %d, want 10", cfg.DBMaxOpenConns)
+	}
+	if cfg.DBMaxIdleConns != 2 {
+		t.Errorf("DBMaxIdleConns = %d, want 2", cfg.DBMaxIdleConns)
+	}
+	if cfg.DBConnMaxLifetime != 5*time.Minute {
+		t.Errorf("DBConnMaxLifetime = %v, want 5m", cfg.DBConnMaxLifetime)
+	}
+}
+
+func TestLoadRejectsIdleExceedingOpen(t *testing.T) {
+	setRequiredEnv(t)
+	t.Setenv("DB_MAX_OPEN_CONNS", "10")
+	t.Setenv("DB_MAX_IDLE_CONNS", "30")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected error when idle exceeds open")
+	}
+	if !strings.Contains(err.Error(), "must not exceed") {
+		t.Fatalf("error %q should mention 'must not exceed'", err.Error())
 	}
 }
 
