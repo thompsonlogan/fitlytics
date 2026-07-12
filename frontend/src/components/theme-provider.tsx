@@ -132,6 +132,11 @@ export function ThemeProvider({
     }
   }, [theme, applyTheme])
 
+  const themeRef = React.useRef(theme)
+  React.useEffect(() => {
+    themeRef.current = theme
+  }, [theme])
+
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.repeat) {
@@ -150,19 +155,17 @@ export function ThemeProvider({
         return
       }
 
-      setThemeState((currentTheme) => {
-        const nextTheme =
-          currentTheme === "dark"
-            ? "light"
-            : currentTheme === "light"
-              ? "dark"
-              : getSystemTheme() === "dark"
-                ? "light"
-                : "dark"
+      const currentTheme = themeRef.current
+      const nextTheme: Theme =
+        currentTheme === "dark"
+          ? "light"
+          : currentTheme === "light"
+            ? "dark"
+            : getSystemTheme() === "dark"
+              ? "light"
+              : "dark"
 
-        localStorage.setItem(storageKey, nextTheme)
-        return nextTheme
-      })
+      setTheme(nextTheme)
     }
 
     window.addEventListener("keydown", handleKeyDown)
@@ -170,7 +173,7 @@ export function ThemeProvider({
     return () => {
       window.removeEventListener("keydown", handleKeyDown)
     }
-  }, [storageKey])
+  }, [setTheme])
 
   React.useEffect(() => {
     const handleStorageChange = (event: StorageEvent) => {
