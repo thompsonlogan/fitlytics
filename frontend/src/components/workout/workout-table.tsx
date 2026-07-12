@@ -5,9 +5,8 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table"
-import { Footprints, HeartPulse, MoreHorizontal, Moon, Plus } from "lucide-react"
+import { Moon } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { SetStateCell } from "@/components/workout/set-state-cell"
@@ -275,14 +274,6 @@ export function WorkoutTable({
         <span className="text-xs text-muted-foreground">
           {exerciseCount} exercises · {totalSets(day)} working sets
         </span>
-        <div className="flex-1" />
-        <Button variant="ghost" size="xs">
-          <Plus className="size-3" />
-          Add exercise
-        </Button>
-        <Button variant="ghost" size="icon-xs" aria-label="More">
-          <MoreHorizontal className="size-3" />
-        </Button>
       </CardHeader>
       <Table
         containerClassName="min-h-0 flex-1 overflow-auto"
@@ -379,11 +370,6 @@ export function RestDayCard({ name }: { name: string }) {
     <Card size="sm" className="flex min-h-0 flex-col gap-0 py-0">
       <CardHeader className="flex flex-row items-center gap-2.5 border-b px-3.5 py-2.5">
         <CardTitle className="text-[0.8125rem]">{name}</CardTitle>
-        <div className="flex-1" />
-        <Button variant="ghost" size="xs">
-          <Plus className="size-3" />
-          Log activity
-        </Button>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center text-muted-foreground">
         <div className="mb-1 flex size-10 items-center justify-center rounded-full bg-muted">
@@ -391,19 +377,8 @@ export function RestDayCard({ name }: { name: string }) {
         </div>
         <h3 className="m-0 text-[0.9375rem] font-semibold text-foreground">Programmed rest</h3>
         <p className="m-0 max-w-72 text-[0.8125rem] leading-relaxed">
-          No session scheduled. Log a recovery walk, mobility, or skip to keep your streak.
-          Programmed strain returns next session.
+          No session scheduled today. Programmed strain returns next session.
         </p>
-        <div className="mt-2 flex gap-2">
-          <Button variant="outline" size="sm">
-            <Footprints className="size-3.5" />
-            Log walk
-          </Button>
-          <Button variant="outline" size="sm">
-            <HeartPulse className="size-3.5" />
-            Log mobility
-          </Button>
-        </div>
       </CardContent>
     </Card>
   )

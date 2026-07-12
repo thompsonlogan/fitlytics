@@ -1,6 +1,3 @@
-import { MoreHorizontal, Plus } from "lucide-react"
-
-import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { BlockVideoDialog } from "@/components/workout/block-video-dialog"
@@ -69,14 +66,6 @@ export function MobileDayBoard({
             <span className="text-xs text-muted-foreground">
               {exercises.length} exercises · {totalSets(day)} working sets
             </span>
-            <div className="flex-1" />
-            <Button variant="ghost" size="xs">
-              <Plus className="size-3" />
-              Add
-            </Button>
-            <Button variant="ghost" size="icon-xs" aria-label="More">
-              <MoreHorizontal className="size-3" />
-            </Button>
           </CardHeader>
           <div className="flex flex-col gap-2.5 p-3">
             {exercises.map((exercise, exIdx) => (
