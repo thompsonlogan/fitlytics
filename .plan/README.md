@@ -34,7 +34,7 @@ bypass the API (browser→R2 presigned PUT).
 | [006](006-rate-limit-and-body-cap.md) | Rate-limit auth endpoints + cap API request bodies | P2 | M | 005 | DONE |
 | [007](007-request-id-correlation.md) | Correlate logs with a per-request ID | P2 | M | 006 | DONE |
 | [012](012-makefile-swagger-deps.md) | Makefile: swagger docs depend on all annotated packages | P2 | S | — | DONE |
-| [013](013-consolidate-unit-conversion.md) | Consolidate kg↔lb conversion into one units module | P2 | S | 001* | TODO |
+| [013](013-consolidate-unit-conversion.md) | Consolidate kg↔lb conversion into one units module | P2 | S | 001* | DONE |
 | [014](014-auth-handler-tests.md) | Fakeable WorkOS seam + OAuth handler tests | P2 | M | — | TODO |
 | [015](015-video-limits-env-hardening.md) | Harden video-limit env parsing (no module-load crash) | P2 | S | — | TODO |
 | [019](019-numeric-reps-view-model.md) | Numeric reps in the program view model; format at render | P2 | S | 013 | TODO |

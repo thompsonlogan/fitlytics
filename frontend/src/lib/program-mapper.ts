@@ -7,17 +7,11 @@ import type {
 } from "@/services/generated"
 
 import type { Exercise, Program, ProgramDay, ProgramWeek, SetBlock } from "./program-data"
+import { kgToLbRounded, lbToKg } from "./units"
 
-// 1 kilogram = 2.20462 pounds. The backend stores prescribed loads in kg
-// (canonical SI inside the DB); the UI is currently imperial-only, so every
-// kg value gets converted here at the boundary. Rounding to the nearest
-// integer lb matches how the seed spreadsheet renders ("300lb" / "285lb").
-const KG_PER_LB = 2.20462
-export const KG_TO_LB = (kg: number) => Math.round(kg * KG_PER_LB)
-// Used by callers (e.g. the cell-edit mutation) that need to convert user-
-// entered lb input back to kg before sending to the API. Not rounded — the
-// backend column is numeric(7,2).
-export const LB_TO_KG = (lb: number) => lb / KG_PER_LB
+// Back-compat aliases; new code imports from "./units".
+export const KG_TO_LB = kgToLbRounded
+export const LB_TO_KG = lbToKg
 
 // 60s per minute — `rest_seconds` on the backend, minutes in the UI.
 const REST_DEFAULT_MIN = 2
@@ -43,7 +37,7 @@ function formatReps(min: number | null | undefined, max: number | null | undefin
 export function mapGroup(g: ProgramSetGroupResponse): SetBlock {
   const sets = g.sets ?? []
   const first = sets[0]
-  const capLb = first?.capLoadKg != null ? KG_TO_LB(first.capLoadKg) : ""
+  const capLb = first?.capLoadKg != null ? kgToLbRounded(first.capLoadKg) : ""
 
   return {
     id: g.id ?? "",
@@ -52,7 +46,8 @@ export function mapGroup(g: ProgramSetGroupResponse): SetBlock {
     intensity: first?.intensityText ?? "",
     cap: capLb,
     rpe: first?.prescribedRpe ?? null,
-    prescribedLoad: first?.prescribedLoadKg != null ? KG_TO_LB(first.prescribedLoadKg) : null,
+    prescribedLoad:
+      first?.prescribedLoadKg != null ? kgToLbRounded(first.prescribedLoadKg) : null,
   }
 }
 

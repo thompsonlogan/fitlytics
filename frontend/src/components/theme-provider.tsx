@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import * as React from "react"
+import { createContext, useReducer, useCallback, useMemo, use, useEffect, useRef } from "react"
 
 type Theme = "dark" | "light" | "system"
 type ResolvedTheme = "dark" | "light"
@@ -19,7 +19,22 @@ type ThemeProviderState = {
 const COLOR_SCHEME_QUERY = "(prefers-color-scheme: dark)"
 const THEME_VALUES: Theme[] = ["dark", "light", "system"]
 
-const ThemeProviderContext = React.createContext<ThemeProviderState | undefined>(undefined)
+const ThemeProviderContext = createContext<ThemeProviderState | undefined>(undefined)
+
+function readInitialTheme({
+  defaultTheme,
+  storageKey,
+}: {
+  defaultTheme: Theme
+  storageKey: string
+}): Theme {
+  const storedTheme = localStorage.getItem(storageKey)
+  if (isTheme(storedTheme)) {
+    return storedTheme
+  }
+
+  return defaultTheme
+}
 
 function isTheme(value: string | null): value is Theme {
   if (value === null) {
@@ -80,24 +95,27 @@ export function ThemeProvider({
   disableTransitionOnChange = true,
   ...props
 }: ThemeProviderProps) {
-  const [theme, setThemeState] = React.useState<Theme>(() => {
-    const storedTheme = localStorage.getItem(storageKey)
-    if (isTheme(storedTheme)) {
-      return storedTheme
+  const [theme, setThemeState] = useReducer(
+    (_current: Theme, nextTheme: Theme) => nextTheme,
+    { defaultTheme, storageKey },
+    readInitialTheme
+  )
+  const hasMountedRef = useRef(false)
+
+  const setTheme = useCallback((nextTheme: Theme) => {
+    setThemeState(nextTheme)
+  }, [])
+
+  useEffect(() => {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true
+      return
     }
 
-    return defaultTheme
-  })
+    localStorage.setItem(storageKey, theme)
+  }, [storageKey, theme])
 
-  const setTheme = React.useCallback(
-    (nextTheme: Theme) => {
-      localStorage.setItem(storageKey, nextTheme)
-      setThemeState(nextTheme)
-    },
-    [storageKey]
-  )
-
-  const applyTheme = React.useCallback(
+  const applyTheme = useCallback(
     (nextTheme: Theme) => {
       const root = document.documentElement
       const resolvedTheme = nextTheme === "system" ? getSystemTheme() : nextTheme
@@ -113,7 +131,7 @@ export function ThemeProvider({
     [disableTransitionOnChange]
   )
 
-  React.useEffect(() => {
+  useEffect(() => {
     applyTheme(theme)
 
     if (theme !== "system") {
@@ -132,12 +150,12 @@ export function ThemeProvider({
     }
   }, [theme, applyTheme])
 
-  const themeRef = React.useRef(theme)
-  React.useEffect(() => {
+  const themeRef = useRef(theme)
+  useEffect(() => {
     themeRef.current = theme
   }, [theme])
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.repeat) {
         return
@@ -175,7 +193,7 @@ export function ThemeProvider({
     }
   }, [setTheme])
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleStorageChange = (event: StorageEvent) => {
       if (event.storageArea !== localStorage) {
         return
@@ -200,7 +218,7 @@ export function ThemeProvider({
     }
   }, [defaultTheme, storageKey])
 
-  const value = React.useMemo(
+  const value = useMemo(
     () => ({
       theme,
       setTheme,
@@ -216,7 +234,7 @@ export function ThemeProvider({
 }
 
 export const useTheme = () => {
-  const context = React.use(ThemeProviderContext)
+  const context = use(ThemeProviderContext)
 
   if (context === undefined) {
     throw new Error("useTheme must be used within a ThemeProvider")

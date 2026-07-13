@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
+import { useReducer } from "react"
 
 type Feature = { label: string; muted?: boolean }
 
@@ -87,7 +88,7 @@ const PLANS: Plan[] = [
 ]
 
 export function PricingSection() {
-  const [annual, setAnnual] = React.useState(false)
+  const [annual, setAnnual] = useReducer((_current: boolean, checked: boolean) => checked, false)
 
   return (
     <section
@@ -102,15 +103,21 @@ export function PricingSection() {
         />
 
         <div className="mb-12 flex items-center justify-center gap-[0.875rem]">
-          <span className={cn("text-[0.9375rem] font-medium", annual ? "text-muted-foreground" : "text-foreground")}>
+          <span
+            className={cn(
+              "text-[0.9375rem] font-medium",
+              annual ? "text-muted-foreground" : "text-foreground"
+            )}
+          >
             Monthly
           </span>
-          <Switch
-            checked={annual}
-            onCheckedChange={(checked) => setAnnual(checked)}
-            aria-label="Toggle annual billing"
-          />
-          <span className={cn("text-[0.9375rem] font-medium", annual ? "text-foreground" : "text-muted-foreground")}>
+          <Switch checked={annual} onCheckedChange={setAnnual} aria-label="Toggle annual billing" />
+          <span
+            className={cn(
+              "text-[0.9375rem] font-medium",
+              annual ? "text-foreground" : "text-muted-foreground"
+            )}
+          >
             Annual
           </span>
           <Badge variant="secondary" className="rounded-full border-border">
@@ -138,12 +145,20 @@ export function PricingSection() {
                   </Badge>
                 )}
                 <div className="text-[1.0625rem] font-semibold tracking-[-0.01em]">{plan.name}</div>
-                <div className="mt-[0.375rem] min-h-[2.5rem] text-sm text-muted-foreground">{plan.desc}</div>
-                <div className="mt-5 flex items-baseline gap-1">
-                  <span className="text-[2.75rem] font-semibold tracking-[-0.03em] tabular-nums">{amount}</span>
-                  {plan.per && <span className="text-[0.9375rem] text-muted-foreground">{plan.per}</span>}
+                <div className="mt-[0.375rem] min-h-[2.5rem] text-sm text-muted-foreground">
+                  {plan.desc}
                 </div>
-                <div className="mt-[0.375rem] min-h-[1rem] text-xs text-muted-foreground">{note}</div>
+                <div className="mt-5 flex items-baseline gap-1">
+                  <span className="text-[2.75rem] font-semibold tracking-[-0.03em] tabular-nums">
+                    {amount}
+                  </span>
+                  {plan.per && (
+                    <span className="text-[0.9375rem] text-muted-foreground">{plan.per}</span>
+                  )}
+                </div>
+                <div className="mt-[0.375rem] min-h-[1rem] text-xs text-muted-foreground">
+                  {note}
+                </div>
                 <div className="mt-6">
                   <Link
                     to="/today"

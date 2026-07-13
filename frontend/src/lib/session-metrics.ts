@@ -1,9 +1,6 @@
 import type { SessionResponse } from "@/services/generated"
 
-// 1 kilogram = 2.20462 pounds. Session actuals are stored in kg on the backend;
-// the side panel compares them against planned volume (already lb), so we
-// convert here at the read boundary.
-const KG_TO_LB = 2.20462
+import { kgToLbExact } from "./units"
 
 // actualVolume totals the logged working volume of a session in lb:
 // Σ (actual load × actual reps) over every set log that has both recorded.
@@ -18,7 +15,7 @@ export function actualVolume(session: SessionResponse | null | undefined): numbe
       const kg = log.actualLoadKg
       const reps = log.repsActual
       if (kg != null && reps != null) {
-        total += kg * KG_TO_LB * reps
+        total += kgToLbExact(kg) * reps
       }
     }
   }

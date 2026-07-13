@@ -3,7 +3,7 @@ import { toast } from "sonner"
 
 import { CYCLE_NEXT, type SetState } from "@/components/workout/set-state"
 import { useLogSet, useLogSetBatch } from "@/hooks/use-session"
-import { LB_TO_KG } from "@/lib/program-mapper"
+import { kgToLbRounded, lbToKg } from "@/lib/units"
 import { isFieldValidationError, readApiErrorMessage } from "@/services/api-error"
 import { type SessionResponse, type SetLogResponse } from "@/services/generated"
 
@@ -74,15 +74,11 @@ function readBlockState(logs: SetLogResponse[] | undefined): SetState {
   return "pending"
 }
 
-// KG_PER_LB inverse for display; kept here so we don't pull the program-mapper
-// internal into the component file.
-const KG_TO_LB_ROUND = (kg: number) => Math.round(kg * 2.20462)
-
 // readActualLoadLb returns the display-ready Load Used value (lb integer) or
 // empty string when no actual has been logged yet.
 function readActualLoadLb(log: SetLogResponse | undefined): number | "" {
   if (!log || log.actualLoadKg == null) return ""
-  return KG_TO_LB_ROUND(log.actualLoadKg)
+  return kgToLbRounded(log.actualLoadKg)
 }
 
 function readActualRpe(log: SetLogResponse | undefined): number | null {
@@ -220,7 +216,7 @@ export function useCellLogging({
         return
       }
       // Fan the load out to every set in the block.
-      const actualLoadKg = Number(LB_TO_KG(lb).toFixed(2))
+      const actualLoadKg = Number(lbToKg(lb).toFixed(2))
       await logSetBatch.mutateAsync({
         updates: logs.map((log) => ({ setLogId: log.id!, body: { actualLoadKg } })),
       })
