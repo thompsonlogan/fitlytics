@@ -87,7 +87,7 @@ const PLANS: Plan[] = [
 ]
 
 export function PricingSection() {
-  const [annual, setAnnual] = React.useState(false)
+  const [annual, setAnnual] = React.useReducer((_current: boolean, checked: boolean) => checked, false)
 
   return (
     <section
@@ -107,7 +107,7 @@ export function PricingSection() {
           </span>
           <Switch
             checked={annual}
-            onCheckedChange={(checked) => setAnnual(checked)}
+            onCheckedChange={setAnnual}
             aria-label="Toggle annual billing"
           />
           <span className={cn("text-[0.9375rem] font-medium", annual ? "text-foreground" : "text-muted-foreground")}>
