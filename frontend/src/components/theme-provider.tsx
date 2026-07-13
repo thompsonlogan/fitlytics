@@ -21,6 +21,21 @@ const THEME_VALUES: Theme[] = ["dark", "light", "system"]
 
 const ThemeProviderContext = React.createContext<ThemeProviderState | undefined>(undefined)
 
+function readInitialTheme({
+  defaultTheme,
+  storageKey,
+}: {
+  defaultTheme: Theme
+  storageKey: string
+}): Theme {
+  const storedTheme = localStorage.getItem(storageKey)
+  if (isTheme(storedTheme)) {
+    return storedTheme
+  }
+
+  return defaultTheme
+}
+
 function isTheme(value: string | null): value is Theme {
   if (value === null) {
     return false
@@ -80,22 +95,28 @@ export function ThemeProvider({
   disableTransitionOnChange = true,
   ...props
 }: ThemeProviderProps) {
-  const [theme, setThemeState] = React.useState<Theme>(() => {
-    const storedTheme = localStorage.getItem(storageKey)
-    if (isTheme(storedTheme)) {
-      return storedTheme
-    }
-
-    return defaultTheme
-  })
+  const [theme, setThemeState] = React.useReducer(
+    (_current: Theme, nextTheme: Theme) => nextTheme,
+    { defaultTheme, storageKey },
+    readInitialTheme
+  )
+  const hasMountedRef = React.useRef(false)
 
   const setTheme = React.useCallback(
     (nextTheme: Theme) => {
-      localStorage.setItem(storageKey, nextTheme)
       setThemeState(nextTheme)
     },
-    [storageKey]
+    []
   )
+
+  React.useEffect(() => {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true
+      return
+    }
+
+    localStorage.setItem(storageKey, theme)
+  }, [storageKey, theme])
 
   const applyTheme = React.useCallback(
     (nextTheme: Theme) => {

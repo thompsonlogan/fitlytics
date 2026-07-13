@@ -1,4 +1,4 @@
-import { useRef, useState } from "react"
+import { useReducer, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { fmtBytes, type StagedFile } from "@/components/workout/video-format"
@@ -48,7 +48,7 @@ export function useVideoUpload({
   const [setIdx, setSetIdx] = useState(initialSet)
   const [dragOver, setDragOver] = useState(false)
   const [uploadingSet, setUploadingSet] = useState<number | null>(null)
-  const [progress, setProgress] = useState(0)
+  const [progress, setProgress] = useReducer((_current: number, nextProgress: number) => nextProgress, 0)
   const [localError, setLocalError] = useState<string | null>(null)
   const [noteDrafts, setNoteDrafts] = useState<Record<number, string>>({})
   // Files the user has picked but not yet uploaded, keyed by set index so a
