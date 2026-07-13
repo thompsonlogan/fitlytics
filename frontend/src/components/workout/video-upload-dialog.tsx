@@ -13,7 +13,7 @@ import { SetVideoPicker } from "@/components/workout/set-video-picker"
 import { type EnsureSetLog, useVideoUpload } from "@/components/workout/use-video-upload"
 import { VideoMediaRegion } from "@/components/workout/video-media-region"
 import { type Exercise, type SetBlock } from "@/lib/program-data"
-import { KG_TO_LB } from "@/lib/program-mapper"
+import { kgToLbRounded } from "@/lib/units"
 import { type SetLogResponse, type VideoResponse } from "@/services/generated"
 
 type VideoUploadDialogProps = {
@@ -87,7 +87,7 @@ export function VideoUploadDialog({
   })
 
   const loadUsedKg = blockLogs[0]?.actualLoadKg
-  const loadUsed = loadUsedKg == null ? "—" : String(KG_TO_LB(loadUsedKg))
+  const loadUsed = loadUsedKg == null ? "—" : String(kgToLbRounded(loadUsedKg))
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
