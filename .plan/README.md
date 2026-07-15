@@ -36,7 +36,7 @@ bypass the API (browser→R2 presigned PUT).
 | [012](012-makefile-swagger-deps.md) | Makefile: swagger docs depend on all annotated packages | P2 | S | — | DONE |
 | [013](013-consolidate-unit-conversion.md) | Consolidate kg↔lb conversion into one units module | P2 | S | 001* | DONE |
 | [014](014-auth-handler-tests.md) | Fakeable WorkOS seam + OAuth handler tests | P2 | M | — | TODO |
-| [015](015-video-limits-env-hardening.md) | Harden video-limit env parsing (no module-load crash) | P2 | S | — | TODO |
+| [015](015-video-limits-env-hardening.md) | Harden video-limit env parsing (no module-load crash) | P2 | S | — | REJECTED (operator prefers env-controlled video limits) |
 | [019](019-numeric-reps-view-model.md) | Numeric reps in the program view model; format at render | P2 | S | 013 | TODO |
 | [021](021-responsive-design-doctrine.md) | Responsive design doctrine (CLAUDE.md) + breakpoint module | P2 | S | — | TODO |
 | [022](022-shared-cell-editors.md) | Shared load/RPE cell editors (table + mobile card) | P2 | S | 011, 019, 021 | TODO |
@@ -51,8 +51,8 @@ bypass the API (browser→R2 presigned PUT).
 | [030](030-adopt-typescript-native-compiler.md) | Adopt the TypeScript 7.0 native (Go) compiler for the frontend | P2 | L | 018* | TODO |
 | [008](008-pgconn-unique-violation.md) | Detect unique violations via pgconn error codes | P3 | S | — | DONE |
 | [009](009-configurable-db-pool.md) | Configurable DB connection pool | P3 | S | — | DONE |
-| [016](016-dev-db-bind-localhost.md) | Bind the dev Postgres to localhost only | P3 | S | — | TODO |
-| [017](017-playback-url-refresh.md) | Refresh expired playback URLs before the codec warning | P3 | S | — | TODO |
+| [016](016-dev-db-bind-localhost.md) | Bind the dev Postgres to localhost only | P3 | S | — | REJECTED (operator skipped localhost-only dev DB binding) |
+| [017](017-playback-url-refresh.md) | Refresh expired playback URLs before the codec warning | P3 | S | — | DONE |
 | [020](020-one-hook-per-api.md) | One hook module per backend API (merge day-completions into use-session) | P3 | S | — | TODO |
 | [031](031-tanstack-query-config.md) | Rationalize the TanStack Query config (caching, refetch, retry, keys) | P3 | M | — | TODO |
 

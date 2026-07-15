@@ -23,6 +23,7 @@ type VideoMediaRegionProps = {
   currentVideo: VideoResponse | undefined
   erroredSrc: string | null
   setErroredSrc: (src: string | null) => void
+  onPlaybackError: (src: string) => void
   fileRef: React.RefObject<HTMLInputElement | null>
   exercise: Exercise
   setIdx: number
@@ -44,6 +45,7 @@ export function VideoMediaRegion({
   currentVideo,
   erroredSrc,
   setErroredSrc,
+  onPlaybackError,
   fileRef,
   exercise,
   setIdx,
@@ -117,7 +119,7 @@ export function VideoMediaRegion({
             playsInline
             preload="metadata"
             aria-label={`${exercise.name} — set ${setIdx + 1} video`}
-            onError={() => setErroredSrc(currentVideo.playbackUrl!)}
+            onError={() => onPlaybackError(currentVideo.playbackUrl!)}
             className="aspect-video max-h-72 w-full rounded-md border bg-black"
           >
             <track kind="captions" />
