@@ -2,7 +2,7 @@ import { Input } from "@/components/ui/input"
 import { SetStateCell } from "@/components/workout/set-state-cell"
 import { type SetState } from "@/components/workout/set-state"
 import { VideoCell } from "@/components/workout/video-cell"
-import { type Exercise } from "@/lib/program-data"
+import { formatReps, type Exercise } from "@/lib/program-data"
 import { cn } from "@/lib/utils"
 
 // MobileExerciseCard is the phone reflow of one exercise's workout-table rows.
@@ -101,7 +101,7 @@ export function MobileExerciseCard({
                   <span className="text-sm font-semibold tabular-nums">
                     {block.sets}
                     <span className="mx-0.5 font-normal text-muted-foreground">×</span>
-                    {block.reps}
+                    {formatReps(block.repsMin, block.repsMax)}
                   </span>
                   <span className="truncate text-[0.8125rem] tabular-nums">{block.intensity}</span>
                 </div>

@@ -20,7 +20,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { flattenRows, totalSets, type ProgramDay, type WorkoutRow } from "@/lib/program-data"
+import {
+  flattenRows,
+  formatReps,
+  totalSets,
+  type ProgramDay,
+  type WorkoutRow,
+} from "@/lib/program-data"
 import { cn } from "@/lib/utils"
 
 type WorkoutTableProps = {
@@ -113,7 +119,7 @@ const COLUMNS = [
     header: () => "Sets",
     cell: (info) => <span className="tabular-nums">{info.getValue()}</span>,
   }),
-  columnHelper.accessor((row) => row.block.reps, {
+  columnHelper.accessor((row) => formatReps(row.block.repsMin, row.block.repsMax), {
     id: "reps",
     header: () => "Reps",
     cell: (info) => <span className="tabular-nums">{info.getValue()}</span>,

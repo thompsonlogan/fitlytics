@@ -37,7 +37,7 @@ bypass the API (browser→R2 presigned PUT).
 | [013](013-consolidate-unit-conversion.md) | Consolidate kg↔lb conversion into one units module | P2 | S | 001* | DONE |
 | [014](014-auth-handler-tests.md) | Fakeable WorkOS seam + OAuth handler tests | P2 | M | — | TODO |
 | [015](015-video-limits-env-hardening.md) | Harden video-limit env parsing (no module-load crash) | P2 | S | — | TODO |
-| [019](019-numeric-reps-view-model.md) | Numeric reps in the program view model; format at render | P2 | S | 013 | TODO |
+| [019](019-numeric-reps-view-model.md) | Numeric reps in the program view model; format at render | P2 | S | 013 | DONE |
 | [021](021-responsive-design-doctrine.md) | Responsive design doctrine (CLAUDE.md) + breakpoint module | P2 | S | — | TODO |
 | [022](022-shared-cell-editors.md) | Shared load/RPE cell editors (table + mobile card) | P2 | S | 011, 019, 021 | TODO |
 | [023](023-merge-sub-bars.md) | Merge SubBar + MobileSubBar into one responsive component | P2 | M | 011, 021 | TODO |

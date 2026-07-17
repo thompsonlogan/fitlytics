@@ -5,6 +5,7 @@ import {
   computeTodayPosition,
   estimateDuration,
   flattenRows,
+  formatReps,
   nextWorkoutDay,
   plannedVolume,
   topSet,
@@ -15,11 +16,12 @@ import {
 } from "./program-data"
 
 // Small helper so tests read like the seed data — sets/reps/intensity only.
-function block(sets: number, reps = "3", intensity = "100lb") {
+function block(sets: number, repsMin = 3, repsMax = 3, intensity = "100lb") {
   return {
     id: "pst",
     sets,
-    reps,
+    repsMin,
+    repsMax,
     intensity,
     cap: 100 as const,
     rpe: 8,
@@ -95,6 +97,24 @@ describe("totalSets", () => {
 
 // ─── estimateDuration ─────────────────────────────────────────────────────
 
+describe("formatReps", () => {
+  it("formats a single rep target", () => {
+    expect(formatReps(3, 3)).toBe("3")
+  })
+
+  it("formats a rep range with an en dash", () => {
+    expect(formatReps(6, 10)).toBe("6–10")
+  })
+
+  it("formats an empty target", () => {
+    expect(formatReps(null, null)).toBe("")
+  })
+
+  it("formats a max-only target as a single value", () => {
+    expect(formatReps(null, 10)).toBe("10")
+  })
+})
+
 describe("estimateDuration", () => {
   it("returns 0 for rest days", () => {
     expect(estimateDuration(REST_DAY)).toBe(0)
@@ -159,7 +179,8 @@ function blockWith(overrides: Partial<SetBlock>): SetBlock {
   return {
     id: "pst",
     sets: 1,
-    reps: "5",
+    repsMin: 5,
+    repsMax: 5,
     intensity: "",
     cap: "",
     rpe: null,
@@ -185,12 +206,29 @@ describe("plannedVolume", () => {
         {
           name: "Squat",
           rest: 2,
-          blocks: [blockWith({ reps: "6–10", prescribedLoad: 200, sets: 2 })],
+          blocks: [blockWith({ repsMin: 6, repsMax: 10, prescribedLoad: 200, sets: 2 })],
         },
       ],
     }
     // 200 × 6 × 2 = 2400
     expect(plannedVolume(day)).toBe(2400)
+  })
+
+  it("uses max reps for volume when min reps are absent", () => {
+    const day: ProgramDay = {
+      id: "d",
+      name: "d",
+      tag: "d",
+      exercises: [
+        {
+          name: "Squat",
+          rest: 2,
+          blocks: [blockWith({ repsMin: null, repsMax: 10, prescribedLoad: 100, sets: 2 })],
+        },
+      ],
+    }
+    // 100 x 10 x 2 = 2000
+    expect(plannedVolume(day)).toBe(2000)
   })
 
   it("excludes blocks with no absolute prescribed load (text/RIR work)", () => {
@@ -202,12 +240,12 @@ describe("plannedVolume", () => {
         {
           name: "Squat",
           rest: 2,
-          blocks: [blockWith({ reps: "3", prescribedLoad: 300, sets: 1 })],
+          blocks: [blockWith({ repsMin: 3, repsMax: 3, prescribedLoad: 300, sets: 1 })],
         },
         {
           name: "Curl",
           rest: 1,
-          blocks: [blockWith({ reps: "10", prescribedLoad: null, sets: 3 })],
+          blocks: [blockWith({ repsMin: 10, repsMax: 10, prescribedLoad: null, sets: 3 })],
         },
       ],
     }
