@@ -46,7 +46,7 @@ func Me() gin.HandlerFunc {
 			Email:          p.User.Email,
 			UnitPreference: p.User.UnitPreference,
 			Timezone:       p.User.Timezone,
-			Role:           p.Claims.Role,
+			Role:           string(p.Claims.Role),
 			Permissions:    p.Claims.Permissions,
 		})
 	}

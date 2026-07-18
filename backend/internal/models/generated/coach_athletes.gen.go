@@ -15,18 +15,14 @@ const TableNameCoachAthlete = "coach_athletes"
 
 // CoachAthlete mapped from table <coach_athletes>
 type CoachAthlete struct {
-	ID              uuid.UUID      `gorm:"column:id;type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	CoachUserID     uuid.UUID      `gorm:"column:coach_user_id;type:uuid;not null" json:"coach_user_id"`
-	AthleteUserID   *uuid.UUID     `gorm:"column:athlete_user_id;type:uuid" json:"athlete_user_id"`
-	InvitedEmail    string         `gorm:"column:invited_email;type:text;not null" json:"invited_email"`
-	InviteTokenHash *string        `gorm:"column:invite_token_hash;type:text" json:"invite_token_hash"`
-	Status          string         `gorm:"column:status;type:coach_link_status;not null;default:pending" json:"status"`
-	InvitedAt       time.Time      `gorm:"column:invited_at;type:timestamp with time zone;not null;default:now()" json:"invited_at"`
-	RespondedAt     *time.Time     `gorm:"column:responded_at;type:timestamp with time zone" json:"responded_at"`
-	EndedAt         *time.Time     `gorm:"column:ended_at;type:timestamp with time zone" json:"ended_at"`
-	CreatedAt       time.Time      `gorm:"column:created_at;type:timestamp with time zone;not null;default:now()" json:"created_at"`
-	UpdatedAt       time.Time      `gorm:"column:updated_at;type:timestamp with time zone;not null;default:now()" json:"updated_at"`
-	DeletedAt       gorm.DeletedAt `gorm:"column:deleted_at;type:timestamp with time zone" json:"deleted_at"`
+	ID            uuid.UUID      `gorm:"column:id;type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	CoachUserID   uuid.UUID      `gorm:"column:coach_user_id;type:uuid;not null" json:"coach_user_id"`
+	AthleteUserID uuid.UUID      `gorm:"column:athlete_user_id;type:uuid;not null" json:"athlete_user_id"`
+	Status        string         `gorm:"column:status;type:coach_link_status;not null;default:active" json:"status"`
+	EndedAt       *time.Time     `gorm:"column:ended_at;type:timestamp with time zone" json:"ended_at"`
+	CreatedAt     time.Time      `gorm:"column:created_at;type:timestamp with time zone;not null;default:now()" json:"created_at"`
+	UpdatedAt     time.Time      `gorm:"column:updated_at;type:timestamp with time zone;not null;default:now()" json:"updated_at"`
+	DeletedAt     gorm.DeletedAt `gorm:"column:deleted_at;type:timestamp with time zone" json:"deleted_at"`
 }
 
 // TableName CoachAthlete's table name

@@ -30,11 +30,7 @@ func newCoachAthlete(db *gorm.DB, opts ...gen.DOOption) coachAthlete {
 	_coachAthlete.ID = field.NewField(tableName, "id")
 	_coachAthlete.CoachUserID = field.NewField(tableName, "coach_user_id")
 	_coachAthlete.AthleteUserID = field.NewField(tableName, "athlete_user_id")
-	_coachAthlete.InvitedEmail = field.NewString(tableName, "invited_email")
-	_coachAthlete.InviteTokenHash = field.NewString(tableName, "invite_token_hash")
 	_coachAthlete.Status = field.NewString(tableName, "status")
-	_coachAthlete.InvitedAt = field.NewTime(tableName, "invited_at")
-	_coachAthlete.RespondedAt = field.NewTime(tableName, "responded_at")
 	_coachAthlete.EndedAt = field.NewTime(tableName, "ended_at")
 	_coachAthlete.CreatedAt = field.NewTime(tableName, "created_at")
 	_coachAthlete.UpdatedAt = field.NewTime(tableName, "updated_at")
@@ -48,19 +44,15 @@ func newCoachAthlete(db *gorm.DB, opts ...gen.DOOption) coachAthlete {
 type coachAthlete struct {
 	coachAthleteDo coachAthleteDo
 
-	ALL             field.Asterisk
-	ID              field.Field
-	CoachUserID     field.Field
-	AthleteUserID   field.Field
-	InvitedEmail    field.String
-	InviteTokenHash field.String
-	Status          field.String
-	InvitedAt       field.Time
-	RespondedAt     field.Time
-	EndedAt         field.Time
-	CreatedAt       field.Time
-	UpdatedAt       field.Time
-	DeletedAt       field.Field
+	ALL           field.Asterisk
+	ID            field.Field
+	CoachUserID   field.Field
+	AthleteUserID field.Field
+	Status        field.String
+	EndedAt       field.Time
+	CreatedAt     field.Time
+	UpdatedAt     field.Time
+	DeletedAt     field.Field
 
 	fieldMap map[string]field.Expr
 }
@@ -80,11 +72,7 @@ func (c *coachAthlete) updateTableName(table string) *coachAthlete {
 	c.ID = field.NewField(table, "id")
 	c.CoachUserID = field.NewField(table, "coach_user_id")
 	c.AthleteUserID = field.NewField(table, "athlete_user_id")
-	c.InvitedEmail = field.NewString(table, "invited_email")
-	c.InviteTokenHash = field.NewString(table, "invite_token_hash")
 	c.Status = field.NewString(table, "status")
-	c.InvitedAt = field.NewTime(table, "invited_at")
-	c.RespondedAt = field.NewTime(table, "responded_at")
 	c.EndedAt = field.NewTime(table, "ended_at")
 	c.CreatedAt = field.NewTime(table, "created_at")
 	c.UpdatedAt = field.NewTime(table, "updated_at")
@@ -117,15 +105,11 @@ func (c *coachAthlete) GetFieldByName(fieldName string) (field.OrderExpr, bool) 
 }
 
 func (c *coachAthlete) fillFieldMap() {
-	c.fieldMap = make(map[string]field.Expr, 12)
+	c.fieldMap = make(map[string]field.Expr, 8)
 	c.fieldMap["id"] = c.ID
 	c.fieldMap["coach_user_id"] = c.CoachUserID
 	c.fieldMap["athlete_user_id"] = c.AthleteUserID
-	c.fieldMap["invited_email"] = c.InvitedEmail
-	c.fieldMap["invite_token_hash"] = c.InviteTokenHash
 	c.fieldMap["status"] = c.Status
-	c.fieldMap["invited_at"] = c.InvitedAt
-	c.fieldMap["responded_at"] = c.RespondedAt
 	c.fieldMap["ended_at"] = c.EndedAt
 	c.fieldMap["created_at"] = c.CreatedAt
 	c.fieldMap["updated_at"] = c.UpdatedAt
