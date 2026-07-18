@@ -46,7 +46,6 @@ func TestServiceRequireActiveCoach_RepoErrorIsWrappedNotConvertedToDenial(t *tes
 	}
 }
 
-
 func TestServiceRequireActiveCoach_ErrorWinsOverTrue(t *testing.T) {
 	boom := errors.New("connection reset mid-scan")
 	repo := &fakeRepository{

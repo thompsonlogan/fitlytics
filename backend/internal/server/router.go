@@ -11,6 +11,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/thompsonlogan/fitlytics/backend/internal/auth"
+	"github.com/thompsonlogan/fitlytics/backend/internal/coaching"
 	"github.com/thompsonlogan/fitlytics/backend/internal/handlers"
 	"github.com/thompsonlogan/fitlytics/backend/internal/middleware"
 	"github.com/thompsonlogan/fitlytics/backend/internal/programs"
@@ -74,6 +75,9 @@ func NewRouter(deps Dependencies, isProduction bool) *gin.Engine {
 	videosService := videos.NewService(videos.NewRepository(deps.DB), deps.VideoStore, deps.VideoLimits, deps.Log)
 	videosHandler := videos.NewHandler(videosService, deps.VideoLimits, deps.Log)
 
+	coachingService := coaching.NewService(coaching.NewRepository(deps.DB))
+	coachingHandler := coaching.NewHandler(coachingService, deps.Log)
+
 	// Authenticated routes — every handler below can call auth.MustPrincipal.
 	api := r.Group("/api")
 	if deps.AuthBypassUserID != uuid.Nil {
@@ -88,6 +92,12 @@ func NewRouter(deps Dependencies, isProduction bool) *gin.Engine {
 		programsHandler.Register(api)
 		sessionsHandler.Register(api)
 		videosHandler.Register(api)
+	}
+
+	coach := api.Group("/coach")
+	coach.Use(middleware.RequireRole(auth.RoleCoach, deps.Log))
+	{
+		coachingHandler.Register(coach)
 	}
 
 	return r
