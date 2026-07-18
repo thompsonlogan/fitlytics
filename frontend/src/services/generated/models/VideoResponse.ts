@@ -62,6 +62,19 @@ export interface VideoResponse {
      */
     playbackUrl?: string;
     /**
+     * Set once a coach has watched the video. The coach view styles reviewed
+     * and unreviewed chips differently, and the roster counts the unreviewed.
+     * @type {string}
+     * @memberof VideoResponse
+     */
+    reviewedAt?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof VideoResponse
+     */
+    reviewedByUserId?: string;
+    /**
      * 
      * @type {string}
      * @memberof VideoResponse
@@ -105,6 +118,8 @@ export function VideoResponseFromJSONTyped(json: any, ignoreDiscriminator: boole
         'note': json['note'] == null ? undefined : json['note'],
         'originalName': json['original_name'] == null ? undefined : json['original_name'],
         'playbackUrl': json['playback_url'] == null ? undefined : json['playback_url'],
+        'reviewedAt': json['reviewed_at'] == null ? undefined : json['reviewed_at'],
+        'reviewedByUserId': json['reviewed_by_user_id'] == null ? undefined : json['reviewed_by_user_id'],
         'setLogId': json['set_log_id'] == null ? undefined : json['set_log_id'],
         'sizeBytes': json['size_bytes'] == null ? undefined : json['size_bytes'],
         'status': json['status'] == null ? undefined : json['status'],
@@ -129,6 +144,8 @@ export function VideoResponseToJSONTyped(value?: VideoResponse | null, ignoreDis
         'note': value['note'],
         'original_name': value['originalName'],
         'playback_url': value['playbackUrl'],
+        'reviewed_at': value['reviewedAt'],
+        'reviewed_by_user_id': value['reviewedByUserId'],
         'set_log_id': value['setLogId'],
         'size_bytes': value['sizeBytes'],
         'status': value['status'],

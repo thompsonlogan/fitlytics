@@ -16,5 +16,7 @@ func mapVideo(v generated.SetVideo, playbackURL *string) VideoResponse {
 		Note:         v.Note,
 		PlaybackURL:  playbackURL,
 		CreatedAt:    v.CreatedAt,
+		ReviewedAt:       v.ReviewedAt,
+		ReviewedByUserID: v.ReviewedByUserID,
 	}
 }

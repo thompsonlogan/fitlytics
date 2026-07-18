@@ -57,6 +57,10 @@ export interface ApiVideosVideoIdPatchRequest {
     body: UpdateVideoRequest;
 }
 
+export interface ApiVideosVideoIdReviewedPostRequest {
+    videoId: string;
+}
+
 /**
  * 
  */
@@ -119,7 +123,7 @@ export class VideosApi extends runtime.BaseAPI {
     }
 
     /**
-     * Returns all non-deleted videos whose set log belongs to the given session (owned by the caller). Ready videos include a short-lived presigned playback URL. An unknown or unowned session yields an empty list.
+     * Returns all non-deleted videos whose set log belongs to the given session. Readable by the session\'s owner, or by a coach with an active link to them. Ready videos include a short-lived presigned playback URL.
      * List a session\'s set videos
      */
     async apiSessionsSessionIdVideosGetRaw(requestParameters: ApiSessionsSessionIdVideosGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<VideoResponse>>> {
@@ -149,7 +153,7 @@ export class VideosApi extends runtime.BaseAPI {
     }
 
     /**
-     * Returns all non-deleted videos whose set log belongs to the given session (owned by the caller). Ready videos include a short-lived presigned playback URL. An unknown or unowned session yields an empty list.
+     * Returns all non-deleted videos whose set log belongs to the given session. Readable by the session\'s owner, or by a coach with an active link to them. Ready videos include a short-lived presigned playback URL.
      * List a session\'s set videos
      */
     async apiSessionsSessionIdVideosGet(requestParameters: ApiSessionsSessionIdVideosGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<VideoResponse>> {
@@ -278,6 +282,45 @@ export class VideosApi extends runtime.BaseAPI {
      */
     async apiVideosVideoIdPatch(requestParameters: ApiVideosVideoIdPatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<VideoResponse> {
         const response = await this.apiVideosVideoIdPatchRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Stamps the video as reviewed by the calling coach, which is what clears it from the roster\'s \"videos waiting\" count. Only a coach with an active link to the video\'s owner may call this; the athlete marking their own footage reviewed would mean nothing. Already-reviewed and still-uploading videos answer 404, so the first reviewer\'s attribution cannot be overwritten.
+     * Mark a set video reviewed
+     */
+    async apiVideosVideoIdReviewedPostRaw(requestParameters: ApiVideosVideoIdReviewedPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<VideoResponse>> {
+        if (requestParameters['videoId'] == null) {
+            throw new runtime.RequiredError(
+                'videoId',
+                'Required parameter "videoId" was null or undefined when calling apiVideosVideoIdReviewedPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["Authorization"] = await this.configuration.apiKey("Authorization"); // BearerAuth authentication
+        }
+
+        const response = await this.request({
+            path: `/api/videos/{videoId}/reviewed`.replace(`{${"videoId"}}`, encodeURIComponent(String(requestParameters['videoId']))),
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => VideoResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Stamps the video as reviewed by the calling coach, which is what clears it from the roster\'s \"videos waiting\" count. Only a coach with an active link to the video\'s owner may call this; the athlete marking their own footage reviewed would mean nothing. Already-reviewed and still-uploading videos answer 404, so the first reviewer\'s attribution cannot be overwritten.
+     * Mark a set video reviewed
+     */
+    async apiVideosVideoIdReviewedPost(requestParameters: ApiVideosVideoIdReviewedPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<VideoResponse> {
+        const response = await this.apiVideosVideoIdReviewedPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

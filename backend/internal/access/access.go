@@ -42,3 +42,14 @@ func (c *Checker) RequireWrite(callerID, ownerID uuid.UUID) error {
 	}
 	return nil
 }
+
+func (c *Checker) RequireCoach(ctx context.Context, callerID, ownerID uuid.UUID) error {
+	ok, err := c.coaches.IsActiveCoach(ctx, callerID, ownerID)
+	if err != nil {
+		return fmt.Errorf("check coaching link: %w", err)
+	}
+	if !ok {
+		return apierr.ErrNotFound
+	}
+	return nil
+}

@@ -27,6 +27,8 @@ type VideoResponse struct {
 	Note         *string   `json:"note,omitempty"`
 	PlaybackURL  *string   `json:"playback_url,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
+	ReviewedAt       *time.Time `json:"reviewed_at,omitempty"`
+	ReviewedByUserID *uuid.UUID `json:"reviewed_by_user_id,omitempty"`
 } // @name VideoResponse
 
 type CreateVideoUploadResponse struct {

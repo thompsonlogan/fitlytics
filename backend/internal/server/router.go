@@ -69,7 +69,9 @@ func NewRouter(deps Dependencies, isProduction bool) *gin.Engine {
 	programsService := programs.NewService(programsRepo)
 
 	coachingRepo := coaching.NewRepository(deps.DB)
-	programRead := middleware.RequireProgramRead(programsRepo, access.NewChecker(coachingRepo), deps.Log)
+	accessChecker := access.NewChecker(coachingRepo)
+
+	programRead := middleware.RequireProgramRead(programsRepo, accessChecker, deps.Log)
 
 	programsHandler := programs.NewHandler(programsService, programRead, deps.Log)
 
@@ -77,8 +79,13 @@ func NewRouter(deps Dependencies, isProduction bool) *gin.Engine {
 	sessionsService := sessions.NewService(sessionsRepo)
 	sessionsHandler := sessions.NewHandler(sessionsService, programRead, deps.Log)
 
-	videosService := videos.NewService(videos.NewRepository(deps.DB), deps.VideoStore, deps.VideoLimits, deps.Log)
-	videosHandler := videos.NewHandler(videosService, deps.VideoLimits, deps.Log)
+	videosRepo := videos.NewRepository(deps.DB)
+	videosService := videos.NewService(videosRepo, deps.VideoStore, deps.VideoLimits, deps.Log)
+
+	sessionRead := middleware.RequireSessionRead(videosRepo, accessChecker, deps.Log)
+	videoReviewer := middleware.RequireVideoReviewer(videosRepo, accessChecker, deps.Log)
+
+	videosHandler := videos.NewHandler(videosService, deps.VideoLimits, sessionRead, videoReviewer, deps.Log)
 
 	coachingHandler := coaching.NewHandler(coaching.NewService(coachingRepo), deps.Log)
 

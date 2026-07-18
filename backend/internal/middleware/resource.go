@@ -17,41 +17,103 @@ import (
 
 const resourceOwnerKey = "access.resource_owner"
 
+type OwnerResolver interface {
+	Owner(ctx context.Context, resourceID uuid.UUID) (uuid.UUID, error)
+}
+
+type OwnerResolverFunc func(ctx context.Context, resourceID uuid.UUID) (uuid.UUID, error)
+
+func (f OwnerResolverFunc) Owner(ctx context.Context, resourceID uuid.UUID) (uuid.UUID, error) {
+	return f(ctx, resourceID)
+}
+
 type ProgramOwnerResolver interface {
 	GetProgramOwner(ctx context.Context, programID uuid.UUID) (uuid.UUID, error)
 }
 
 func RequireProgramRead(resolver ProgramOwnerResolver, checker *access.Checker, log *slog.Logger) gin.HandlerFunc {
+	return resourceGuard(guardConfig{
+		param:    "id",
+		notFound: "program not found",
+		resolve:  OwnerResolverFunc(resolver.GetProgramOwner),
+		authorize: func(ctx context.Context, callerID, ownerID uuid.UUID) error {
+			return checker.RequireRead(ctx, callerID, ownerID)
+		},
+		log: log,
+	})
+}
+
+type SessionOwnerResolver interface {
+	GetSessionOwner(ctx context.Context, sessionID uuid.UUID) (uuid.UUID, error)
+}
+
+func RequireSessionRead(resolver SessionOwnerResolver, checker *access.Checker, log *slog.Logger) gin.HandlerFunc {
+	return resourceGuard(guardConfig{
+		param:    "sessionId",
+		notFound: "session not found",
+		resolve:  OwnerResolverFunc(resolver.GetSessionOwner),
+		authorize: func(ctx context.Context, callerID, ownerID uuid.UUID) error {
+			return checker.RequireRead(ctx, callerID, ownerID)
+		},
+		log: log,
+	})
+}
+
+type VideoOwnerResolver interface {
+	GetVideoOwner(ctx context.Context, videoID uuid.UUID) (uuid.UUID, error)
+}
+
+func RequireVideoReviewer(resolver VideoOwnerResolver, checker *access.Checker, log *slog.Logger) gin.HandlerFunc {
+	return resourceGuard(guardConfig{
+		param:     "videoId",
+		notFound:  "video not found",
+		resolve:   OwnerResolverFunc(resolver.GetVideoOwner),
+		authorize: checker.RequireCoach,
+		log:       log,
+	})
+}
+
+type guardConfig struct {
+	param     string
+	notFound  string
+	resolve   OwnerResolver
+	authorize func(ctx context.Context, callerID, ownerID uuid.UUID) error
+	log       *slog.Logger
+}
+
+func resourceGuard(cfg guardConfig) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		programID, err := uuid.Parse(c.Param("id"))
+		resourceID, err := uuid.Parse(c.Param(cfg.param))
 		if err != nil {
-			apierr.Abort(c, http.StatusBadRequest, "invalid program id")
+			apierr.Abort(c, http.StatusBadRequest, "invalid "+cfg.param)
 			return
 		}
 
 		principal := auth.MustPrincipal(c)
 
-		owner, err := resolver.GetProgramOwner(c.Request.Context(), programID)
+		owner, err := cfg.resolve.Owner(c.Request.Context(), resourceID)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				apierr.Abort(c, http.StatusNotFound, "program not found")
+				apierr.Abort(c, http.StatusNotFound, cfg.notFound)
 				return
 			}
-			log.ErrorContext(c.Request.Context(), "resolve program owner failed",
-				slog.String("program_id", programID.String()),
+			cfg.log.ErrorContext(c.Request.Context(), "resolve resource owner failed",
+				slog.String("param", cfg.param),
+				slog.String("resource_id", resourceID.String()),
 				slog.String("user_id", principal.User.ID.String()),
 				slog.Any("error", err))
 			apierr.Abort(c, http.StatusInternalServerError, "internal server error")
 			return
 		}
 
-		if err := checker.RequireRead(c.Request.Context(), principal.User.ID, owner); err != nil {
+		if err := cfg.authorize(c.Request.Context(), principal.User.ID, owner); err != nil {
 			if errors.Is(err, apierr.ErrNotFound) {
-				apierr.Abort(c, http.StatusNotFound, "program not found")
+				apierr.Abort(c, http.StatusNotFound, cfg.notFound)
 				return
 			}
-			log.ErrorContext(c.Request.Context(), "program access check failed",
-				slog.String("program_id", programID.String()),
+			cfg.log.ErrorContext(c.Request.Context(), "resource access check failed",
+				slog.String("param", cfg.param),
+				slog.String("resource_id", resourceID.String()),
 				slog.String("user_id", principal.User.ID.String()),
 				slog.Any("error", err))
 			apierr.Abort(c, http.StatusInternalServerError, "internal server error")
