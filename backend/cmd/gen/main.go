@@ -73,13 +73,14 @@ func run() error {
 		"muscle[]": func(gorm.ColumnType) string { return "pq.StringArray" },
 
 		// Custom enums collapse to string; the DB enforces the valid value set.
-		"movement_pattern": func(gorm.ColumnType) string { return "string" },
-		"muscle":           func(gorm.ColumnType) string { return "string" },
-		"load_modifier":    func(gorm.ColumnType) string { return "string" },
-		"load_type":        func(gorm.ColumnType) string { return "string" },
-		"set_type":         func(gorm.ColumnType) string { return "string" },
-		"session_state":    func(gorm.ColumnType) string { return "string" },
-		"unit_system":      func(gorm.ColumnType) string { return "string" },
+		"movement_pattern":  func(gorm.ColumnType) string { return "string" },
+		"muscle":            func(gorm.ColumnType) string { return "string" },
+		"load_modifier":     func(gorm.ColumnType) string { return "string" },
+		"load_type":         func(gorm.ColumnType) string { return "string" },
+		"set_type":          func(gorm.ColumnType) string { return "string" },
+		"session_state":     func(gorm.ColumnType) string { return "string" },
+		"unit_system":       func(gorm.ColumnType) string { return "string" },
+		"coach_link_status": func(gorm.ColumnType) string { return "string" },
 	})
 
 	// Imports needed by the data type map. gen merges these into every file
@@ -104,6 +105,11 @@ func run() error {
 	user := g.GenerateModel("users", softDelete)
 	equipment := g.GenerateModel("equipment")
 	exerciseEquipment := g.GenerateModel("exercise_equipment")
+
+	// Coach ↔ athlete links. Queried directly (roster lookups, the authorization
+	// guard), never traversed from users, so no gen.FieldRelate is needed — same
+	// precedent as set_videos below.
+	coachAthlete := g.GenerateModel("coach_athletes", softDelete)
 
 	// ── Session tree: Session → SessionExercise → SetLog ─────────────────────
 	setLog := g.GenerateModel("set_logs", softDelete)
@@ -150,7 +156,7 @@ func run() error {
 	)
 
 	g.ApplyBasic(
-		exercise, user, equipment, exerciseEquipment,
+		exercise, user, equipment, exerciseEquipment, coachAthlete,
 		setLog, setVideo, sessionExercise, session,
 		programSet, programSetGroup, programExercise, programDay, programWeek, program,
 	)

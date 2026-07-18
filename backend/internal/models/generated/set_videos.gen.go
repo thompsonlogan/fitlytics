@@ -28,6 +28,7 @@ type SetVideo struct {
 	CreatedAt    time.Time      `gorm:"column:created_at;type:timestamp with time zone;not null;default:now()" json:"created_at"`
 	UpdatedAt    time.Time      `gorm:"column:updated_at;type:timestamp with time zone;not null;default:now()" json:"updated_at"`
 	DeletedAt    gorm.DeletedAt `gorm:"column:deleted_at;type:timestamp with time zone" json:"deleted_at"`
+	ReviewedAt   *time.Time     `gorm:"column:reviewed_at;type:timestamp with time zone" json:"reviewed_at"`
 }
 
 // TableName SetVideo's table name
