@@ -10,20 +10,22 @@ import (
 
 	"github.com/thompsonlogan/fitlytics/backend/internal/apierr"
 	"github.com/thompsonlogan/fitlytics/backend/internal/auth"
+	"github.com/thompsonlogan/fitlytics/backend/internal/middleware"
 )
 
 type Handler struct {
 	service Service
-	log     *slog.Logger
+	programRead gin.HandlerFunc
+	log         *slog.Logger
 }
 
-func NewHandler(service Service, log *slog.Logger) *Handler {
-	return &Handler{service: service, log: log}
+func NewHandler(service Service, programRead gin.HandlerFunc, log *slog.Logger) *Handler {
+	return &Handler{service: service, programRead: programRead, log: log}
 }
 
 func (h *Handler) Register(rg *gin.RouterGroup) {
 	rg.GET("/programs", h.GetProgramsByUserId)
-	rg.GET("/programs/:id", h.GetProgramById)
+	rg.GET("/programs/:id", h.programRead, h.GetProgramById)
 }
 
 // GetProgramsByUserId returns the bare program rows owned by the authenticated user, ordered
@@ -76,9 +78,9 @@ func (h *Handler) GetProgramById(c *gin.Context) {
 		return
 	}
 
-	principal := auth.MustPrincipal(c)
+	owner := middleware.MustResourceOwner(c)
 
-	program, err := h.service.GetProgramById(c.Request.Context(), programID, principal.User.ID)
+	program, err := h.service.GetProgramById(c.Request.Context(), programID, owner)
 	if err != nil {
 		if errors.Is(err, apierr.ErrNotFound) {
 			apierr.NotFound(c, "program not found")
@@ -86,7 +88,7 @@ func (h *Handler) GetProgramById(c *gin.Context) {
 		}
 		h.log.ErrorContext(c.Request.Context(), "GetProgramById failed",
 			slog.String("program_id", programID.String()),
-			slog.String("user_id", principal.User.ID.String()),
+			slog.String("owner_user_id", owner.String()),
 			slog.Any("error", err),
 		)
 		apierr.InternalServerError(c, "internal server error")

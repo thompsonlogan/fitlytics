@@ -10,9 +10,11 @@ import (
 
 	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 	"github.com/thompsonlogan/fitlytics/backend/internal/query"
+	"github.com/thompsonlogan/fitlytics/backend/internal/repoauth"
 )
 
 type Repository interface {
+	GetProgramOwner(ctx context.Context, programID uuid.UUID) (uuid.UUID, error)
 	GetProgramById(ctx context.Context, programID, ownerUserID uuid.UUID) (*generated.Program, error)
 	GetProgramsByUserId(ctx context.Context, ownerUserID uuid.UUID) ([]generated.Program, error)
 	GetExercisesByIds(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]string, error)
@@ -25,6 +27,10 @@ type repository struct {
 
 func NewRepository(db *gorm.DB) Repository {
 	return &repository{db: db, q: query.Use(db)}
+}
+
+func (r *repository) GetProgramOwner(ctx context.Context, programID uuid.UUID) (uuid.UUID, error) {
+	return repoauth.ProgramOwner(ctx, r.q, programID)
 }
 
 func (r *repository) GetProgramById(ctx context.Context, programID, ownerUserID uuid.UUID) (*generated.Program, error) {

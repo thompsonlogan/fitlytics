@@ -10,6 +10,7 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"gorm.io/gorm"
 
+	"github.com/thompsonlogan/fitlytics/backend/internal/access"
 	"github.com/thompsonlogan/fitlytics/backend/internal/auth"
 	"github.com/thompsonlogan/fitlytics/backend/internal/coaching"
 	"github.com/thompsonlogan/fitlytics/backend/internal/handlers"
@@ -66,17 +67,20 @@ func NewRouter(deps Dependencies, isProduction bool) *gin.Engine {
 	// each feature can be tested in isolation without booting the router.
 	programsRepo := programs.NewRepository(deps.DB)
 	programsService := programs.NewService(programsRepo)
-	programsHandler := programs.NewHandler(programsService, deps.Log)
+
+	coachingRepo := coaching.NewRepository(deps.DB)
+	programRead := middleware.RequireProgramRead(programsRepo, access.NewChecker(coachingRepo), deps.Log)
+
+	programsHandler := programs.NewHandler(programsService, programRead, deps.Log)
 
 	sessionsRepo := sessions.NewRepository(deps.DB)
 	sessionsService := sessions.NewService(sessionsRepo)
-	sessionsHandler := sessions.NewHandler(sessionsService, deps.Log)
+	sessionsHandler := sessions.NewHandler(sessionsService, programRead, deps.Log)
 
 	videosService := videos.NewService(videos.NewRepository(deps.DB), deps.VideoStore, deps.VideoLimits, deps.Log)
 	videosHandler := videos.NewHandler(videosService, deps.VideoLimits, deps.Log)
 
-	coachingService := coaching.NewService(coaching.NewRepository(deps.DB))
-	coachingHandler := coaching.NewHandler(coachingService, deps.Log)
+	coachingHandler := coaching.NewHandler(coaching.NewService(coachingRepo), deps.Log)
 
 	// Authenticated routes — every handler below can call auth.MustPrincipal.
 	api := r.Group("/api")

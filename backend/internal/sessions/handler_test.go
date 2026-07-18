@@ -16,6 +16,7 @@ import (
 
 	"github.com/thompsonlogan/fitlytics/backend/internal/apierr"
 	"github.com/thompsonlogan/fitlytics/backend/internal/auth"
+	"github.com/thompsonlogan/fitlytics/backend/internal/middleware"
 	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
 
@@ -29,6 +30,15 @@ func silentLogger() *slog.Logger {
 
 func withPrincipal(c *gin.Context, userID uuid.UUID) {
 	auth.SetPrincipal(c, &auth.Principal{User: &generated.User{ID: userID}})
+	middleware.SetResourceOwner(c, userID)
+}
+
+func newTestHandler(svc Service) *Handler {
+	guard := func(c *gin.Context) {
+		middleware.SetResourceOwner(c, auth.MustPrincipal(c).User.ID)
+		c.Next()
+	}
+	return NewHandler(svc, guard, silentLogger())
 }
 
 // ─── GetCurrentSession ──────────────────────────────────────────────────────
@@ -43,7 +53,7 @@ func TestHandlerGetCurrentSession_InvalidProgramID(t *testing.T) {
 	}
 	withPrincipal(c, uuid.New())
 
-	NewHandler(&fakeService{}, silentLogger()).GetCurrentSession(c)
+	newTestHandler(&fakeService{}).GetCurrentSession(c)
 
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("status: want 400, got %d", w.Code)
@@ -65,7 +75,7 @@ func TestHandlerGetCurrentSession_NotFoundReturns404(t *testing.T) {
 	}
 	withPrincipal(c, uuid.New())
 
-	NewHandler(svc, silentLogger()).GetCurrentSession(c)
+	newTestHandler(svc).GetCurrentSession(c)
 
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("status: want 404, got %d", w.Code)
@@ -94,7 +104,7 @@ func TestHandlerGetCurrentSession_SuccessReturnsBody(t *testing.T) {
 	}
 	withPrincipal(c, userID)
 
-	NewHandler(svc, silentLogger()).GetCurrentSession(c)
+	newTestHandler(svc).GetCurrentSession(c)
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("status: want 200, got %d (body=%s)", w.Code, w.Body.String())
@@ -122,7 +132,7 @@ func TestHandlerStartSession_NotFoundFor404(t *testing.T) {
 	}
 	withPrincipal(c, uuid.New())
 
-	NewHandler(svc, silentLogger()).StartSession(c)
+	newTestHandler(svc).StartSession(c)
 
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("status: want 404, got %d", w.Code)
@@ -151,7 +161,7 @@ func TestHandlerStartSession_SuccessReturnsSession(t *testing.T) {
 	}
 	withPrincipal(c, userID)
 
-	NewHandler(svc, silentLogger()).StartSession(c)
+	newTestHandler(svc).StartSession(c)
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("status: want 200, got %d (body=%s)", w.Code, w.Body.String())
@@ -192,7 +202,7 @@ func newPatchSetLogContext(t *testing.T, userID uuid.UUID, sessionID, setLogID s
 func TestHandlerUpdateSetLog_InvalidIDsReturn400(t *testing.T) {
 	c, w := newPatchSetLogContext(t, uuid.New(), "not-a-uuid", uuid.NewString(),
 		UpdateSetLogRequest{ActualRpe: ptr(7.0)})
-	NewHandler(&fakeService{}, silentLogger()).UpdateSetLog(c)
+	newTestHandler(&fakeService{}).UpdateSetLog(c)
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("status: want 400, got %d", w.Code)
 	}
@@ -206,7 +216,7 @@ func TestHandlerUpdateSetLog_InvalidInputReturns400(t *testing.T) {
 	}
 	c, w := newPatchSetLogContext(t, uuid.New(), uuid.NewString(), uuid.NewString(),
 		UpdateSetLogRequest{ActualRpe: ptr(42.0)})
-	NewHandler(svc, silentLogger()).UpdateSetLog(c)
+	newTestHandler(svc).UpdateSetLog(c)
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("status: want 400, got %d", w.Code)
 	}
@@ -220,7 +230,7 @@ func TestHandlerUpdateSetLog_NotFoundReturns404(t *testing.T) {
 	}
 	c, w := newPatchSetLogContext(t, uuid.New(), uuid.NewString(), uuid.NewString(),
 		UpdateSetLogRequest{ActualRpe: ptr(7.0)})
-	NewHandler(svc, silentLogger()).UpdateSetLog(c)
+	newTestHandler(svc).UpdateSetLog(c)
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("status: want 404, got %d", w.Code)
 	}
@@ -234,7 +244,7 @@ func TestHandlerUpdateSetLog_GenericErrorReturns500(t *testing.T) {
 	}
 	c, w := newPatchSetLogContext(t, uuid.New(), uuid.NewString(), uuid.NewString(),
 		UpdateSetLogRequest{ActualRpe: ptr(7.0)})
-	NewHandler(svc, silentLogger()).UpdateSetLog(c)
+	newTestHandler(svc).UpdateSetLog(c)
 	if w.Code != http.StatusInternalServerError {
 		t.Fatalf("status: want 500, got %d (body=%s)", w.Code, w.Body.String())
 	}
@@ -267,7 +277,7 @@ func TestHandlerUpdateSetLog_SuccessReturnsBody(t *testing.T) {
 	}
 	c, w := newPatchSetLogContext(t, userID, sessionID.String(), setLogID.String(),
 		UpdateSetLogRequest{ActualLoadKg: ptr(130.0), ActualRpe: ptr(8.5), State: ptr("completed")})
-	NewHandler(svc, silentLogger()).UpdateSetLog(c)
+	newTestHandler(svc).UpdateSetLog(c)
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("status: want 200, got %d", w.Code)
@@ -289,7 +299,7 @@ func TestHandlerGetCompletedDays_InvalidProgramIDReturns400(t *testing.T) {
 	c.Params = gin.Params{{Key: "id", Value: "not-a-uuid"}}
 	withPrincipal(c, uuid.New())
 
-	NewHandler(&fakeService{}, silentLogger()).GetCompletedDays(c)
+	newTestHandler(&fakeService{}).GetCompletedDays(c)
 
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("status: want 400, got %d", w.Code)
@@ -316,7 +326,7 @@ func TestHandlerGetCompletedDays_SuccessReturnsRows(t *testing.T) {
 	c.Params = gin.Params{{Key: "id", Value: programID.String()}}
 	withPrincipal(c, userID)
 
-	NewHandler(svc, silentLogger()).GetCompletedDays(c)
+	newTestHandler(svc).GetCompletedDays(c)
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("status: want 200, got %d (body=%s)", w.Code, w.Body.String())
@@ -352,7 +362,7 @@ func newPatchSessionContext(t *testing.T, userID uuid.UUID, sessionID string, bo
 
 func TestHandlerUpdateSession_InvalidIDReturns400(t *testing.T) {
 	c, w := newPatchSessionContext(t, uuid.New(), "not-a-uuid", UpdateSessionRequest{Notes: ptr("hi")})
-	NewHandler(&fakeService{}, silentLogger()).UpdateSession(c)
+	newTestHandler(&fakeService{}).UpdateSession(c)
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("status: want 400, got %d", w.Code)
 	}
@@ -365,7 +375,7 @@ func TestHandlerUpdateSession_NotFoundReturns404(t *testing.T) {
 		},
 	}
 	c, w := newPatchSessionContext(t, uuid.New(), uuid.NewString(), UpdateSessionRequest{Notes: ptr("hi")})
-	NewHandler(svc, silentLogger()).UpdateSession(c)
+	newTestHandler(svc).UpdateSession(c)
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("status: want 404, got %d", w.Code)
 	}
@@ -378,7 +388,7 @@ func TestHandlerUpdateSession_GenericErrorReturns500(t *testing.T) {
 		},
 	}
 	c, w := newPatchSessionContext(t, uuid.New(), uuid.NewString(), UpdateSessionRequest{Notes: ptr("hi")})
-	NewHandler(svc, silentLogger()).UpdateSession(c)
+	newTestHandler(svc).UpdateSession(c)
 	if w.Code != http.StatusInternalServerError {
 		t.Fatalf("status: want 500, got %d (body=%s)", w.Code, w.Body.String())
 	}
@@ -401,7 +411,7 @@ func TestHandlerUpdateSession_SuccessThreadsNotesAndReturnsBody(t *testing.T) {
 		},
 	}
 	c, w := newPatchSessionContext(t, userID, sessionID.String(), UpdateSessionRequest{Notes: ptr("bar speed good")})
-	NewHandler(svc, silentLogger()).UpdateSession(c)
+	newTestHandler(svc).UpdateSession(c)
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("status: want 200, got %d (body=%s)", w.Code, w.Body.String())
@@ -449,7 +459,7 @@ func TestHandlerRegister_MountsAllRoutes(t *testing.T) {
 		auth.SetPrincipal(c, &auth.Principal{User: &generated.User{ID: uuid.New()}})
 		c.Next()
 	})
-	NewHandler(svc, silentLogger()).Register(g)
+	newTestHandler(svc).Register(g)
 
 	cases := []struct {
 		name   string

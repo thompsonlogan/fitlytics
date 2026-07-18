@@ -26,7 +26,7 @@ func (h *Handler) Register(rg *gin.RouterGroup) {
 // GetRoster returns the caller's coached athletes with their training summary.
 //
 // @Summary      List coached athletes
-// @Description  Returns every athlete linked to the authenticated coach, with their current program position and a training summary over the trailing 28 days. Compliance is the share of logged sets that were completed, and is omitted entirely when the athlete logged no sets in the window — which is different from 0%.
+// @Description  Returns every athlete linked to the authenticated coach, with their current program position and a training summary over the trailing 28 days. Compliance is the share of sessions the program called for that the athlete completed, and is omitted entirely when nothing was due — which is different from 0%.
 // @Tags         Coach
 // @Produce      json
 // @Success      200  {array}   CoachAthleteSummaryResponse

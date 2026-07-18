@@ -7,16 +7,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-
-	"github.com/thompsonlogan/fitlytics/backend/internal/apierr"
 )
-
 
 const metricsWindowDays = 28
 const attentionCompliancePct = 80
 
 type Service interface {
-	RequireActiveCoach(ctx context.Context, coachID, athleteID uuid.UUID) error
 	GetRoster(ctx context.Context, coachID uuid.UUID) ([]CoachAthleteSummaryResponse, error)
 }
 
@@ -27,17 +23,6 @@ type service struct {
 
 func NewService(repo Repository) Service {
 	return &service{repo: repo, now: time.Now}
-}
-
-func (s *service) RequireActiveCoach(ctx context.Context, coachID, athleteID uuid.UUID) error {
-	ok, err := s.repo.IsActiveCoach(ctx, coachID, athleteID)
-	if err != nil {
-		return fmt.Errorf("check coaching link: %w", err)
-	}
-	if !ok {
-		return apierr.ErrNotFound
-	}
-	return nil
 }
 
 func (s *service) GetRoster(ctx context.Context, coachID uuid.UUID) ([]CoachAthleteSummaryResponse, error) {

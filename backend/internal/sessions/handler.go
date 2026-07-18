@@ -10,31 +10,34 @@ import (
 
 	"github.com/thompsonlogan/fitlytics/backend/internal/apierr"
 	"github.com/thompsonlogan/fitlytics/backend/internal/auth"
+	"github.com/thompsonlogan/fitlytics/backend/internal/middleware"
 )
 
 type Handler struct {
 	service Service
-	log     *slog.Logger
+	programRead gin.HandlerFunc
+	log         *slog.Logger
 }
 
-func NewHandler(service Service, log *slog.Logger) *Handler {
-	return &Handler{service: service, log: log}
+func NewHandler(service Service, programRead gin.HandlerFunc, log *slog.Logger) *Handler {
+	return &Handler{service: service, programRead: programRead, log: log}
 }
 
 func (h *Handler) Register(rg *gin.RouterGroup) {
-	rg.GET("/programs/:id/days/:dayId/sessions/current", h.GetCurrentSession)
+	rg.GET("/programs/:id/days/:dayId/sessions/current", h.programRead, h.GetCurrentSession)
+	rg.GET("/programs/:id/day-completions", h.programRead, h.GetCompletedDays)
+
 	rg.POST("/programs/:id/days/:dayId/sessions", h.StartSession)
 	rg.PATCH("/sessions/:sessionId/set-logs/:setLogId", h.UpdateSetLog)
 	rg.PATCH("/sessions/:sessionId/set-logs", h.UpdateSetLogs)
 	rg.PATCH("/sessions/:sessionId", h.UpdateSession)
-	rg.GET("/programs/:id/day-completions", h.GetCompletedDays)
 }
 
 // GetCurrentSession returns the active session for the day, or 404 if the
 // user hasn't started one yet.
 //
 // @Summary      Get the active session for a program day
-// @Description  Returns the most recent non-deleted session for the authenticated user on the given program day. 404 if none exists — the FE uses this to populate cell actuals on first render of a day without creating a session for users who are just browsing.
+// @Description  Returns the most recent non-deleted session on the given program day, for the program's owner. Readable by that owner or by a coach with an active link to them. 404 if none exists — the FE uses this to populate cell actuals on first render of a day without creating a session for users who are just browsing.
 // @Tags         Sessions
 // @Produce      json
 // @Param        id      path      string  true  "Program UUID"      Format(uuid)
@@ -58,9 +61,9 @@ func (h *Handler) GetCurrentSession(c *gin.Context) {
 		return
 	}
 
-	principal := auth.MustPrincipal(c)
+	owner := middleware.MustResourceOwner(c)
 
-	session, err := h.service.GetCurrentSession(c.Request.Context(), programID, programDayID, principal.User.ID)
+	session, err := h.service.GetCurrentSession(c.Request.Context(), programID, programDayID, owner)
 	if err != nil {
 		if errors.Is(err, apierr.ErrNotFound) {
 			apierr.NotFound(c, "no current session")
@@ -69,7 +72,7 @@ func (h *Handler) GetCurrentSession(c *gin.Context) {
 		h.log.ErrorContext(c.Request.Context(), "find current session failed",
 			slog.String("program_id", programID.String()),
 			slog.String("program_day_id", programDayID.String()),
-			slog.String("user_id", principal.User.ID.String()),
+			slog.String("owner_user_id", owner.String()),
 			slog.Any("error", err),
 		)
 		apierr.InternalServerError(c, "internal server error")
@@ -313,13 +316,13 @@ func (h *Handler) GetCompletedDays(c *gin.Context) {
 		return
 	}
 
-	principal := auth.MustPrincipal(c)
+	owner := middleware.MustResourceOwner(c)
 
-	rows, err := h.service.GetCompletedDays(c.Request.Context(), programID, principal.User.ID)
+	rows, err := h.service.GetCompletedDays(c.Request.Context(), programID, owner)
 	if err != nil {
 		h.log.ErrorContext(c.Request.Context(), "list day completions failed",
 			slog.String("program_id", programID.String()),
-			slog.String("user_id", principal.User.ID.String()),
+			slog.String("owner_user_id", owner.String()),
 			slog.Any("error", err),
 		)
 		apierr.InternalServerError(c, "internal server error")
