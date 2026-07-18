@@ -1,4 +1,4 @@
--- fitlytics — coaching links (V2)
+-- fitlytics — coaching (V2)
 --
 -- Introduces the product's first cross-user read path. Until now every table was
 -- owned by exactly one user and every repository pushed that ownership into the
@@ -6,7 +6,9 @@
 --
 -- `coach_athletes` is that representation: a directional link from a coach to an
 -- athlete. The backend's authorization guard asserts an *active* row here before
--- it will read an athlete's programs or sessions on a coach's behalf.
+-- it will read an athlete's programs or sessions on a coach's behalf. On top of
+-- that this adds the two things the coach view needs beyond reading: video
+-- review bookkeeping, and a shared thread for the two of them to talk.
 --
 -- Conventions baked in here:
 --   * This table holds RELATIONSHIPS, not roles. Whether a user may act as a
@@ -22,6 +24,13 @@
 --     testing and for athletes who program for themselves. Multiple coaches per
 --     athlete falls out for free: the live-link index is on the (coach, athlete)
 --     pair, not on the athlete alone.
+--   * Marking a video reviewed is the coach's annotation on the athlete's row,
+--     not a mutation of the athlete's training data. It is the only write a
+--     coach may make; everything else about a video stays owner-only.
+--   * The notes thread hangs off the LINK, not off a (coach, athlete) pair, so
+--     it cascades with the relationship and cannot outlive it. Re-establishing
+--     an ended relationship therefore starts a fresh thread rather than
+--     resurrecting the old one.
 
 set search_path to fitlytics, public;
 
@@ -91,8 +100,65 @@ create or replace trigger coach_athletes_updated_at before update on coach_athle
 -- ─────────────────────────────────────────────────────────────────────────────
 
 alter table set_videos add column if not exists reviewed_at timestamptz;
+-- reviewed_at alone cannot answer "by whom", and that is not recoverable after
+-- the fact, so the two columns ship together and are constrained to move
+-- together.
+alter table set_videos
+  add column if not exists reviewed_by_user_id uuid references users (id) on delete set null;
+
+do $$
+begin
+  alter table set_videos add constraint set_videos_review_pair check (
+    (reviewed_at is null and reviewed_by_user_id is null)
+    or (reviewed_at is not null and reviewed_by_user_id is not null)
+  );
+exception
+  when duplicate_object then null;
+end
+$$;
 
 -- Drives the per-athlete unreviewed count on the coach roster.
 create index if not exists set_videos_unreviewed_idx
   on set_videos (user_id)
   where reviewed_at is null and deleted_at is null and status = 'ready';
+
+-- "What has this coach cleared" — the review history lookup.
+create index if not exists set_videos_reviewed_by_idx
+  on set_videos (reviewed_by_user_id, reviewed_at desc)
+  where reviewed_by_user_id is not null and deleted_at is null;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Coach ↔ athlete notes
+-- A single thread per link, written by either party. The design interleaves
+-- both sides, so authorship is a column rather than two tables.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+create table if not exists coach_notes (
+  id               uuid primary key default gen_random_uuid(),
+  coach_athlete_id uuid not null references coach_athletes (id) on delete cascade,
+  -- Either side of the link. Not constrained to the link's two users here —
+  -- the app enforces that, and a FK cannot express "one of these two columns
+  -- on the parent row".
+  author_user_id   uuid not null references users (id) on delete cascade,
+  body             text not null check (length(btrim(body)) > 0),
+  -- Set when the note came from the video review dialog, so coach feedback
+  -- keeps its context. Nulled rather than cascaded if the video is removed:
+  -- the conversation outlives the clip it was about.
+  set_video_id     uuid references set_videos (id) on delete set null,
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now(),
+  deleted_at       timestamptz
+);
+
+-- The thread read: one link's notes in order.
+create index if not exists coach_notes_thread_idx
+  on coach_notes (coach_athlete_id, created_at)
+  where deleted_at is null;
+
+-- "Which notes are about this video" — drives the review dialog's history.
+create index if not exists coach_notes_video_idx
+  on coach_notes (set_video_id)
+  where set_video_id is not null and deleted_at is null;
+
+create or replace trigger coach_notes_updated_at before update on coach_notes
+  for each row execute function set_updated_at();

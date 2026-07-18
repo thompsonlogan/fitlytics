@@ -41,6 +41,7 @@ func newSetVideo(db *gorm.DB, opts ...gen.DOOption) setVideo {
 	_setVideo.UpdatedAt = field.NewTime(tableName, "updated_at")
 	_setVideo.DeletedAt = field.NewField(tableName, "deleted_at")
 	_setVideo.ReviewedAt = field.NewTime(tableName, "reviewed_at")
+	_setVideo.ReviewedByUserID = field.NewField(tableName, "reviewed_by_user_id")
 
 	_setVideo.fillFieldMap()
 
@@ -50,21 +51,22 @@ func newSetVideo(db *gorm.DB, opts ...gen.DOOption) setVideo {
 type setVideo struct {
 	setVideoDo setVideoDo
 
-	ALL          field.Asterisk
-	ID           field.Field
-	SetLogID     field.Field
-	UserID       field.Field
-	Status       field.String
-	StorageKey   field.String
-	ContentType  field.String
-	SizeBytes    field.Int64
-	DurationSec  field.Float64
-	OriginalName field.String
-	Note         field.String
-	CreatedAt    field.Time
-	UpdatedAt    field.Time
-	DeletedAt    field.Field
-	ReviewedAt   field.Time
+	ALL              field.Asterisk
+	ID               field.Field
+	SetLogID         field.Field
+	UserID           field.Field
+	Status           field.String
+	StorageKey       field.String
+	ContentType      field.String
+	SizeBytes        field.Int64
+	DurationSec      field.Float64
+	OriginalName     field.String
+	Note             field.String
+	CreatedAt        field.Time
+	UpdatedAt        field.Time
+	DeletedAt        field.Field
+	ReviewedAt       field.Time
+	ReviewedByUserID field.Field
 
 	fieldMap map[string]field.Expr
 }
@@ -95,6 +97,7 @@ func (s *setVideo) updateTableName(table string) *setVideo {
 	s.UpdatedAt = field.NewTime(table, "updated_at")
 	s.DeletedAt = field.NewField(table, "deleted_at")
 	s.ReviewedAt = field.NewTime(table, "reviewed_at")
+	s.ReviewedByUserID = field.NewField(table, "reviewed_by_user_id")
 
 	s.fillFieldMap()
 
@@ -119,7 +122,7 @@ func (s *setVideo) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (s *setVideo) fillFieldMap() {
-	s.fieldMap = make(map[string]field.Expr, 14)
+	s.fieldMap = make(map[string]field.Expr, 15)
 	s.fieldMap["id"] = s.ID
 	s.fieldMap["set_log_id"] = s.SetLogID
 	s.fieldMap["user_id"] = s.UserID
@@ -134,6 +137,7 @@ func (s *setVideo) fillFieldMap() {
 	s.fieldMap["updated_at"] = s.UpdatedAt
 	s.fieldMap["deleted_at"] = s.DeletedAt
 	s.fieldMap["reviewed_at"] = s.ReviewedAt
+	s.fieldMap["reviewed_by_user_id"] = s.ReviewedByUserID
 }
 
 func (s setVideo) clone(db *gorm.DB) setVideo {

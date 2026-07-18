@@ -106,10 +106,8 @@ func run() error {
 	equipment := g.GenerateModel("equipment")
 	exerciseEquipment := g.GenerateModel("exercise_equipment")
 
-	// Coach ↔ athlete links. Queried directly (roster lookups, the authorization
-	// guard), never traversed from users, so no gen.FieldRelate is needed — same
-	// precedent as set_videos below.
 	coachAthlete := g.GenerateModel("coach_athletes", softDelete)
+	coachNote := g.GenerateModel("coach_notes", softDelete)
 
 	// ── Session tree: Session → SessionExercise → SetLog ─────────────────────
 	setLog := g.GenerateModel("set_logs", softDelete)
@@ -156,7 +154,7 @@ func run() error {
 	)
 
 	g.ApplyBasic(
-		exercise, user, equipment, exerciseEquipment, coachAthlete,
+		exercise, user, equipment, exerciseEquipment, coachAthlete, coachNote,
 		setLog, setVideo, sessionExercise, session,
 		programSet, programSetGroup, programExercise, programDay, programWeek, program,
 	)
