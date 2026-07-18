@@ -1,5 +1,6 @@
 apis/AuthApi.ts
 apis/CoachApi.ts
+apis/CoachingApi.ts
 apis/ProgramsApi.ts
 apis/SessionsApi.ts
 apis/VideosApi.ts
@@ -8,7 +9,10 @@ index.ts
 models/BatchUpdateSetLogItem.ts
 models/BatchUpdateSetLogsRequest.ts
 models/CoachAthleteSummaryResponse.ts
+models/CoachLinkResponse.ts
+models/CoachNoteResponse.ts
 models/CompletedDayResponse.ts
+models/CreateCoachNoteRequest.ts
 models/CreateVideoUploadRequest.ts
 models/CreateVideoUploadResponse.ts
 models/MeResponse.ts

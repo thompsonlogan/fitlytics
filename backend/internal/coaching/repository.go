@@ -14,6 +14,7 @@ import (
 )
 
 type RosterAthlete struct {
+	LinkID        uuid.UUID
 	AthleteUserID uuid.UUID
 	DisplayName   string
 	Email         *string
@@ -41,8 +42,29 @@ type ScheduledDay struct {
 	IsRestDay    bool
 }
 
+type Link struct {
+	LinkID        uuid.UUID
+	CoachUserID   uuid.UUID
+	AthleteUserID uuid.UUID
+	CoachName     string
+	AthleteName   string
+	Status        string
+}
+
+type NoteWithAuthor struct {
+	Note       generated.CoachNote
+	AuthorName string
+}
+
 type Repository interface {
 	IsActiveCoach(ctx context.Context, coachID, athleteID uuid.UUID) (bool, error)
+	IsLinkParticipant(ctx context.Context, linkID, userID uuid.UUID) (bool, error)
+	ListLinksForUser(ctx context.Context, userID uuid.UUID) ([]Link, error)
+	GetLink(ctx context.Context, linkID uuid.UUID) (*generated.CoachAthlete, error)
+
+	ListNotes(ctx context.Context, linkID uuid.UUID) ([]NoteWithAuthor, error)
+	CreateNote(ctx context.Context, note *generated.CoachNote) (*NoteWithAuthor, error)
+	VideoBelongsTo(ctx context.Context, videoID, userID uuid.UUID) (bool, error)
 	ListActiveAthletes(ctx context.Context, coachID uuid.UUID) ([]RosterAthlete, error)
 	LatestProgramByUser(ctx context.Context, userIDs []uuid.UUID) (map[uuid.UUID]RosterProgram, error)
 	ScheduledDaysByProgram(ctx context.Context, programIDs []uuid.UUID) (map[uuid.UUID][]ScheduledDay, error)
@@ -76,13 +98,116 @@ func (r *repository) IsActiveCoach(ctx context.Context, coachID, athleteID uuid.
 	return count > 0, nil
 }
 
+func (r *repository) IsLinkParticipant(ctx context.Context, linkID, userID uuid.UUID) (bool, error) {
+	ca := r.q.CoachAthlete
+
+	onEitherSide := ca.WithContext(ctx).
+		Where(ca.CoachUserID.Eq(userID)).
+		Or(ca.AthleteUserID.Eq(userID))
+
+	count, err := ca.WithContext(ctx).
+		Where(ca.ID.Eq(linkID), ca.Status.Eq(StatusActive)).
+		Where(onEitherSide).
+		Count()
+	if err != nil {
+		return false, fmt.Errorf("look up link membership: %w", err)
+	}
+	return count > 0, nil
+}
+
+func (r *repository) GetLink(ctx context.Context, linkID uuid.UUID) (*generated.CoachAthlete, error) {
+	ca := r.q.CoachAthlete
+	return ca.WithContext(ctx).Where(ca.ID.Eq(linkID)).First()
+}
+
+func (r *repository) ListLinksForUser(ctx context.Context, userID uuid.UUID) ([]Link, error) {
+	ca := r.q.CoachAthlete
+	coach := r.q.User.As("coach")
+	athlete := r.q.User.As("athlete")
+
+	onEitherSide := ca.WithContext(ctx).
+		Where(ca.CoachUserID.Eq(userID)).
+		Or(ca.AthleteUserID.Eq(userID))
+
+	var rows []Link
+	err := ca.WithContext(ctx).
+		Select(
+			ca.ID.As("link_id"),
+			ca.CoachUserID,
+			ca.AthleteUserID,
+			ca.Status,
+			coach.DisplayName.As("coach_name"),
+			athlete.DisplayName.As("athlete_name"),
+		).
+		Join(coach, coach.ID.EqCol(ca.CoachUserID)).
+		Join(athlete, athlete.ID.EqCol(ca.AthleteUserID)).
+		Where(ca.Status.Eq(StatusActive)).
+		Where(onEitherSide).
+		Scan(&rows)
+	if err != nil {
+		return nil, fmt.Errorf("list links: %w", err)
+	}
+	return rows, nil
+}
+
+func (r *repository) ListNotes(ctx context.Context, linkID uuid.UUID) ([]NoteWithAuthor, error) {
+	cn := r.q.CoachNote
+	u := r.q.User
+
+	var rows []struct {
+		generated.CoachNote
+		AuthorName string
+	}
+	err := cn.WithContext(ctx).
+		Select(cn.ALL, u.DisplayName.As("author_name")).
+		Join(u, u.ID.EqCol(cn.AuthorUserID)).
+		Where(cn.CoachAthleteID.Eq(linkID)).
+		Order(cn.CreatedAt).
+		Scan(&rows)
+	if err != nil {
+		return nil, fmt.Errorf("list notes: %w", err)
+	}
+
+	out := make([]NoteWithAuthor, len(rows))
+	for i, row := range rows {
+		out[i] = NoteWithAuthor{Note: row.CoachNote, AuthorName: row.AuthorName}
+	}
+	return out, nil
+}
+
+func (r *repository) CreateNote(ctx context.Context, note *generated.CoachNote) (*NoteWithAuthor, error) {
+	if err := r.q.CoachNote.WithContext(ctx).Create(note); err != nil {
+		return nil, fmt.Errorf("create note: %w", err)
+	}
+
+	u := r.q.User
+	author, err := u.WithContext(ctx).Select(u.DisplayName).Where(u.ID.Eq(note.AuthorUserID)).First()
+	if err != nil {
+		return nil, fmt.Errorf("load note author: %w", err)
+	}
+
+	return &NoteWithAuthor{Note: *note, AuthorName: author.DisplayName}, nil
+}
+
+func (r *repository) VideoBelongsTo(ctx context.Context, videoID, userID uuid.UUID) (bool, error) {
+	sv := r.q.SetVideo
+
+	count, err := sv.WithContext(ctx).
+		Where(sv.ID.Eq(videoID), sv.UserID.Eq(userID)).
+		Count()
+	if err != nil {
+		return false, fmt.Errorf("look up video owner: %w", err)
+	}
+	return count > 0, nil
+}
+
 func (r *repository) ListActiveAthletes(ctx context.Context, coachID uuid.UUID) ([]RosterAthlete, error) {
 	ca := r.q.CoachAthlete
 	u := r.q.User
 
 	var rows []RosterAthlete
 	err := ca.WithContext(ctx).
-		Select(ca.AthleteUserID, u.DisplayName, u.Email).
+		Select(ca.ID.As("link_id"), ca.AthleteUserID, u.DisplayName, u.Email).
 		Join(u, u.ID.EqCol(ca.AthleteUserID)).
 		Where(ca.CoachUserID.Eq(coachID), ca.Status.Eq(StatusActive)).
 		Order(u.DisplayName).

@@ -62,6 +62,12 @@ export interface CoachAthleteSummaryResponse {
      */
     lastSessionAt?: string;
     /**
+     * LinkID addresses the shared notes thread.
+     * @type {string}
+     * @memberof CoachAthleteSummaryResponse
+     */
+    linkId?: string;
+    /**
      * 
      * @type {string}
      * @memberof CoachAthleteSummaryResponse
@@ -129,6 +135,7 @@ export function CoachAthleteSummaryResponseFromJSONTyped(json: any, ignoreDiscri
         'displayName': json['display_name'] == null ? undefined : json['display_name'],
         'email': json['email'] == null ? undefined : json['email'],
         'lastSessionAt': json['last_session_at'] == null ? undefined : json['last_session_at'],
+        'linkId': json['link_id'] == null ? undefined : json['link_id'],
         'programId': json['program_id'] == null ? undefined : json['program_id'],
         'programName': json['program_name'] == null ? undefined : json['program_name'],
         'sessionsCompleted': json['sessions_completed'] == null ? undefined : json['sessions_completed'],
@@ -157,6 +164,7 @@ export function CoachAthleteSummaryResponseToJSONTyped(value?: CoachAthleteSumma
         'display_name': value['displayName'],
         'email': value['email'],
         'last_session_at': value['lastSessionAt'],
+        'link_id': value['linkId'],
         'program_id': value['programId'],
         'program_name': value['programName'],
         'sessions_completed': value['sessionsCompleted'],

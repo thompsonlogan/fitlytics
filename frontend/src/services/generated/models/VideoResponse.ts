@@ -62,8 +62,7 @@ export interface VideoResponse {
      */
     playbackUrl?: string;
     /**
-     * Set once a coach has watched the video. The coach view styles reviewed
-     * and unreviewed chips differently, and the roster counts the unreviewed.
+     * 
      * @type {string}
      * @memberof VideoResponse
      */

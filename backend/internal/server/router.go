@@ -87,7 +87,8 @@ func NewRouter(deps Dependencies, isProduction bool) *gin.Engine {
 
 	videosHandler := videos.NewHandler(videosService, deps.VideoLimits, sessionRead, videoReviewer, deps.Log)
 
-	coachingHandler := coaching.NewHandler(coaching.NewService(coachingRepo), deps.Log)
+	linkParticipant := middleware.RequireLinkParticipant(coachingRepo, deps.Log)
+	coachingHandler := coaching.NewHandler(coaching.NewService(coachingRepo), linkParticipant, deps.Log)
 
 	// Authenticated routes — every handler below can call auth.MustPrincipal.
 	api := r.Group("/api")
@@ -103,6 +104,7 @@ func NewRouter(deps Dependencies, isProduction bool) *gin.Engine {
 		programsHandler.Register(api)
 		sessionsHandler.Register(api)
 		videosHandler.Register(api)
+		coachingHandler.RegisterShared(api)
 	}
 
 	coach := api.Group("/coach")

@@ -6,6 +6,46 @@ import (
 	"github.com/google/uuid"
 )
 
+func mapLinks(rows []Link, callerID uuid.UUID) []CoachLinkResponse {
+	out := make([]CoachLinkResponse, len(rows))
+
+	for i, row := range rows {
+		side, counterpartID, counterpartName := SideAthlete, row.CoachUserID, row.CoachName
+		if row.CoachUserID == callerID {
+			side, counterpartID, counterpartName = SideCoach, row.AthleteUserID, row.AthleteName
+		}
+
+		out[i] = CoachLinkResponse{
+			LinkID:            row.LinkID,
+			CounterpartUserID: counterpartID,
+			CounterpartName:   counterpartName,
+			Side:              side,
+			Status:            row.Status,
+		}
+	}
+
+	return out
+}
+
+func mapNote(row NoteWithAuthor) CoachNoteResponse {
+	return CoachNoteResponse{
+		ID:           row.Note.ID,
+		AuthorUserID: row.Note.AuthorUserID,
+		AuthorName:   row.AuthorName,
+		Body:         row.Note.Body,
+		SetVideoID:   row.Note.SetVideoID,
+		CreatedAt:    row.Note.CreatedAt,
+	}
+}
+
+func mapNotes(rows []NoteWithAuthor) []CoachNoteResponse {
+	out := make([]CoachNoteResponse, len(rows))
+	for i, row := range rows {
+		out[i] = mapNote(row)
+	}
+	return out
+}
+
 func mapRoster(
 	athletes []RosterAthlete,
 	programs map[uuid.UUID]RosterProgram,
@@ -21,6 +61,7 @@ func mapRoster(
 		m := metrics[a.AthleteUserID]
 
 		row := CoachAthleteSummaryResponse{
+			LinkID:        a.LinkID,
 			AthleteUserID: a.AthleteUserID,
 			DisplayName:   a.DisplayName,
 			Email:         a.Email,

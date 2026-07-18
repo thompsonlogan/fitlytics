@@ -11,6 +11,8 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+
+	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
 
 // fixedID makes deterministic UUIDs from a label so failures name the entity
@@ -63,12 +65,68 @@ type fakeRepository struct {
 	metricsFn            func(ctx context.Context, userIDs []uuid.UUID, since time.Time) (map[uuid.UUID]RosterMetrics, error)
 	videosFn             func(ctx context.Context, userIDs []uuid.UUID) (map[uuid.UUID]int64, error)
 
+	isLinkParticipantFn func(ctx context.Context, linkID, userID uuid.UUID) (bool, error)
+	getLinkFn           func(ctx context.Context, linkID uuid.UUID) (*generated.CoachAthlete, error)
+	listLinksFn         func(ctx context.Context, userID uuid.UUID) ([]Link, error)
+	listNotesFn         func(ctx context.Context, linkID uuid.UUID) ([]NoteWithAuthor, error)
+	createNoteFn        func(ctx context.Context, note *generated.CoachNote) (*NoteWithAuthor, error)
+	videoBelongsToFn    func(ctx context.Context, videoID, userID uuid.UUID) (bool, error)
+
+	createdNote      *generated.CoachNote
+	videoOwnerChecks int
+
 	lastSince     time.Time
 	lastIDs       []uuid.UUID
 	scheduleCalls int
 	programCalls  int
 	metricsCalls  int
 	videoCalls    int
+}
+
+// ── notes thread ────────────────────────────────────────────────────────────
+
+func (f *fakeRepository) IsLinkParticipant(ctx context.Context, linkID, userID uuid.UUID) (bool, error) {
+	if f.isLinkParticipantFn == nil {
+		return true, nil
+	}
+	return f.isLinkParticipantFn(ctx, linkID, userID)
+}
+
+func (f *fakeRepository) GetLink(ctx context.Context, linkID uuid.UUID) (*generated.CoachAthlete, error) {
+	if f.getLinkFn == nil {
+		return &generated.CoachAthlete{ID: linkID, CoachUserID: coachID, AthleteUserID: athleteID}, nil
+	}
+	return f.getLinkFn(ctx, linkID)
+}
+
+func (f *fakeRepository) ListLinksForUser(ctx context.Context, userID uuid.UUID) ([]Link, error) {
+	if f.listLinksFn == nil {
+		return nil, nil
+	}
+	return f.listLinksFn(ctx, userID)
+}
+
+func (f *fakeRepository) ListNotes(ctx context.Context, linkID uuid.UUID) ([]NoteWithAuthor, error) {
+	if f.listNotesFn == nil {
+		return nil, nil
+	}
+	return f.listNotesFn(ctx, linkID)
+}
+
+func (f *fakeRepository) CreateNote(ctx context.Context, note *generated.CoachNote) (*NoteWithAuthor, error) {
+	f.createdNote = note
+	if f.createNoteFn == nil {
+		return &NoteWithAuthor{Note: *note, AuthorName: "Dana Kim"}, nil
+	}
+	return f.createNoteFn(ctx, note)
+}
+
+func (f *fakeRepository) VideoBelongsTo(ctx context.Context, videoID, userID uuid.UUID) (bool, error) {
+	f.videoOwnerChecks++
+	if f.videoBelongsToFn == nil {
+		return true, nil
+	}
+	return f.videoBelongsToFn(ctx, videoID, userID)
 }
 
 func (f *fakeRepository) IsActiveCoach(ctx context.Context, coachID, athleteID uuid.UUID) (bool, error) {
