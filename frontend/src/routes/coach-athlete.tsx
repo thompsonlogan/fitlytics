@@ -3,8 +3,13 @@ import { useMemo, useState } from "react"
 import { Link, useParams } from "@tanstack/react-router"
 
 import { buttonVariants } from "@/components/ui/button"
+import { AthleteSummaryCard } from "@/components/coach/athlete-summary-card"
+import { CoachWorkoutTable } from "@/components/coach/coach-workout-table"
+import { CoachWorkoutTableSkeleton } from "@/components/coach/coach-workout-table-skeleton"
 import { SubBar } from "@/components/workout/sub-bar"
+import { RestDayCard } from "@/components/workout/workout-table"
 import { useCoachAthleteProgram } from "@/hooks/use-coach-athlete-program"
+import { useCoachSession } from "@/hooks/use-coach-session"
 import { useDayCompletions } from "@/hooks/use-day-completions"
 import { computeTodayPosition, type ProgramDay } from "@/lib/program-data"
 import { cn } from "@/lib/utils"
@@ -34,6 +39,8 @@ export function CoachAthletePage() {
 
   const days = activeWeek?.days ?? []
   const dayData = days[dayIndex] ?? PLACEHOLDER_DAY
+
+  const { actualsFor, notStarted } = useCoachSession(program?.id, dayData.id || undefined)
 
   if (notFound) {
     return (
@@ -84,12 +91,34 @@ export function CoachAthletePage() {
         onResetToToday={() => setSelected(null)}
       />
 
-      <main className="px-5 py-6">
-        <p className="text-sm text-muted-foreground">
-          {dayData.off
-            ? "Rest day — nothing prescribed."
-            : "The prescribed-vs-actual table lands in the next step."}
-        </p>
+      <main className="grid min-h-0 grid-cols-1 gap-4 overflow-auto px-5 py-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
+        <div className="min-h-0">
+          {isLoading ? (
+            <CoachWorkoutTableSkeleton />
+          ) : dayData.off ? (
+            <RestDayCard name={dayData.name} />
+          ) : (
+            <CoachWorkoutTable
+              key={`${week}-${dayIndex}`}
+              day={dayData}
+              actualsFor={actualsFor}
+              onOpenVideo={() => {}}
+            />
+          )}
+
+          {!isLoading && !dayData.off && notStarted && (
+            <p className="mt-2 text-[0.75rem] text-muted-foreground">
+              {athlete?.displayName} hasn't logged this session — every actual below is still
+              blank.
+            </p>
+          )}
+        </div>
+
+        {athlete && (
+          <aside className="min-w-0">
+            <AthleteSummaryCard athlete={athlete} />
+          </aside>
+        )}
       </main>
     </div>
   )

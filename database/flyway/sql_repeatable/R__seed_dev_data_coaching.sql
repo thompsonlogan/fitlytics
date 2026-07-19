@@ -48,12 +48,15 @@ declare
   v_program  uuid := md5('coach-seed:program')::uuid;
   v_start    date := (current_date - interval '15 days')::date;
   v_squat    uuid := '704b039d-895c-476b-80ed-991010629bb2';  -- from R__seed_dev_data
+  v_bench    uuid := 'eacd9689-6804-4bb6-96db-c50a46157746';  -- from R__seed_dev_data
   v_week     uuid;
   v_day      uuid;
   v_pex      uuid;
   v_group    uuid;
   v_session  uuid;
   v_sex      uuid;
+  v_sex2     uuid;
+  v_bench_kg numeric;
   w          int;
   d          int;
   v_offset   int;
@@ -107,6 +110,23 @@ begin
              v_group, s, 'working', 5, 5, 136.0, 8.0
         from generate_series(1, 4) s;
 
+      -- A second exercise so a day exercises the multi-exercise layout, and so
+      -- the actuals below can drift off the prescription — with one squat block
+      -- alone every row sat at +1% and the deviation flagging never showed.
+      v_pex := md5('coach-seed:pex2:' || w || ':' || d)::uuid;
+      insert into program_exercises (id, program_day_id, sequence, exercise_id, rest_seconds)
+      values (v_pex, v_day, 2, v_bench, 120);
+
+      v_group := md5('coach-seed:group2:' || w || ':' || d)::uuid;
+      insert into program_set_groups (id, program_exercise_id, sequence)
+      values (v_group, v_pex, 1);
+
+      insert into program_sets (id, group_id, sequence, set_type, reps_min, reps_max,
+                                prescribed_load_kg, prescribed_rpe)
+      select md5('coach-seed:set2:' || w || ':' || d || ':' || s)::uuid,
+             v_group, s, 'working', 8, 10, 90.0, 7.0
+        from generate_series(1, 3) s;
+
       -- Only days that have already come due get a session.
       v_offset := (w - 1) * 7 + (d - 1);
       continue when v_start + v_offset > current_date;
@@ -133,13 +153,18 @@ begin
                                      exercise_name_snapshot, rest_seconds_snapshot)
       values (v_sex, v_session, 1, v_squat, 'Competition Squat', 180);
 
+      -- group_id snapshots the program block the set came from. The API sets it
+      -- on every real session; without it the frontend treats each set as its
+      -- own block and a block's collapsed state can never be read.
       insert into set_logs (id, session_exercise_id, user_id, exercise_id, sequence,
-                            set_type, reps_target_min, reps_target_max,
+                            group_id, set_type, reps_target_min, reps_target_max,
                             prescribed_load_kg, prescribed_rpe,
                             reps_actual, actual_load_kg, actual_rpe,
                             state, completed_at)
       select md5('coach-seed:setlog:' || w || ':' || d || ':' || s)::uuid,
-             v_sex, v_athlete, v_squat, s, 'working', 5, 5, 136.0, 8.0,
+             v_sex, v_athlete, v_squat, s,
+             md5('coach-seed:group:' || w || ':' || d)::uuid,
+             'working', 5, 5, 136.0, 8.0,
              case when v_due <= 6 or s <= 3 then 5 end,
              case when v_due <= 6 or s <= 3 then 138.0 end,
              case when v_due <= 6 or s <= 3 then 8.5 end,
@@ -147,6 +172,36 @@ begin
              case when v_due <= 6 or s <= 3
                   then (v_start + v_offset)::timestamptz + interval '19 hours' end
         from generate_series(1, 4) s;
+
+      continue when v_due > 6;
+
+      -- Bench drifts further under the prescription each week, so the coach
+      -- view has a deviation worth flagging (and a skipped set) to render.
+      v_bench_kg := 90.0 - (w - 1) * 4;
+
+      v_sex2 := md5('coach-seed:sex2:' || w || ':' || d)::uuid;
+      insert into session_exercises (id, session_id, sequence, exercise_id,
+                                     exercise_name_snapshot, rest_seconds_snapshot)
+      values (v_sex2, v_session, 2, v_bench, 'Competition Bench Press', 120);
+
+      insert into set_logs (id, session_exercise_id, user_id, exercise_id, sequence,
+                            group_id, set_type, reps_target_min, reps_target_max,
+                            prescribed_load_kg, prescribed_rpe,
+                            reps_actual, actual_load_kg, actual_rpe,
+                            state, completed_at)
+      select md5('coach-seed:setlog2:' || w || ':' || d || ':' || s)::uuid,
+             v_sex2, v_athlete, v_bench, s,
+             md5('coach-seed:group2:' || w || ':' || d)::uuid,
+             'working', 8, 10, 90.0, 7.0,
+             case when s < 3 then 8 end,
+             case when s < 3 then v_bench_kg end,
+             case when s < 3 then 8.5 end,
+             -- The last bench set of the final training day each week is
+             -- abandoned: a skipped set reads differently from one never logged.
+             case when s < 3 then 'completed' else 'skipped' end::set_log_state,
+             case when s < 3
+                  then (v_start + v_offset)::timestamptz + interval '19 hours' end
+        from generate_series(1, 3) s;
     end loop;
   end loop;
 end
