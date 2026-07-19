@@ -6,6 +6,10 @@ vi.mock(
   async () => await vi.importActual<typeof import("lucide-react")>("lucide-react")
 )
 
+import { routerMock } from "@/test/mocks/router-mock"
+
+vi.mock("@tanstack/react-router", () => routerMock)
+
 import { RosterTable } from "@/components/coach/roster-table"
 import type { RosterAthlete } from "@/hooks/use-coach-roster"
 
@@ -78,6 +82,15 @@ describe("RosterTable", () => {
     render(<RosterTable athletes={[athlete({ status: "deload" })]} />)
 
     expect(screen.getByText("deload")).toBeInTheDocument()
+  })
+
+  it("links each athlete to their program detail", () => {
+    render(<RosterTable athletes={[athlete()]} />)
+
+    expect(screen.getByRole("link", { name: /Marcus Webb/ })).toHaveAttribute(
+      "href",
+      "/coach/athletes/athlete-1"
+    )
   })
 
   it("renders one row per athlete", () => {

@@ -8,6 +8,10 @@ vi.mock(
   async () => await vi.importActual<typeof import("lucide-react")>("lucide-react")
 )
 
+import { routerMock } from "@/test/mocks/router-mock"
+
+vi.mock("@tanstack/react-router", () => routerMock)
+
 import { CoachRosterPage } from "@/routes/coach-roster"
 import { ServiceContext } from "@/services/context"
 import type { CoachAthleteSummaryResponse } from "@/services/generated"

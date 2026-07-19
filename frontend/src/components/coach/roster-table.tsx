@@ -1,3 +1,4 @@
+import { Link, useNavigate } from "@tanstack/react-router"
 import { ChevronRight, Video } from "lucide-react"
 
 import {
@@ -21,6 +22,8 @@ type RosterTableProps = {
 }
 
 export function RosterTable({ athletes }: RosterTableProps) {
+  const navigate = useNavigate()
+
   return (
     <Table>
       <TableHeader>
@@ -38,9 +41,24 @@ export function RosterTable({ athletes }: RosterTableProps) {
 
       <TableBody>
         {athletes.map((a) => (
-          <TableRow key={a.athleteUserId}>
+          <TableRow
+            key={a.athleteUserId}
+            className="cursor-pointer hover:bg-muted/50"
+            onClick={() =>
+              void navigate({
+                to: "/coach/athletes/$athleteId",
+                params: { athleteId: a.athleteUserId },
+              })
+            }
+          >
             <TableCell>
-              <AthleteIdentityCell displayName={a.displayName} email={a.email} />
+              <Link
+                to="/coach/athletes/$athleteId"
+                params={{ athleteId: a.athleteUserId }}
+                className="rounded-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              >
+                <AthleteIdentityCell displayName={a.displayName} email={a.email} />
+              </Link>
             </TableCell>
 
             <TableCell>

@@ -77,6 +77,12 @@ const coachRosterRoute = createRoute({
   component: lazyRouteComponent(() => import("@/routes/coach-roster"), "CoachRosterPage"),
 })
 
+const coachAthleteRoute = createRoute({
+  getParentRoute: () => coachLayoutRoute,
+  path: "/coach/athletes/$athleteId",
+  component: lazyRouteComponent(() => import("@/routes/coach-athlete"), "CoachAthletePage"),
+})
+
 const programRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/program",
@@ -96,7 +102,7 @@ const analyticsRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   indexRoute,
   appLayoutRoute.addChildren([todayRoute]),
-  coachLayoutRoute.addChildren([coachRosterRoute]),
+  coachLayoutRoute.addChildren([coachRosterRoute, coachAthleteRoute]),
   programRoute,
   historyRoute,
   analyticsRoute,
