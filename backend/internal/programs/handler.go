@@ -14,7 +14,7 @@ import (
 )
 
 type Handler struct {
-	service Service
+	service     Service
 	programRead gin.HandlerFunc
 	log         *slog.Logger
 }

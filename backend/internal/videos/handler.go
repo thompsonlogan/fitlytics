@@ -14,8 +14,8 @@ import (
 )
 
 type Handler struct {
-	service Service
-	limits  Limits
+	service       Service
+	limits        Limits
 	sessionRead   gin.HandlerFunc
 	videoReviewer gin.HandlerFunc
 	log           *slog.Logger

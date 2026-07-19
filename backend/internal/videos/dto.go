@@ -17,16 +17,16 @@ type CreateVideoUploadRequest struct {
 } // @name CreateVideoUploadRequest
 
 type VideoResponse struct {
-	ID           uuid.UUID `json:"id"`
-	SetLogID     uuid.UUID `json:"set_log_id"`
-	Status       string    `json:"status" example:"ready"`
-	ContentType  *string   `json:"content_type,omitempty"`
-	SizeBytes    *int64    `json:"size_bytes,omitempty"`
-	DurationSec  *float64  `json:"duration_sec,omitempty"`
-	OriginalName *string   `json:"original_name,omitempty"`
-	Note         *string   `json:"note,omitempty"`
-	PlaybackURL  *string   `json:"playback_url,omitempty"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID               uuid.UUID  `json:"id"`
+	SetLogID         uuid.UUID  `json:"set_log_id"`
+	Status           string     `json:"status" example:"ready"`
+	ContentType      *string    `json:"content_type,omitempty"`
+	SizeBytes        *int64     `json:"size_bytes,omitempty"`
+	DurationSec      *float64   `json:"duration_sec,omitempty"`
+	OriginalName     *string    `json:"original_name,omitempty"`
+	Note             *string    `json:"note,omitempty"`
+	PlaybackURL      *string    `json:"playback_url,omitempty"`
+	CreatedAt        time.Time  `json:"created_at"`
 	ReviewedAt       *time.Time `json:"reviewed_at,omitempty"`
 	ReviewedByUserID *uuid.UUID `json:"reviewed_by_user_id,omitempty"`
 } // @name VideoResponse

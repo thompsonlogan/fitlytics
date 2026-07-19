@@ -32,12 +32,12 @@ type CoachLinkResponse struct {
 	LinkID            uuid.UUID `json:"link_id"`
 	CounterpartUserID uuid.UUID `json:"counterpart_user_id"`
 	CounterpartName   string    `json:"counterpart_name" example:"Dana Kim"`
-	Side   string `json:"side" example:"athlete"`
-	Status string `json:"status" example:"active"`
+	Side              string    `json:"side" example:"athlete"`
+	Status            string    `json:"status" example:"active"`
 } // @name CoachLinkResponse
 
 type CreateCoachNoteRequest struct {
-	Body string `json:"body" binding:"required" example:"Hips rise early — cue push the floor away."`
+	Body       string     `json:"body" binding:"required" example:"Hips rise early — cue push the floor away."`
 	SetVideoID *uuid.UUID `json:"set_video_id,omitempty"`
 } // @name CreateCoachNoteRequest
 

@@ -13,7 +13,7 @@ import (
 )
 
 type Handler struct {
-	service Service
+	service         Service
 	linkParticipant gin.HandlerFunc
 	log             *slog.Logger
 }
