@@ -63,6 +63,13 @@ describe("CoachRosterPage", () => {
     expect(screen.getByText(/3 videos waiting/)).toBeInTheDocument()
   })
 
+  it("counts a single athlete and a single video in the singular", async () => {
+    renderRoster([row({ videosWaiting: 1 })])
+
+    expect(await screen.findByText("Marcus Webb")).toBeInTheDocument()
+    expect(screen.getByText(/1 active program · 1 video waiting/)).toBeInTheDocument()
+  })
+
   it("filters by name as the coach types", async () => {
     const user = userEvent.setup()
     renderRoster([row(), row({ athleteUserId: "athlete-2", displayName: "Priya Nair" })])

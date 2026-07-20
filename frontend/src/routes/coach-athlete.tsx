@@ -6,8 +6,11 @@ import { buttonVariants } from "@/components/ui/button"
 import { AthleteSummaryCard } from "@/components/coach/athlete-summary-card"
 import { CoachWorkoutTable } from "@/components/coach/coach-workout-table"
 import { CoachWorkoutTableSkeleton } from "@/components/coach/coach-workout-table-skeleton"
+import { NotesPanel } from "@/components/coach/notes-panel"
+import { VideoReviewDialog } from "@/components/coach/video-review-dialog"
 import { SubBar } from "@/components/workout/sub-bar"
 import { RestDayCard } from "@/components/workout/workout-table"
+import { useAuth } from "@/hooks/use-auth"
 import { useCoachAthleteProgram } from "@/hooks/use-coach-athlete-program"
 import { useCoachSession } from "@/hooks/use-coach-session"
 import { useDayCompletions } from "@/hooks/use-day-completions"
@@ -19,6 +22,7 @@ const PLACEHOLDER_DAY: ProgramDay = { id: "", name: "Loading…", tag: "—" }
 export function CoachAthletePage() {
   const { athleteId } = useParams({ from: "/coach/coach/athletes/$athleteId" })
   const { athlete, program, isLoading, isError, notFound } = useCoachAthleteProgram(athleteId)
+  const { user } = useAuth()
   const { data: dayCompletions } = useDayCompletions(program?.id)
 
   const weekCount = program?.weeks.length ?? 0
@@ -40,7 +44,20 @@ export function CoachAthletePage() {
   const days = activeWeek?.days ?? []
   const dayData = days[dayIndex] ?? PLACEHOLDER_DAY
 
-  const { actualsFor, notStarted } = useCoachSession(program?.id, dayData.id || undefined)
+  const { actualsFor, notStarted, session, blockLogsByKey, videosBySetLogId } = useCoachSession(
+    program?.id,
+    dayData.id || undefined
+  )
+
+  const [videoRowKey, setVideoRowKey] = useState<string | null>(null)
+
+  const videoBlock = (() => {
+    if (!videoRowKey) return null
+    const [exIdx, blIdx] = videoRowKey.split("-").map(Number)
+    const exercise = dayData.exercises?.[exIdx!]
+    const block = exercise?.blocks[blIdx!]
+    return exercise && block ? { exercise, block, exIdx: exIdx! } : null
+  })()
 
   if (notFound) {
     return (
@@ -102,24 +119,38 @@ export function CoachAthletePage() {
               key={`${week}-${dayIndex}`}
               day={dayData}
               actualsFor={actualsFor}
-              onOpenVideo={() => {}}
+              onOpenVideo={setVideoRowKey}
             />
           )}
 
           {!isLoading && !dayData.off && notStarted && (
             <p className="mt-2 text-[0.75rem] text-muted-foreground">
-              {athlete?.displayName} hasn't logged this session — every actual below is still
-              blank.
+              {athlete?.displayName} hasn't logged this session — every actual below is still blank.
             </p>
           )}
         </div>
 
         {athlete && (
-          <aside className="min-w-0">
+          <aside className="flex min-h-0 min-w-0 flex-col gap-3">
             <AthleteSummaryCard athlete={athlete} />
+            <NotesPanel linkId={athlete.linkId} currentUserId={user?.id} />
           </aside>
         )}
       </main>
+
+      {videoBlock && (
+        <VideoReviewDialog
+          open
+          onClose={() => setVideoRowKey(null)}
+          exercise={videoBlock.exercise}
+          exNum={videoBlock.exIdx + 1}
+          block={videoBlock.block}
+          blockLogs={blockLogsByKey.get(videoRowKey!) ?? []}
+          videosBySetLogId={videosBySetLogId}
+          sessionId={session?.id}
+          linkId={athlete?.linkId}
+        />
+      )}
     </div>
   )
 }

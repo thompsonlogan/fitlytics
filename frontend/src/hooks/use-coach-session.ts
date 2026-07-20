@@ -4,7 +4,7 @@ import { buildBlockIndex } from "@/components/workout/use-cell-logging"
 import { useCurrentSession } from "@/hooks/use-session"
 import { useSessionVideos } from "@/hooks/use-set-videos"
 import { kgToLbRounded } from "@/lib/units"
-import type { SetLogResponse } from "@/services/generated"
+import type { SetLogResponse, VideoResponse } from "@/services/generated"
 
 export type BlockActuals = {
   state: "pending" | "partial" | "completed" | "skipped"
@@ -45,6 +45,16 @@ export function useCoachSession(programId: string | undefined, programDayId: str
   const session = sessionQuery.data
   const videosQuery = useSessionVideos(session?.id)
 
+  const blockLogsByKey = useMemo(() => buildBlockIndex(session), [session])
+
+  const videosBySetLogId = useMemo(() => {
+    const m = new Map<string, VideoResponse>()
+    for (const v of videosQuery.data ?? []) {
+      if (v.setLogId) m.set(v.setLogId, v)
+    }
+    return m
+  }, [videosQuery.data])
+
   const actuals = useMemo(() => {
     const videosBySetLog = new Map<string, { reviewed: boolean }>()
     for (const v of videosQuery.data ?? []) {
@@ -54,7 +64,7 @@ export function useCoachSession(programId: string | undefined, programDayId: str
     }
 
     const out = new Map<string, BlockActuals>()
-    for (const [key, logs] of buildBlockIndex(session)) {
+    for (const [key, logs] of blockLogsByKey) {
       let videosTotal = 0
       let videosUnreviewed = 0
       for (const log of logs) {
@@ -76,11 +86,13 @@ export function useCoachSession(programId: string | undefined, programDayId: str
       })
     }
     return out
-  }, [session, videosQuery.data])
+  }, [blockLogsByKey, videosQuery.data])
 
   return {
     session: session ?? null,
     actuals,
+    blockLogsByKey,
+    videosBySetLogId,
     actualsFor: (key: string): BlockActuals => actuals.get(key) ?? EMPTY,
     isLoading: sessionQuery.isLoading,
     notStarted: !sessionQuery.isLoading && session == null,

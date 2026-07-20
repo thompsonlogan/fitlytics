@@ -27,7 +27,7 @@ function wrapper(api: ProgramsApi) {
 
   return ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>
-      <ServiceContext.Provider value={{ apis: { authApi: {} as never, coachApi: {} as never, programsApi: api, sessionsApi: {} as never, videosApi: {} as never } }}>
+      <ServiceContext.Provider value={{ apis: { authApi: {} as never, coachApi: {} as never, coachingApi: {} as never, programsApi: api, sessionsApi: {} as never, videosApi: {} as never } }}>
         {children}
       </ServiceContext.Provider>
     </QueryClientProvider>

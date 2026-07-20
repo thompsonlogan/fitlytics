@@ -27,7 +27,8 @@ export function RosterToolbar({
         <h1 className="text-lg font-semibold tracking-tight">Athletes</h1>
         <p className="mt-0.5 text-[0.8125rem] text-muted-foreground">
           {athleteCount} active {athleteCount === 1 ? "program" : "programs"}
-          {videosWaiting > 0 && ` · ${videosWaiting} videos waiting for review`}
+          {videosWaiting > 0 &&
+            ` · ${videosWaiting} ${videosWaiting === 1 ? "video" : "videos"} waiting for review`}
         </p>
       </div>
 
