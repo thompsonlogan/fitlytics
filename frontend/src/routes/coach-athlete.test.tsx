@@ -20,7 +20,14 @@ import { ServiceContext } from "@/services/context"
 import type { CoachAthleteSummaryResponse, ProgramResponse } from "@/services/generated"
 import type { ServiceApis } from "@/services/data"
 
-const START_DATE = "2026-07-13"
+// The page opens on the athlete's current position, which it derives from the
+// wall clock. Anchoring the program to *today* keeps that position at week 1,
+// day 0 no matter when the suite runs — a fixed past date drifts into later
+// weeks as time passes (and only passed locally because a sibling test's fake
+// timers happened to freeze the clock first).
+const pad = (n: number) => String(n).padStart(2, "0")
+const now = new Date()
+const START_DATE = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
 
 function rosterRow(
   overrides: Partial<CoachAthleteSummaryResponse> = {}
