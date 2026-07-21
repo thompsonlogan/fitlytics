@@ -33,13 +33,11 @@ type ProgramOwnerResolver interface {
 
 func RequireProgramRead(resolver ProgramOwnerResolver, checker *access.Checker, log *slog.Logger) gin.HandlerFunc {
 	return resourceGuard(guardConfig{
-		param:    "id",
-		notFound: "program not found",
-		resolve:  OwnerResolverFunc(resolver.GetProgramOwner),
-		authorize: func(ctx context.Context, callerID, ownerID uuid.UUID) error {
-			return checker.RequireRead(ctx, callerID, ownerID)
-		},
-		log: log,
+		param:     "id",
+		notFound:  "program not found",
+		resolve:   OwnerResolverFunc(resolver.GetProgramOwner),
+		authorize: checker.RequireRead,
+		log:       log,
 	})
 }
 
@@ -49,13 +47,11 @@ type SessionOwnerResolver interface {
 
 func RequireSessionRead(resolver SessionOwnerResolver, checker *access.Checker, log *slog.Logger) gin.HandlerFunc {
 	return resourceGuard(guardConfig{
-		param:    "sessionId",
-		notFound: "session not found",
-		resolve:  OwnerResolverFunc(resolver.GetSessionOwner),
-		authorize: func(ctx context.Context, callerID, ownerID uuid.UUID) error {
-			return checker.RequireRead(ctx, callerID, ownerID)
-		},
-		log: log,
+		param:     "sessionId",
+		notFound:  "session not found",
+		resolve:   OwnerResolverFunc(resolver.GetSessionOwner),
+		authorize: checker.RequireRead,
+		log:       log,
 	})
 }
 
@@ -74,10 +70,13 @@ func RequireVideoReviewer(resolver VideoOwnerResolver, checker *access.Checker, 
 }
 
 type guardConfig struct {
-	param     string
-	notFound  string
-	resolve   OwnerResolver
-	authorize func(ctx context.Context, callerID, ownerID uuid.UUID) error
+	param    string
+	notFound string
+	resolve  OwnerResolver
+	// authorize decides whether callerID may act on ownerID's resource.
+	// callerIsCoach carries the token role so the check can gate cross-user
+	// access on it, not on the coach_athletes link alone.
+	authorize func(ctx context.Context, callerID, ownerID uuid.UUID, callerIsCoach bool) error
 	log       *slog.Logger
 }
 
@@ -106,7 +105,8 @@ func resourceGuard(cfg guardConfig) gin.HandlerFunc {
 			return
 		}
 
-		if err := cfg.authorize(c.Request.Context(), principal.User.ID, owner); err != nil {
+		callerIsCoach := principal.Claims.HasRole(auth.RoleCoach)
+		if err := cfg.authorize(c.Request.Context(), principal.User.ID, owner, callerIsCoach); err != nil {
 			if errors.Is(err, apierr.ErrNotFound) {
 				apierr.Abort(c, http.StatusNotFound, cfg.notFound)
 				return

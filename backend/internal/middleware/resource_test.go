@@ -46,7 +46,12 @@ func newProgramReadEngine(caller uuid.UUID, resolver ProgramOwnerResolver, coach
 
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
-		auth.SetPrincipal(c, &auth.Principal{User: &generated.User{ID: caller}})
+		// Callers here carry the Coach role; the role-gate denial is covered
+		// separately by TestRequireProgramRead_LinkedButNotCoachIsDenied.
+		auth.SetPrincipal(c, &auth.Principal{
+			User:   &generated.User{ID: caller},
+			Claims: &auth.Claims{Role: auth.RoleCoach},
+		})
 		c.Next()
 	})
 	r.GET("/programs/:id", RequireProgramRead(resolver, access.NewChecker(coaches), log), func(c *gin.Context) {
@@ -96,6 +101,31 @@ func TestRequireProgramRead_StrangerIsNotFound(t *testing.T) {
 	}
 	if body := w.Body.String(); body == "" {
 		t.Error("expected a problem-details body")
+	}
+}
+
+// A caller with a live link but no Coach token role must be denied — the
+// guarded routes sit under RequireAuth, not RequireRole, so the role is the
+// only thing standing between "placed in coach_user_id" and reading another
+// user's program. 404, not 403, so the program's existence stays hidden.
+func TestRequireProgramRead_LinkedButNotCoachIsDenied(t *testing.T) {
+	coach, athlete := uuid.New(), uuid.New()
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		auth.SetPrincipal(c, &auth.Principal{
+			User:   &generated.User{ID: coach},
+			Claims: &auth.Claims{}, // authenticated, but no Coach role
+		})
+		c.Next()
+	})
+	r.GET("/programs/:id",
+		RequireProgramRead(&fakeOwnerResolver{owner: athlete}, access.NewChecker(fakeCoaches{linked: true}), log),
+		func(c *gin.Context) { c.Status(http.StatusOK) })
+
+	if w := get(r, uuid.NewString()); w.Code != http.StatusNotFound {
+		t.Errorf("want 404 for a linked non-coach, got %d", w.Code)
 	}
 }
 

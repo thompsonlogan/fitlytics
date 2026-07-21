@@ -47,10 +47,24 @@ function renderPanel(notes: CoachNoteResponse[], linkId: string | undefined) {
 
 describe("NotesPanel", () => {
   it("shows the thread", async () => {
-    renderPanel([note(), note({ authorUserId: COACH, body: "Drop to 90% next week." })], "link-1")
+    const { coachingApi } = renderPanel(
+      [note(), note({ authorUserId: COACH, body: "Drop to 90% next week." })],
+      "link-1"
+    )
 
     expect(await screen.findByText("Felt heavy today.")).toBeInTheDocument()
     expect(screen.getByText("Drop to 90% next week.")).toBeInTheDocument()
+    // The thread is bounded — the hook requests a page limit, not the whole history.
+    expect(coachingApi.apiCoachingLinksLinkIdNotesGet).toHaveBeenCalledWith(
+      expect.objectContaining({ linkId: "link-1", limit: expect.any(Number) })
+    )
+  })
+
+  it("caps the composer at the shared note limit", async () => {
+    renderPanel([], "link-1")
+
+    const box = await screen.findByRole("textbox", { name: /write a note/i })
+    expect(box).toHaveAttribute("maxlength", "4000")
   })
 
   it("explains that notes are visible to the athlete when empty", async () => {

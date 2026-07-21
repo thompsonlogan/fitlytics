@@ -147,4 +147,41 @@ describe("VideoReviewDialog", () => {
 
     expect(screen.getByText("Left hip felt off.")).toBeInTheDocument()
   })
+
+  // The corruption case: a draft typed on one clip must not carry to the next,
+  // where sending would attach it to the wrong video.
+  it("keeps feedback drafts separate per clip", async () => {
+    const user = userEvent.setup()
+    renderDialog(
+      new Map([
+        ["log-0", video({ id: "video-1" })],
+        ["log-2", video({ id: "video-3" })],
+      ])
+    )
+
+    const box = () => screen.getByRole("textbox", { name: /feedback/i })
+    await user.type(box(), "clip one note")
+    await user.click(screen.getByRole("button", { name: /next clip/i }))
+
+    expect(box()).toHaveValue("") // clip two starts blank
+
+    await user.click(screen.getByRole("button", { name: /previous clip/i }))
+    expect(box()).toHaveValue("clip one note") // clip one's draft survived
+  })
+
+  it("offers a retry when the clip cannot be played", () => {
+    renderDialog(new Map([["log-0", video({ playbackUrl: undefined })]]))
+
+    expect(screen.getByText(/couldn't be played/i)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /retry/i })).toBeInTheDocument()
+  })
+
+  it("caps the feedback length at the shared note limit", () => {
+    renderDialog(new Map([["log-0", video()]]))
+
+    expect(screen.getByRole("textbox", { name: /feedback/i })).toHaveAttribute(
+      "maxlength",
+      "4000"
+    )
+  })
 })

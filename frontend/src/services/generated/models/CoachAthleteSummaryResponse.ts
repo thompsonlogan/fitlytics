@@ -62,7 +62,7 @@ export interface CoachAthleteSummaryResponse {
      */
     lastSessionAt?: string;
     /**
-     * LinkID addresses the shared notes thread.
+     * 
      * @type {string}
      * @memberof CoachAthleteSummaryResponse
      */

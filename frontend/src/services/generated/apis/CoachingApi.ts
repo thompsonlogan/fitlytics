@@ -33,6 +33,7 @@ import {
 
 export interface ApiCoachingLinksLinkIdNotesGetRequest {
     linkId: string;
+    limit?: number;
 }
 
 export interface ApiCoachingLinksLinkIdNotesPostRequest {
@@ -78,7 +79,7 @@ export class CoachingApi extends runtime.BaseAPI {
     }
 
     /**
-     * Returns the notes on a coaching link, oldest first, interleaving both parties. Either party may read it; anyone else gets 404.
+     * Returns the most recent notes on a coaching link in chronological (oldest-first) order, interleaving both parties. Bounded by limit so a long-lived thread does not return its entire history. Either party may read it; anyone else gets 404.
      * List a coaching thread
      */
     async apiCoachingLinksLinkIdNotesGetRaw(requestParameters: ApiCoachingLinksLinkIdNotesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<CoachNoteResponse>>> {
@@ -90,6 +91,10 @@ export class CoachingApi extends runtime.BaseAPI {
         }
 
         const queryParameters: any = {};
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
@@ -108,7 +113,7 @@ export class CoachingApi extends runtime.BaseAPI {
     }
 
     /**
-     * Returns the notes on a coaching link, oldest first, interleaving both parties. Either party may read it; anyone else gets 404.
+     * Returns the most recent notes on a coaching link in chronological (oldest-first) order, interleaving both parties. Bounded by limit so a long-lived thread does not return its entire history. Either party may read it; anyone else gets 404.
      * List a coaching thread
      */
     async apiCoachingLinksLinkIdNotesGet(requestParameters: ApiCoachingLinksLinkIdNotesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<CoachNoteResponse>> {

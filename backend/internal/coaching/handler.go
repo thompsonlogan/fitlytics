@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -66,10 +67,11 @@ func (h *Handler) ListLinks(c *gin.Context) {
 // ListNotes returns the shared thread for a coaching relationship.
 //
 // @Summary      List a coaching thread
-// @Description  Returns the notes on a coaching link, oldest first, interleaving both parties. Either party may read it; anyone else gets 404.
+// @Description  Returns the most recent notes on a coaching link in chronological (oldest-first) order, interleaving both parties. Bounded by limit so a long-lived thread does not return its entire history. Either party may read it; anyone else gets 404.
 // @Tags         Coaching
 // @Produce      json
-// @Param        linkId  path      string  true  "Link UUID"  Format(uuid)
+// @Param        linkId  path      string  true   "Link UUID"  Format(uuid)
+// @Param        limit   query     int     false  "Max notes to return, newest kept (default 50, max 100)"
 // @Success      200  {array}   CoachNoteResponse
 // @Failure      400  {object}  apierr.ProblemDetails  "invalid link id"
 // @Failure      401  {object}  apierr.ProblemDetails  "missing or invalid auth token"
@@ -83,7 +85,10 @@ func (h *Handler) ListNotes(c *gin.Context) {
 		return
 	}
 
-	notes, err := h.service.ListNotes(c.Request.Context(), linkID)
+	// 0 when absent or unparseable; the service clamps it to a sane default.
+	limit, _ := strconv.Atoi(c.Query("limit"))
+
+	notes, err := h.service.ListNotes(c.Request.Context(), linkID, limit)
 	if err != nil {
 		h.log.ErrorContext(c.Request.Context(), "ListNotes failed",
 			slog.String("link_id", linkID.String()),

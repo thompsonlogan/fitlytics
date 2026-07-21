@@ -217,7 +217,7 @@ func TestListNotes_CarriesAuthorship(t *testing.T) {
 		},
 	}
 
-	got, err := notesService(repo).ListNotes(context.Background(), linkID)
+	got, err := notesService(repo).ListNotes(context.Background(), linkID, 0)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -226,5 +226,31 @@ func TestListNotes_CarriesAuthorship(t *testing.T) {
 	}
 	if got[0].AuthorName != "Dana Kim" || got[1].AuthorName != "Marcus Webb" {
 		t.Errorf("authorship not carried through: %+v", got)
+	}
+	// An absent/zero limit is clamped to the default, not passed through as 0.
+	if repo.lastNotesLimit != defaultNotesLimit {
+		t.Errorf("want default limit %d, got %d", defaultNotesLimit, repo.lastNotesLimit)
+	}
+}
+
+func TestListNotes_ClampsAnOversizedLimit(t *testing.T) {
+	repo := &fakeRepository{}
+
+	if _, err := notesService(repo).ListNotes(context.Background(), linkID, 5000); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if repo.lastNotesLimit != defaultNotesLimit {
+		t.Errorf("an oversized limit must be clamped to %d, got %d", defaultNotesLimit, repo.lastNotesLimit)
+	}
+}
+
+func TestListNotes_PassesAReasonableLimitThrough(t *testing.T) {
+	repo := &fakeRepository{}
+
+	if _, err := notesService(repo).ListNotes(context.Background(), linkID, 25); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if repo.lastNotesLimit != 25 {
+		t.Errorf("want limit 25 passed through, got %d", repo.lastNotesLimit)
 	}
 }

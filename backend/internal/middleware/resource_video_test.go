@@ -38,7 +38,12 @@ func newGuardEngine(caller uuid.UUID, param string, guard gin.HandlerFunc) (*gin
 	var seen uuid.UUID
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
-		auth.SetPrincipal(c, &auth.Principal{User: &generated.User{ID: caller}})
+		// Callers here carry the Coach role; the role-gate denial is covered
+		// separately by TestRequireVideoReviewer_LinkedButNotCoachIsDenied.
+		auth.SetPrincipal(c, &auth.Principal{
+			User:   &generated.User{ID: caller},
+			Claims: &auth.Claims{Role: auth.RoleCoach},
+		})
 		c.Next()
 	})
 	r.GET("/probe/:"+param, guard, func(c *gin.Context) {
@@ -157,5 +162,28 @@ func TestRequireVideoReviewer_LinkCheckFailureIsInternalError(t *testing.T) {
 
 	if w := probe(r, uuid.NewString()); w.Code != http.StatusInternalServerError {
 		t.Errorf("want 500, got %d", w.Code)
+	}
+}
+
+// Marking a video reviewed is a coach-only write. A caller with a live link but
+// no Coach role must be denied, and the link must not even be consulted.
+func TestRequireVideoReviewer_LinkedButNotCoachIsDenied(t *testing.T) {
+	athlete, coach := uuid.New(), uuid.New()
+	repo := &fakeVideoRepo{videoOwner: athlete}
+
+	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		auth.SetPrincipal(c, &auth.Principal{
+			User:   &generated.User{ID: coach},
+			Claims: &auth.Claims{}, // authenticated, but no Coach role
+		})
+		c.Next()
+	})
+	r.GET("/probe/:videoId",
+		RequireVideoReviewer(repo, access.NewChecker(fakeCoaches{linked: true}), quietLog()),
+		func(c *gin.Context) { c.Status(http.StatusOK) })
+
+	if w := probe(r, uuid.NewString()); w.Code != http.StatusNotFound {
+		t.Errorf("want 404 for a linked non-coach, got %d", w.Code)
 	}
 }

@@ -75,12 +75,14 @@ type fakeRepository struct {
 	createdNote      *generated.CoachNote
 	videoOwnerChecks int
 
-	lastSince     time.Time
-	lastIDs       []uuid.UUID
-	scheduleCalls int
-	programCalls  int
-	metricsCalls  int
-	videoCalls    int
+	lastSince             time.Time
+	lastIDs               []uuid.UUID
+	lastMetricsProgramIDs []uuid.UUID
+	lastNotesLimit        int
+	scheduleCalls         int
+	programCalls          int
+	metricsCalls          int
+	videoCalls            int
 }
 
 // ── notes thread ────────────────────────────────────────────────────────────
@@ -106,7 +108,8 @@ func (f *fakeRepository) ListLinksForUser(ctx context.Context, userID uuid.UUID)
 	return f.listLinksFn(ctx, userID)
 }
 
-func (f *fakeRepository) ListNotes(ctx context.Context, linkID uuid.UUID) ([]NoteWithAuthor, error) {
+func (f *fakeRepository) ListNotes(ctx context.Context, linkID uuid.UUID, limit int) ([]NoteWithAuthor, error) {
+	f.lastNotesLimit = limit
 	if f.listNotesFn == nil {
 		return nil, nil
 	}
@@ -160,9 +163,10 @@ func (f *fakeRepository) ScheduledDaysByProgram(ctx context.Context, programIDs 
 	return f.schedulesFn(ctx, programIDs)
 }
 
-func (f *fakeRepository) MetricsByUser(ctx context.Context, userIDs []uuid.UUID, since time.Time) (map[uuid.UUID]RosterMetrics, error) {
+func (f *fakeRepository) MetricsByUser(ctx context.Context, userIDs, programIDs []uuid.UUID, since time.Time) (map[uuid.UUID]RosterMetrics, error) {
 	f.metricsCalls++
 	f.lastSince = since
+	f.lastMetricsProgramIDs = programIDs
 	if f.metricsFn == nil {
 		return map[uuid.UUID]RosterMetrics{}, nil
 	}

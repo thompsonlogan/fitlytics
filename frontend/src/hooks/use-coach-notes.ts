@@ -5,6 +5,15 @@ import type { CoachNoteResponse } from "@/services/generated"
 
 export const coachNotesQueryKey = (linkId: string) => ["coach-notes", linkId] as const
 
+// Mirrors the backend's maxNoteChars. Applied client-side so the composer stops
+// at the limit rather than letting the server reject an over-long note — which
+// the catch path would otherwise surface as a connection error.
+export const MAX_NOTE_LENGTH = 4000
+
+// How many of the newest notes to load. Bounds payload and DOM on a long-lived
+// thread; the server caps it regardless.
+const NOTES_PAGE_SIZE = 50
+
 export type CoachNote = {
   id: string
   authorUserId: string
@@ -32,7 +41,10 @@ export function useCoachNotes(linkId: string | undefined) {
     queryKey: linkId ? coachNotesQueryKey(linkId) : ["coach-notes", "disabled"],
     enabled: !!linkId,
     queryFn: async (): Promise<CoachNote[]> => {
-      const rows = await coachingApi.apiCoachingLinksLinkIdNotesGet({ linkId: linkId! })
+      const rows = await coachingApi.apiCoachingLinksLinkIdNotesGet({
+        linkId: linkId!,
+        limit: NOTES_PAGE_SIZE,
+      })
       return rows.map(toNote)
     },
     staleTime: 60 * 1000,

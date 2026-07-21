@@ -30,10 +30,18 @@ var (
 	outfit = uuid.MustParse("33333333-3333-3333-3333-333333333333")
 )
 
+// The role argument is spelled out at each call site: true = the caller carries
+// the Coach token role, false = they do not.
+const (
+	isCoach  = true
+	notCoach = false
+)
+
 func TestRequireRead_OwnerIsPermittedWithoutALinkLookup(t *testing.T) {
 	coaches := &fakeCoaches{}
 
-	if err := NewChecker(coaches).RequireRead(context.Background(), owner, owner); err != nil {
+	// Owner reads their own data even without the coach role.
+	if err := NewChecker(coaches).RequireRead(context.Background(), owner, owner, notCoach); err != nil {
 		t.Fatalf("owner should be permitted, got %v", err)
 	}
 	// Reading your own data must not depend on the coaching table being
@@ -46,7 +54,7 @@ func TestRequireRead_OwnerIsPermittedWithoutALinkLookup(t *testing.T) {
 func TestRequireRead_LinkedCoachIsPermitted(t *testing.T) {
 	coaches := &fakeCoaches{linked: true}
 
-	if err := NewChecker(coaches).RequireRead(context.Background(), coach, owner); err != nil {
+	if err := NewChecker(coaches).RequireRead(context.Background(), coach, owner, isCoach); err != nil {
 		t.Fatalf("linked coach should be permitted, got %v", err)
 	}
 	if coaches.lastCoach != coach || coaches.lastAthlete != owner {
@@ -55,10 +63,26 @@ func TestRequireRead_LinkedCoachIsPermitted(t *testing.T) {
 	}
 }
 
+// The load-bearing check: an active link is not enough without the token role.
+// The guarded routes sit under RequireAuth, not RequireRole, so a caller placed
+// in coach_user_id but lacking the Coach role must still be denied — and the
+// link table must not even be consulted, since the role gate fails first.
+func TestRequireRead_LinkedButNotCoachIsDenied(t *testing.T) {
+	coaches := &fakeCoaches{linked: true}
+
+	err := NewChecker(coaches).RequireRead(context.Background(), coach, owner, notCoach)
+	if !errors.Is(err, apierr.ErrNotFound) {
+		t.Errorf("a non-coach must be denied even with a live link, got %v", err)
+	}
+	if coaches.calls != 0 {
+		t.Error("the role gate must fail before the link lookup")
+	}
+}
+
 func TestRequireRead_StrangerIsNotFound(t *testing.T) {
 	coaches := &fakeCoaches{linked: false}
 
-	err := NewChecker(coaches).RequireRead(context.Background(), outfit, owner)
+	err := NewChecker(coaches).RequireRead(context.Background(), outfit, owner, isCoach)
 	if !errors.Is(err, apierr.ErrNotFound) {
 		t.Errorf("want ErrNotFound so resources cannot be probed, got %v", err)
 	}
@@ -68,12 +92,35 @@ func TestRequireRead_LookupFailureIsNotADenial(t *testing.T) {
 	boom := errors.New("connection refused")
 	coaches := &fakeCoaches{err: boom}
 
-	err := NewChecker(coaches).RequireRead(context.Background(), coach, owner)
+	err := NewChecker(coaches).RequireRead(context.Background(), coach, owner, isCoach)
 	if !errors.Is(err, boom) {
 		t.Errorf("want the underlying error wrapped, got %v", err)
 	}
 	if errors.Is(err, apierr.ErrNotFound) {
 		t.Error("a database failure was reported as 'no access'")
+	}
+}
+
+func TestRequireCoach_RequiresBothRoleAndLink(t *testing.T) {
+	// Role but no link → denied.
+	unlinked := &fakeCoaches{linked: false}
+	if err := NewChecker(unlinked).RequireCoach(context.Background(), coach, owner, isCoach); !errors.Is(err, apierr.ErrNotFound) {
+		t.Errorf("coach role without a link must be denied, got %v", err)
+	}
+
+	// Link but no role → denied, without consulting the link.
+	roleless := &fakeCoaches{linked: true}
+	if err := NewChecker(roleless).RequireCoach(context.Background(), coach, owner, notCoach); !errors.Is(err, apierr.ErrNotFound) {
+		t.Errorf("a live link without the coach role must be denied, got %v", err)
+	}
+	if roleless.calls != 0 {
+		t.Error("the role gate must fail before the link lookup")
+	}
+
+	// Role and link → permitted.
+	linked := &fakeCoaches{linked: true}
+	if err := NewChecker(linked).RequireCoach(context.Background(), coach, owner, isCoach); err != nil {
+		t.Errorf("a coach with a live link should be permitted, got %v", err)
 	}
 }
 

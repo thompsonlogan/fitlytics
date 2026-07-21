@@ -62,13 +62,13 @@ type Repository interface {
 	ListLinksForUser(ctx context.Context, userID uuid.UUID) ([]Link, error)
 	GetLink(ctx context.Context, linkID uuid.UUID) (*generated.CoachAthlete, error)
 
-	ListNotes(ctx context.Context, linkID uuid.UUID) ([]NoteWithAuthor, error)
+	ListNotes(ctx context.Context, linkID uuid.UUID, limit int) ([]NoteWithAuthor, error)
 	CreateNote(ctx context.Context, note *generated.CoachNote) (*NoteWithAuthor, error)
 	VideoBelongsTo(ctx context.Context, videoID, userID uuid.UUID) (bool, error)
 	ListActiveAthletes(ctx context.Context, coachID uuid.UUID) ([]RosterAthlete, error)
 	LatestProgramByUser(ctx context.Context, userIDs []uuid.UUID) (map[uuid.UUID]RosterProgram, error)
 	ScheduledDaysByProgram(ctx context.Context, programIDs []uuid.UUID) (map[uuid.UUID][]ScheduledDay, error)
-	MetricsByUser(ctx context.Context, userIDs []uuid.UUID, since time.Time) (map[uuid.UUID]RosterMetrics, error)
+	MetricsByUser(ctx context.Context, userIDs, programIDs []uuid.UUID, since time.Time) (map[uuid.UUID]RosterMetrics, error)
 	UnreviewedVideoCountByUser(ctx context.Context, userIDs []uuid.UUID) (map[uuid.UUID]int64, error)
 }
 
@@ -150,7 +150,7 @@ func (r *repository) ListLinksForUser(ctx context.Context, userID uuid.UUID) ([]
 	return rows, nil
 }
 
-func (r *repository) ListNotes(ctx context.Context, linkID uuid.UUID) ([]NoteWithAuthor, error) {
+func (r *repository) ListNotes(ctx context.Context, linkID uuid.UUID, limit int) ([]NoteWithAuthor, error) {
 	cn := r.q.CoachNote
 	u := r.q.User
 
@@ -158,11 +158,15 @@ func (r *repository) ListNotes(ctx context.Context, linkID uuid.UUID) ([]NoteWit
 		generated.CoachNote
 		AuthorName string
 	}
+	// Fetch the newest `limit` rows (created_at DESC + LIMIT), so a long-lived
+	// thread doesn't return its whole history, then reverse into chronological
+	// order for the thread view.
 	err := cn.WithContext(ctx).
 		Select(cn.ALL, u.DisplayName.As("author_name")).
 		Join(u, u.ID.EqCol(cn.AuthorUserID)).
 		Where(cn.CoachAthleteID.Eq(linkID)).
-		Order(cn.CreatedAt).
+		Order(cn.CreatedAt.Desc()).
+		Limit(limit).
 		Scan(&rows)
 	if err != nil {
 		return nil, fmt.Errorf("list notes: %w", err)
@@ -170,7 +174,7 @@ func (r *repository) ListNotes(ctx context.Context, linkID uuid.UUID) ([]NoteWit
 
 	out := make([]NoteWithAuthor, len(rows))
 	for i, row := range rows {
-		out[i] = NoteWithAuthor{Note: row.CoachNote, AuthorName: row.AuthorName}
+		out[len(rows)-1-i] = NoteWithAuthor{Note: row.CoachNote, AuthorName: row.AuthorName}
 	}
 	return out, nil
 }
@@ -225,49 +229,54 @@ func (r *repository) LatestProgramByUser(ctx context.Context, userIDs []uuid.UUI
 		return out, nil
 	}
 
-	p := r.q.Program
-
-	rows, err := p.WithContext(ctx).
-		Where(p.OwnerUserID.In(uuidValues(userIDs)...)).
-		Find()
+	// One row per athlete — their latest program by start date (nulls last),
+	// tie-broken by creation time. DISTINCT ON is Postgres-specific and has no
+	// gorm/gen fluent form, so this stays raw; keeping the dedup in SQL is the
+	// whole point — the alternative loads an athlete's entire program history
+	// into memory on every roster request.
+	var rows []struct {
+		ID          uuid.UUID
+		OwnerUserID uuid.UUID
+		Name        string
+		StartDate   *time.Time
+	}
+	err := r.db.WithContext(ctx).Raw(`
+		select distinct on (owner_user_id) id, owner_user_id, name, start_date
+		  from programs
+		 where owner_user_id in ? and deleted_at is null
+		 order by owner_user_id, start_date desc nulls last, created_at desc
+	`, userIDs).Scan(&rows).Error
 	if err != nil {
-		return nil, fmt.Errorf("load athlete programs: %w", err)
+		return nil, fmt.Errorf("load latest athlete programs: %w", err)
 	}
 
-	latest := map[uuid.UUID]*generated.Program{}
+	programIDs := make([]uuid.UUID, 0, len(rows))
 	for _, row := range rows {
-		if best, seen := latest[row.OwnerUserID]; !seen || isMoreRecent(row, best) {
-			latest[row.OwnerUserID] = row
-		}
+		programIDs = append(programIDs, row.ID)
 	}
 
-	weeks, err := r.weekCountsByProgram(ctx, latest)
+	weeks, err := r.weekCountsByProgram(ctx, programIDs)
 	if err != nil {
 		return nil, err
 	}
 
-	for userID, program := range latest {
-		out[userID] = RosterProgram{
-			UserID:      userID,
-			ProgramID:   program.ID,
-			ProgramName: program.Name,
-			StartDate:   program.StartDate,
-			WeekCount:   weeks[program.ID],
+	for _, row := range rows {
+		out[row.OwnerUserID] = RosterProgram{
+			UserID:      row.OwnerUserID,
+			ProgramID:   row.ID,
+			ProgramName: row.Name,
+			StartDate:   row.StartDate,
+			WeekCount:   weeks[row.ID],
 		}
 	}
 
 	return out, nil
 }
 
-func (r *repository) weekCountsByProgram(ctx context.Context, programs map[uuid.UUID]*generated.Program) (map[uuid.UUID]int32, error) {
+func (r *repository) weekCountsByProgram(ctx context.Context, programIDs []uuid.UUID) (map[uuid.UUID]int32, error) {
 	counts := map[uuid.UUID]int32{}
-	if len(programs) == 0 {
+	if len(programIDs) == 0 {
 		return counts, nil
-	}
-
-	programIDs := make([]uuid.UUID, 0, len(programs))
-	for _, p := range programs {
-		programIDs = append(programIDs, p.ID)
 	}
 
 	pw := r.q.ProgramWeek
@@ -289,19 +298,6 @@ func (r *repository) weekCountsByProgram(ctx context.Context, programs map[uuid.
 		counts[row.ProgramID] = row.Count
 	}
 	return counts, nil
-}
-
-func isMoreRecent(a, b *generated.Program) bool {
-	switch {
-	case a.StartDate != nil && b.StartDate == nil:
-		return true
-	case a.StartDate == nil && b.StartDate != nil:
-		return false
-	case a.StartDate != nil && b.StartDate != nil && !a.StartDate.Equal(*b.StartDate):
-		return a.StartDate.After(*b.StartDate)
-	default:
-		return a.CreatedAt.After(b.CreatedAt)
-	}
 }
 
 func (r *repository) ScheduledDaysByProgram(ctx context.Context, programIDs []uuid.UUID) (map[uuid.UUID][]ScheduledDay, error) {
@@ -334,7 +330,7 @@ func (r *repository) ScheduledDaysByProgram(ctx context.Context, programIDs []uu
 	return out, nil
 }
 
-func (r *repository) MetricsByUser(ctx context.Context, userIDs []uuid.UUID, since time.Time) (map[uuid.UUID]RosterMetrics, error) {
+func (r *repository) MetricsByUser(ctx context.Context, userIDs, programIDs []uuid.UUID, since time.Time) (map[uuid.UUID]RosterMetrics, error) {
 	out := map[uuid.UUID]RosterMetrics{}
 	if len(userIDs) == 0 {
 		return out, nil
@@ -360,24 +356,41 @@ func (r *repository) MetricsByUser(ctx context.Context, userIDs []uuid.UUID, sin
 		out[row.UserID] = RosterMetrics{UserID: row.UserID, LastSessionAt: row.LastSessionAt}
 	}
 
-	var doneRows []struct {
-		UserID uuid.UUID
-		Count  int64
-	}
-	err = ss.WithContext(ctx).
-		Select(ss.UserID, ss.ID.Count().As("count")).
-		Where(ss.UserID.In(ids...), ss.State.Eq(sessionStateCompleted), ss.StartedAt.Gte(since)).
-		Group(ss.UserID).
-		Scan(&doneRows)
-	if err != nil {
-		return nil, fmt.Errorf("count completed sessions: %w", err)
-	}
+	// Compliance numerator: completed sessions that belong to the displayed
+	// program, not every session in the window. Joining through the program's
+	// days excludes ad-hoc sessions and sessions from other programs, so an
+	// athlete cannot show 100% on the current program off unrelated workouts.
+	// With no programs there is nothing to be compliant to, so the count stays
+	// zero rather than the join degenerating to an empty IN.
+	if len(programIDs) > 0 {
+		pd := r.q.ProgramDay
+		pw := r.q.ProgramWeek
+		var doneRows []struct {
+			UserID uuid.UUID
+			Count  int64
+		}
+		err = ss.WithContext(ctx).
+			Select(ss.UserID, ss.ID.Count().As("count")).
+			Join(pd, pd.ID.EqCol(ss.ProgramDayID)).
+			Join(pw, pw.ID.EqCol(pd.ProgramWeekID)).
+			Where(
+				ss.UserID.In(ids...),
+				ss.State.Eq(sessionStateCompleted),
+				ss.StartedAt.Gte(since),
+				pw.ProgramID.In(uuidValues(programIDs)...),
+			).
+			Group(ss.UserID).
+			Scan(&doneRows)
+		if err != nil {
+			return nil, fmt.Errorf("count completed sessions: %w", err)
+		}
 
-	for _, row := range doneRows {
-		m := out[row.UserID]
-		m.UserID = row.UserID
-		m.CompletedSessions = row.Count
-		out[row.UserID] = m
+		for _, row := range doneRows {
+			m := out[row.UserID]
+			m.UserID = row.UserID
+			m.CompletedSessions = row.Count
+			out[row.UserID] = m
+		}
 	}
 
 	sl := r.q.SetLog

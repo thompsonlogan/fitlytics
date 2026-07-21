@@ -1,6 +1,7 @@
 import { useState } from "react"
 
-import { Check, ChevronLeft, ChevronRight, CircleCheck } from "lucide-react"
+import { useQueryClient } from "@tanstack/react-query"
+import { Check, ChevronLeft, ChevronRight, CircleCheck, RotateCw } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -12,8 +13,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
+import { MAX_NOTE_LENGTH } from "@/hooks/use-coach-notes"
 import { usePostCoachNote } from "@/hooks/use-coach-notes"
 import { useReviewVideo } from "@/hooks/use-review-video"
+import { sessionVideosQueryKey } from "@/hooks/use-set-videos"
 import type { Exercise, SetBlock } from "@/lib/program-data"
 import { cn } from "@/lib/utils"
 import type { SetLogResponse, VideoResponse } from "@/services/generated"
@@ -46,14 +49,32 @@ export function VideoReviewDialog({
     .filter((s) => s.video?.status === "ready")
 
   const [cursor, setCursor] = useState(0)
-  const [feedback, setFeedback] = useState("")
+  // Drafts are keyed by video id, not a single shared string: a coach who types
+  // on one clip and steps to the next must not send that text against the wrong
+  // clip. Each clip keeps its own draft; sending always reads the current one.
+  const [drafts, setDrafts] = useState<Record<string, string>>({})
   const [playbackFailed, setPlaybackFailed] = useState(false)
 
   const current = filmed[Math.min(cursor, filmed.length - 1)]
   const video = current?.video
+  const videoId = video?.id ?? ""
+  const feedback = drafts[videoId] ?? ""
 
+  const queryClient = useQueryClient()
   const reviewVideo = useReviewVideo(sessionId)
   const postNote = usePostCoachNote(linkId)
+
+  const step = (delta: number) => {
+    setCursor((c) => Math.min(filmed.length - 1, Math.max(0, c + delta)))
+    setPlaybackFailed(false)
+  }
+
+  const retryPlayback = () => {
+    setPlaybackFailed(false)
+    if (sessionId) {
+      void queryClient.invalidateQueries({ queryKey: sessionVideosQueryKey(sessionId) })
+    }
+  }
 
   const markReviewed = async () => {
     if (!video?.id) return
@@ -69,7 +90,7 @@ export function VideoReviewDialog({
     if (!body || !video?.id) return
     try {
       await postNote.mutateAsync({ body, setVideoId: video.id })
-      setFeedback("")
+      setDrafts((d) => ({ ...d, [video.id!]: "" }))
       toast.success("Feedback sent to the athlete.")
     } catch {
       toast.error("Couldn't send your feedback. Try again.")
@@ -100,9 +121,12 @@ export function VideoReviewDialog({
         ) : (
           <div className="flex flex-col gap-3">
             {playbackFailed || !video.playbackUrl ? (
-              <div className="flex min-h-40 items-center justify-center rounded-md border bg-muted/40 p-6 text-center text-[0.8125rem] text-muted-foreground">
-                This clip couldn't be played. The link may have expired — reopen the dialog to get a
-                fresh one.
+              <div className="flex min-h-40 flex-col items-center justify-center gap-2.5 rounded-md border bg-muted/40 p-6 text-center text-[0.8125rem] text-muted-foreground">
+                <span>This clip couldn't be played — its link may have expired.</span>
+                <Button size="sm" variant="outline" onClick={retryPlayback}>
+                  <RotateCw className="size-3.5" />
+                  Retry
+                </Button>
               </div>
             ) : (
               <video
@@ -128,10 +152,7 @@ export function VideoReviewDialog({
                     variant="outline"
                     disabled={cursor === 0}
                     aria-label="Previous clip"
-                    onClick={() => {
-                      setCursor((c) => Math.max(0, c - 1))
-                      setPlaybackFailed(false)
-                    }}
+                    onClick={() => step(-1)}
                   >
                     <ChevronLeft className="size-3.5" />
                   </Button>
@@ -140,10 +161,7 @@ export function VideoReviewDialog({
                     variant="outline"
                     disabled={cursor >= filmed.length - 1}
                     aria-label="Next clip"
-                    onClick={() => {
-                      setCursor((c) => Math.min(filmed.length - 1, c + 1))
-                      setPlaybackFailed(false)
-                    }}
+                    onClick={() => step(1)}
                   >
                     <ChevronRight className="size-3.5" />
                   </Button>
@@ -163,10 +181,11 @@ export function VideoReviewDialog({
             <div className="flex flex-col gap-1.5">
               <Textarea
                 value={feedback}
-                onChange={(e) => setFeedback(e.target.value)}
+                onChange={(e) => setDrafts((d) => ({ ...d, [videoId]: e.target.value }))}
                 placeholder="Send feedback on this set…"
                 aria-label="Feedback on this set"
                 rows={2}
+                maxLength={MAX_NOTE_LENGTH}
                 className="resize-none text-[0.8125rem]"
               />
               <div className="flex items-center justify-between gap-2">

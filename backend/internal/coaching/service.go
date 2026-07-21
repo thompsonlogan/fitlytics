@@ -18,11 +18,13 @@ import (
 const metricsWindowDays = 28
 const attentionCompliancePct = 80
 const maxNoteChars = 4000
+const defaultNotesLimit = 50
+const maxNotesLimit = 100
 
 type Service interface {
 	GetRoster(ctx context.Context, coachID uuid.UUID) ([]CoachAthleteSummaryResponse, error)
 	ListLinks(ctx context.Context, userID uuid.UUID) ([]CoachLinkResponse, error)
-	ListNotes(ctx context.Context, linkID uuid.UUID) ([]CoachNoteResponse, error)
+	ListNotes(ctx context.Context, linkID uuid.UUID, limit int) ([]CoachNoteResponse, error)
 	CreateNote(ctx context.Context, linkID, authorID uuid.UUID, in CreateCoachNoteRequest) (*CoachNoteResponse, error)
 }
 
@@ -66,7 +68,7 @@ func (s *service) GetRoster(ctx context.Context, coachID uuid.UUID) ([]CoachAthl
 		return nil, fmt.Errorf("load schedules: %w", err)
 	}
 
-	metrics, err := s.repo.MetricsByUser(ctx, ids, since)
+	metrics, err := s.repo.MetricsByUser(ctx, ids, programIDs, since)
 	if err != nil {
 		return nil, fmt.Errorf("load metrics: %w", err)
 	}
@@ -86,8 +88,11 @@ func (s *service) ListLinks(ctx context.Context, userID uuid.UUID) ([]CoachLinkR
 	return mapLinks(rows, userID), nil
 }
 
-func (s *service) ListNotes(ctx context.Context, linkID uuid.UUID) ([]CoachNoteResponse, error) {
-	rows, err := s.repo.ListNotes(ctx, linkID)
+func (s *service) ListNotes(ctx context.Context, linkID uuid.UUID, limit int) ([]CoachNoteResponse, error) {
+	if limit <= 0 || limit > maxNotesLimit {
+		limit = defaultNotesLimit
+	}
+	rows, err := s.repo.ListNotes(ctx, linkID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("list notes: %w", err)
 	}

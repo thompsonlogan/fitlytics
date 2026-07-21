@@ -38,7 +38,7 @@ export interface CoachLinkResponse {
      */
     linkId?: string;
     /**
-     * The caller's own side: "coach" or "athlete".
+     * 
      * @type {string}
      * @memberof CoachLinkResponse
      */

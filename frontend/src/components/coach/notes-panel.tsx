@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { SendHorizontal } from "lucide-react"
 import { toast } from "sonner"
@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { NoteMessage } from "@/components/coach/note-message"
-import { useCoachNotes, usePostCoachNote } from "@/hooks/use-coach-notes"
+import { MAX_NOTE_LENGTH, useCoachNotes, usePostCoachNote } from "@/hooks/use-coach-notes"
 
 type NotesPanelProps = {
   linkId: string | undefined
@@ -18,6 +18,16 @@ export function NotesPanel({ linkId, currentUserId }: NotesPanelProps) {
   const { data: notes, isLoading, isError } = useCoachNotes(linkId)
   const postNote = usePostCoachNote(linkId)
   const [draft, setDraft] = useState("")
+
+  // The thread renders oldest-first, so the newest note sits below the fold.
+  // Pin the view to the bottom on load and whenever a new note arrives — keyed
+  // on the last note's id, not the count, so a full page that drops its oldest
+  // as it gains a newest still scrolls.
+  const bottomRef = useRef<HTMLDivElement>(null)
+  const lastNoteId = notes?.[notes.length - 1]?.id
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ block: "end" })
+  }, [lastNoteId])
 
   const trimmed = draft.trim()
   const canSend = trimmed.length > 0 && !postNote.isPending
@@ -31,6 +41,10 @@ export function NotesPanel({ linkId, currentUserId }: NotesPanelProps) {
       toast.error("Couldn't post your note. Check your connection and try again.")
     }
   }
+
+  // A counter only once the note is getting long, so it's not visual noise.
+  const remaining = MAX_NOTE_LENGTH - draft.length
+  const showCount = remaining <= 200
 
   return (
     <Card size="sm" className="flex min-h-0 flex-col gap-0 py-0">
@@ -59,25 +73,34 @@ export function NotesPanel({ linkId, currentUserId }: NotesPanelProps) {
                   isMine={!!currentUserId && note.authorUserId === currentUserId}
                 />
               ))}
+              <div ref={bottomRef} />
             </ul>
           )}
         </div>
 
         <div className="flex items-end gap-1.5 border-t pt-2">
-          <Textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault()
-                void send()
-              }
-            }}
-            placeholder="Write a note…"
-            aria-label="Write a note"
-            rows={2}
-            className="min-h-0 resize-none text-[0.8125rem]"
-          />
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <Textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault()
+                  void send()
+                }
+              }}
+              placeholder="Write a note…"
+              aria-label="Write a note"
+              rows={2}
+              maxLength={MAX_NOTE_LENGTH}
+              className="min-h-0 resize-none text-[0.8125rem]"
+            />
+            {showCount && (
+              <span className="self-end text-[0.6875rem] text-muted-foreground tabular-nums">
+                {remaining}
+              </span>
+            )}
+          </div>
           <Button size="sm" onClick={() => void send()} disabled={!canSend} aria-label="Post note">
             <SendHorizontal className="size-3.5" />
           </Button>

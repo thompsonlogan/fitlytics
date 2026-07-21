@@ -21,9 +21,10 @@
 --     absent: shipping them now would mean guessing at a design that does not
 --     exist yet, and a nullable unused column is harder to remove than to add.
 --   * Self-coaching is permitted (coach_user_id = athlete_user_id) — useful for
---     testing and for athletes who program for themselves. Multiple coaches per
---     athlete falls out for free: the live-link index is on the (coach, athlete)
---     pair, not on the athlete alone.
+--     testing and for athletes who program for themselves. An athlete has at
+--     most one active coach: review state lives globally on the video, so a
+--     second coach would race the first over it. The single-coach rule is the
+--     live-link unique index on athlete_user_id alone.
 --   * Marking a video reviewed is the coach's annotation on the athlete's row,
 --     not a mutation of the athlete's training data. It is the only write a
 --     coach may make; everything else about a video stays owner-only.
@@ -72,10 +73,13 @@ create table if not exists coach_athletes (
   )
 );
 
--- A coach may hold at most one live link per athlete. Ended rows are excluded
--- so a relationship can be re-established later.
+-- An athlete has at most one active coach. Keyed on the athlete alone (not the
+-- coach/athlete pair) so a second coach cannot open a live link while one
+-- exists — review state is global on the video, so two coaches would collide
+-- over it. Ended rows are excluded so a relationship can be re-established, and
+-- a coach can be swapped by ending one link before opening the next.
 create unique index if not exists coach_athletes_live_link_uq
-  on coach_athletes (coach_user_id, athlete_user_id)
+  on coach_athletes (athlete_user_id)
   where status = 'active' and deleted_at is null;
 
 -- The athlete's "who coaches me" lookup.
@@ -100,17 +104,21 @@ create or replace trigger coach_athletes_updated_at before update on coach_athle
 -- ─────────────────────────────────────────────────────────────────────────────
 
 alter table set_videos add column if not exists reviewed_at timestamptz;
--- reviewed_at alone cannot answer "by whom", and that is not recoverable after
--- the fact, so the two columns ship together and are constrained to move
--- together.
+-- reviewed_at records "when", reviewed_by_user_id records "who". They are set
+-- together by the review endpoint.
 alter table set_videos
   add column if not exists reviewed_by_user_id uuid references users (id) on delete set null;
 
+-- One-directional rather than a strict pair: a reviewer implies a review time,
+-- but a review time may stand without a reviewer. That second case is exactly
+-- what `on delete set null` produces when the reviewing coach is later deleted
+-- — the video stays reviewed, only the attribution is lost. A strict both-or-
+-- neither check would instead make that FK action violate the constraint and
+-- abort the user deletion.
 do $$
 begin
   alter table set_videos add constraint set_videos_review_pair check (
-    (reviewed_at is null and reviewed_by_user_id is null)
-    or (reviewed_at is not null and reviewed_by_user_id is not null)
+    reviewed_by_user_id is null or reviewed_at is not null
   );
 exception
   when duplicate_object then null;

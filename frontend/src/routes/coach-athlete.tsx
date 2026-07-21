@@ -44,10 +44,16 @@ export function CoachAthletePage() {
   const days = activeWeek?.days ?? []
   const dayData = days[dayIndex] ?? PLACEHOLDER_DAY
 
-  const { actualsFor, notStarted, session, blockLogsByKey, videosBySetLogId } = useCoachSession(
-    program?.id,
-    dayData.id || undefined
-  )
+  const { actualsFor, notStarted, session, blockLogsByKey, videosBySetLogId, videosError } =
+    useCoachSession(program?.id, dayData.id || undefined)
+
+  // Moving to a shorter week must not keep an out-of-range day, or days[dayIndex]
+  // falls back to the placeholder and the page renders a permanent "Loading…".
+  const selectWeek = (nextWeek: number) => {
+    const nextDays = program?.weeks[Math.min(nextWeek, weekCount) - 1]?.days ?? []
+    const clamped = nextDays.length > 0 ? Math.min(dayIndex, nextDays.length - 1) : 0
+    setSelected({ week: nextWeek, dayIndex: clamped })
+  }
 
   const [videoRowKey, setVideoRowKey] = useState<string | null>(null)
 
@@ -103,7 +109,7 @@ export function CoachAthletePage() {
         dayData={dayData}
         startDate={program?.startDate}
         completedDays={dayCompletions ?? {}}
-        onWeekChange={(next) => setSelected({ week: next, dayIndex })}
+        onWeekChange={selectWeek}
         onDayChange={(next) => setSelected({ week, dayIndex: next })}
         onResetToToday={() => setSelected(null)}
       />
@@ -126,6 +132,13 @@ export function CoachAthletePage() {
           {!isLoading && !dayData.off && notStarted && (
             <p className="mt-2 text-[0.75rem] text-muted-foreground">
               {athlete?.displayName} hasn't logged this session — every actual below is still blank.
+            </p>
+          )}
+
+          {videosError && (
+            <p className="mt-2 text-[0.75rem] text-amber-600 dark:text-amber-400">
+              Couldn't load this session's videos — the counts below may be understated. Reopen the
+              day to retry.
             </p>
           )}
         </div>

@@ -26,8 +26,7 @@ export interface CreateCoachNoteRequest {
      */
     body: string;
     /**
-     * Optional. Set when the note comes from the video review dialog so the
-     * feedback keeps its context.
+     * 
      * @type {string}
      * @memberof CreateCoachNoteRequest
      */

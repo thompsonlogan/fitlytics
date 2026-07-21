@@ -22,7 +22,7 @@ function log(overrides: Partial<SetLogResponse> = {}): SetLogResponse {
   } as SetLogResponse
 }
 
-function renderCoachSession(logs: SetLogResponse[], videos: unknown[] = []) {
+function renderCoachSession(logs: SetLogResponse[], videos: unknown[] | "error" = []) {
   const session = {
     id: "session-1",
     exercises: [{ setLogs: logs }],
@@ -31,7 +31,12 @@ function renderCoachSession(logs: SetLogResponse[], videos: unknown[] = []) {
   const sessionsApi = {
     apiProgramsIdDaysDayIdSessionsCurrentGet: vi.fn().mockResolvedValue(session),
   }
-  const videosApi = { apiSessionsSessionIdVideosGet: vi.fn().mockResolvedValue(videos) }
+  const videosApi = {
+    apiSessionsSessionIdVideosGet:
+      videos === "error"
+        ? vi.fn().mockRejectedValue(new Error("boom"))
+        : vi.fn().mockResolvedValue(videos),
+  }
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 
   const wrapper = ({ children }: { children: ReactNode }) => (
@@ -104,5 +109,15 @@ describe("useCoachSession", () => {
 
     await waitFor(() => expect(result.current.actualsFor("0-0").state).toBe("completed"))
     expect(result.current.actualsFor("9-9")).toMatchObject({ state: "pending", loadLb: null })
+  })
+
+  // A failed video request must not read as "no footage" — the page relies on
+  // videosError to tell the coach the counts are unreliable.
+  it("reports a video-list failure instead of swallowing it", async () => {
+    const { result } = renderCoachSession([log()], "error")
+
+    await waitFor(() => expect(result.current.videosError).toBe(true))
+    // The counts fall back to zero, which is exactly why the error must surface.
+    expect(result.current.actualsFor("0-0").videosTotal).toBe(0)
   })
 })

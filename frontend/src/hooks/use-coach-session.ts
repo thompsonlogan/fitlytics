@@ -96,5 +96,10 @@ export function useCoachSession(programId: string | undefined, programDayId: str
     actualsFor: (key: string): BlockActuals => actuals.get(key) ?? EMPTY,
     isLoading: sessionQuery.isLoading,
     notStarted: !sessionQuery.isLoading && session == null,
+    // Surfaced rather than swallowed: when the video list fails to load, the
+    // per-block counts read zero, which is indistinguishable from "no footage".
+    // The page shows an error so a coach isn't misled into skipping reviews.
+    videosError: !!session && videosQuery.isError,
+    refetchVideos: () => void videosQuery.refetch(),
   }
 }

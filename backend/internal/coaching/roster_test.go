@@ -7,8 +7,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-
-	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
 
 var refNow = time.Date(2026, 7, 18, 12, 0, 0, 0, time.UTC)
@@ -168,37 +166,9 @@ func TestCurrentWeek(t *testing.T) {
 	}
 }
 
-// ─── program recency ────────────────────────────────────────────────────────
-
-func TestIsMoreRecent(t *testing.T) {
-	at := func(offset int) *time.Time {
-		d := refNow.AddDate(0, 0, offset)
-		return &d
-	}
-	prog := func(start *time.Time, created time.Time) *generated.Program {
-		return &generated.Program{StartDate: start, CreatedAt: created}
-	}
-
-	for _, tc := range []struct {
-		name string
-		a, b *generated.Program
-		want bool
-	}{
-		{"later start wins", prog(at(-3), refNow), prog(at(-30), refNow), true},
-		{"earlier start loses", prog(at(-30), refNow), prog(at(-3), refNow), false},
-		{"dated beats undated", prog(at(-30), refNow), prog(nil, refNow), true},
-		{"undated loses to dated", prog(nil, refNow), prog(at(-30), refNow), false},
-		{"equal starts fall back to created_at", prog(at(-3), refNow), prog(at(-3), refNow.Add(-time.Hour)), true},
-		{"both undated fall back to created_at", prog(nil, refNow), prog(nil, refNow.Add(-time.Hour)), true},
-		{"identical is not more recent", prog(at(-3), refNow), prog(at(-3), refNow), false},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			if got := isMoreRecent(tc.a, tc.b); got != tc.want {
-				t.Errorf("want %v, got %v", tc.want, got)
-			}
-		})
-	}
-}
+// Program recency (latest-per-athlete) now lives in the DISTINCT ON ordering of
+// LatestProgramByUser's SQL rather than a Go helper, so it is exercised against
+// a real database instead of here.
 
 // ─── GetRoster ──────────────────────────────────────────────────────────────
 
