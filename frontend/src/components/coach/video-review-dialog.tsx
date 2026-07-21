@@ -44,9 +44,11 @@ export function VideoReviewDialog({
   sessionId,
   linkId,
 }: VideoReviewDialogProps) {
-  const filmed = blockLogs
-    .map((log, index) => ({ log, index, video: log.id ? videosBySetLogId.get(log.id) : undefined }))
-    .filter((s) => s.video?.status === "ready")
+  // Only the block's sets that actually have a ready clip, in one pass.
+  const filmed = blockLogs.flatMap((log, index) => {
+    const video = log.id ? videosBySetLogId.get(log.id) : undefined
+    return video?.status === "ready" ? [{ log, index, video }] : []
+  })
 
   const [cursor, setCursor] = useState(0)
   // Drafts are keyed by video id, not a single shared string: a coach who types

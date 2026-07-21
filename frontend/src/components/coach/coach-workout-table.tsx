@@ -22,6 +22,18 @@ type CoachWorkoutTableProps = {
   onOpenVideo: (key: string) => void
 }
 
+const COLUMNS: { key: string; header: string; align?: "right" | "center" }[] = [
+  { key: "state", header: "" },
+  { key: "exercise", header: "Exercise" },
+  { key: "sets", header: "Sets", align: "right" },
+  { key: "reps", header: "Reps", align: "right" },
+  { key: "prescription", header: "Prescription" },
+  { key: "target", header: "Target", align: "right" },
+  { key: "actual", header: "Actual", align: "right" },
+  { key: "rpe", header: "RPE", align: "center" },
+  { key: "video", header: "Video", align: "center" },
+]
+
 const STATE_ICON: Record<
   string,
   { Icon: typeof Check; className: string; label: string } | undefined
@@ -62,26 +74,16 @@ export function CoachWorkoutTable({ day, actualsFor, onOpenVideo }: CoachWorkout
       <Table containerClassName="min-h-0 flex-1 overflow-auto" className="text-[0.8125rem]">
         <TableHeader className="[&_tr]:border-b-0">
           <TableRow className="hover:bg-transparent">
-            {[
-              "",
-              "Exercise",
-              "Sets",
-              "Reps",
-              "Prescription",
-              "Target",
-              "Actual",
-              "RPE",
-              "Video",
-            ].map((label, i) => (
+            {COLUMNS.map(({ key, header, align }) => (
               <TableHead
-                key={label || `col-${i}`}
+                key={key}
                 className={cn(
                   "sticky top-0 z-10 h-auto border-b bg-background px-2.5 py-1.5 text-[0.6875rem] font-medium tracking-wider whitespace-nowrap text-muted-foreground uppercase",
-                  ["Sets", "Reps", "Target", "Actual"].includes(label) && "text-right",
-                  ["RPE", "Video"].includes(label) && "text-center"
+                  align === "right" && "text-right",
+                  align === "center" && "text-center"
                 )}
               >
-                {label}
+                {header}
               </TableHead>
             ))}
           </TableRow>

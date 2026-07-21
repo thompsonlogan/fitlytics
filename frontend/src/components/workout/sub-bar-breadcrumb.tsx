@@ -15,7 +15,7 @@ export function SubBarBreadcrumb({ crumbs }: { crumbs: Crumb[] }) {
       className="mb-1 flex items-center gap-1.5 text-[0.6875rem] font-medium tracking-wider text-muted-foreground uppercase"
     >
       {crumbs.map((crumb, i) => (
-        <Fragment key={`${crumb.label}-${i}`}>
+        <Fragment key={crumb.to ?? crumb.label}>
           {i > 0 && <ChevronRight className="size-2.5" />}
           {crumb.to ? (
             <Link to={crumb.to} className="transition-colors hover:text-foreground">
