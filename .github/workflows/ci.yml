@@ -71,11 +71,16 @@ jobs:
         run: pnpm test
       - name: Build
         run: pnpm build
-      # Ratchet: fail a PR only when it *introduces* new React Doctor issues,
-      # leaving the existing backlog to be paid down incrementally. Skipped on
-      # master pushes, where there's no PR merge base to diff against.
+      # React Doctor code-quality scan on PRs. Pinned to 0.8.1: `@latest` moved
+      # to 0.8.3, which (a) makes the CI checkout's detached-HEAD fall back to a
+      # full-repo scan — `--scope changed` finds no branch to diff — and (b)
+      # now exits non-zero on that scan, so it began failing PRs on the existing
+      # backlog rather than only newly-introduced issues. 0.8.1 was green on
+      # this branch. NOTE: `--scope changed` has in fact always fallen back to a
+      # full scan here; making it a true merge-base ratchet needs the base ref
+      # wired up, tracked separately.
       - name: React Doctor (block newly-introduced issues)
         if: github.event_name == 'pull_request'
         # Call the CLI directly — `pnpm doctor` resolves to pnpm's built-in
         # doctor command, not the `doctor` npm script.
-        run: npx react-doctor@latest --scope changed
+        run: npx react-doctor@0.8.1 --scope changed
