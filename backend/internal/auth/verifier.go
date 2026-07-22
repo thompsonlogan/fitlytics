@@ -16,7 +16,7 @@ import (
 type Claims struct {
 	SessionID      string   `json:"sid"`
 	OrganizationID string   `json:"org_id"`
-	Role           string   `json:"role"`
+	Role           Role     `json:"role"`
 	Permissions    []string `json:"permissions"`
 	jwt.RegisteredClaims
 }

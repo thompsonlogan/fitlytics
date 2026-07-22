@@ -12,6 +12,7 @@ import (
 
 	"github.com/thompsonlogan/fitlytics/backend/internal/apierr"
 	"github.com/thompsonlogan/fitlytics/backend/internal/auth"
+	"github.com/thompsonlogan/fitlytics/backend/internal/middleware"
 	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
 
@@ -19,14 +20,28 @@ func init() { gin.SetMode(gin.TestMode) }
 
 func withPrincipal(c *gin.Context, userID uuid.UUID) {
 	auth.SetPrincipal(c, &auth.Principal{User: &generated.User{ID: userID}})
+	middleware.SetResourceOwner(c, userID)
+}
+
+func newTestHandler(svc Service) *Handler {
+	guard := func(c *gin.Context) {
+		middleware.SetResourceOwner(c, auth.MustPrincipal(c).User.ID)
+		c.Next()
+	}
+	return NewHandler(svc, testLimits(), guard, guard, silentLogger())
 }
 
 type fakeService struct {
-	createFn   func(ctx context.Context, sessionID, setLogID, ownerID uuid.UUID, in CreateVideoUploadRequest) (*CreateVideoUploadResponse, error)
-	finalizeFn func(ctx context.Context, videoID, ownerID uuid.UUID) (*VideoResponse, error)
-	listFn     func(ctx context.Context, sessionID, ownerID uuid.UUID) ([]VideoResponse, error)
-	updateFn   func(ctx context.Context, videoID, ownerID uuid.UUID, in UpdateVideoRequest) (*VideoResponse, error)
-	deleteFn   func(ctx context.Context, videoID, ownerID uuid.UUID) error
+	createFn       func(ctx context.Context, sessionID, setLogID, ownerID uuid.UUID, in CreateVideoUploadRequest) (*CreateVideoUploadResponse, error)
+	finalizeFn     func(ctx context.Context, videoID, ownerID uuid.UUID) (*VideoResponse, error)
+	listFn         func(ctx context.Context, sessionID, ownerID uuid.UUID) ([]VideoResponse, error)
+	updateFn       func(ctx context.Context, videoID, ownerID uuid.UUID, in UpdateVideoRequest) (*VideoResponse, error)
+	deleteFn       func(ctx context.Context, videoID, ownerID uuid.UUID) error
+	markReviewedFn func(ctx context.Context, videoID, reviewerID uuid.UUID) (*VideoResponse, error)
+}
+
+func (f *fakeService) MarkReviewed(ctx context.Context, v, r uuid.UUID) (*VideoResponse, error) {
+	return f.markReviewedFn(ctx, v, r)
 }
 
 func (f *fakeService) CreateUpload(ctx context.Context, s, l, o uuid.UUID, in CreateVideoUploadRequest) (*CreateVideoUploadResponse, error) {
@@ -69,7 +84,7 @@ func TestHandlerCreateUpload_InvalidSessionID(t *testing.T) {
 		{Key: "setLogId", Value: uuid.NewString()},
 	})
 
-	NewHandler(&fakeService{}, testLimits(), silentLogger()).CreateUpload(c)
+	newTestHandler(&fakeService{}).CreateUpload(c)
 
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("want 400, got %d", w.Code)
@@ -86,7 +101,7 @@ func TestHandlerCreateUpload_QuotaReturns429(t *testing.T) {
 		{Key: "setLogId", Value: uuid.NewString()},
 	})
 
-	NewHandler(svc, testLimits(), silentLogger()).CreateUpload(c)
+	newTestHandler(svc).CreateUpload(c)
 
 	if w.Code != http.StatusTooManyRequests {
 		t.Fatalf("want 429, got %d", w.Code)
@@ -103,7 +118,7 @@ func TestHandlerCreateUpload_InvalidInputReturns400(t *testing.T) {
 		{Key: "setLogId", Value: uuid.NewString()},
 	})
 
-	NewHandler(svc, testLimits(), silentLogger()).CreateUpload(c)
+	newTestHandler(svc).CreateUpload(c)
 
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("want 400, got %d", w.Code)
@@ -120,7 +135,7 @@ func TestHandlerCreateUpload_Success201(t *testing.T) {
 		{Key: "setLogId", Value: uuid.NewString()},
 	})
 
-	NewHandler(svc, testLimits(), silentLogger()).CreateUpload(c)
+	newTestHandler(svc).CreateUpload(c)
 
 	if w.Code != http.StatusCreated {
 		t.Fatalf("want 201, got %d", w.Code)
@@ -136,7 +151,7 @@ func TestHandlerFinalize_NotFound404(t *testing.T) {
 	w := httptest.NewRecorder()
 	c := newCtx(w, http.MethodPost, "", gin.Params{{Key: "videoId", Value: uuid.NewString()}})
 
-	NewHandler(svc, testLimits(), silentLogger()).Finalize(c)
+	newTestHandler(svc).Finalize(c)
 
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("want 404, got %d", w.Code)
@@ -148,7 +163,7 @@ func TestHandlerDelete_Success204(t *testing.T) {
 	w := httptest.NewRecorder()
 	c := newCtx(w, http.MethodDelete, "", gin.Params{{Key: "videoId", Value: uuid.NewString()}})
 
-	NewHandler(svc, testLimits(), silentLogger()).Delete(c)
+	newTestHandler(svc).Delete(c)
 
 	// c.Status sets the code without flushing when the handler is invoked
 	// directly (the engine flushes in the normal request path), so assert the

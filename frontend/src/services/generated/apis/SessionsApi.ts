@@ -115,7 +115,7 @@ export class SessionsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Returns the most recent non-deleted session for the authenticated user on the given program day. 404 if none exists — the FE uses this to populate cell actuals on first render of a day without creating a session for users who are just browsing.
+     * Returns the most recent non-deleted session on the given program day, for the program\'s owner. Readable by that owner or by a coach with an active link to them. 404 if none exists — the FE uses this to populate cell actuals on first render of a day without creating a session for users who are just browsing.
      * Get the active session for a program day
      */
     async apiProgramsIdDaysDayIdSessionsCurrentGetRaw(requestParameters: ApiProgramsIdDaysDayIdSessionsCurrentGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SessionResponse>> {
@@ -152,7 +152,7 @@ export class SessionsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Returns the most recent non-deleted session for the authenticated user on the given program day. 404 if none exists — the FE uses this to populate cell actuals on first render of a day without creating a session for users who are just browsing.
+     * Returns the most recent non-deleted session on the given program day, for the program\'s owner. Readable by that owner or by a coach with an active link to them. 404 if none exists — the FE uses this to populate cell actuals on first render of a day without creating a session for users who are just browsing.
      * Get the active session for a program day
      */
     async apiProgramsIdDaysDayIdSessionsCurrentGet(requestParameters: ApiProgramsIdDaysDayIdSessionsCurrentGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SessionResponse> {

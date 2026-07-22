@@ -15,19 +15,21 @@ const TableNameSetVideo = "set_videos"
 
 // SetVideo mapped from table <set_videos>
 type SetVideo struct {
-	ID           uuid.UUID      `gorm:"column:id;type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	SetLogID     uuid.UUID      `gorm:"column:set_log_id;type:uuid;not null" json:"set_log_id"`
-	UserID       uuid.UUID      `gorm:"column:user_id;type:uuid;not null" json:"user_id"`
-	Status       string         `gorm:"column:status;type:text;not null;default:pending" json:"status"`
-	StorageKey   string         `gorm:"column:storage_key;type:text;not null" json:"storage_key"`
-	ContentType  *string        `gorm:"column:content_type;type:text" json:"content_type"`
-	SizeBytes    *int64         `gorm:"column:size_bytes;type:bigint" json:"size_bytes"`
-	DurationSec  *float64       `gorm:"column:duration_sec;type:numeric" json:"duration_sec"`
-	OriginalName *string        `gorm:"column:original_name;type:text" json:"original_name"`
-	Note         *string        `gorm:"column:note;type:text" json:"note"`
-	CreatedAt    time.Time      `gorm:"column:created_at;type:timestamp with time zone;not null;default:now()" json:"created_at"`
-	UpdatedAt    time.Time      `gorm:"column:updated_at;type:timestamp with time zone;not null;default:now()" json:"updated_at"`
-	DeletedAt    gorm.DeletedAt `gorm:"column:deleted_at;type:timestamp with time zone" json:"deleted_at"`
+	ID               uuid.UUID      `gorm:"column:id;type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	SetLogID         uuid.UUID      `gorm:"column:set_log_id;type:uuid;not null" json:"set_log_id"`
+	UserID           uuid.UUID      `gorm:"column:user_id;type:uuid;not null" json:"user_id"`
+	Status           string         `gorm:"column:status;type:text;not null;default:pending" json:"status"`
+	StorageKey       string         `gorm:"column:storage_key;type:text;not null" json:"storage_key"`
+	ContentType      *string        `gorm:"column:content_type;type:text" json:"content_type"`
+	SizeBytes        *int64         `gorm:"column:size_bytes;type:bigint" json:"size_bytes"`
+	DurationSec      *float64       `gorm:"column:duration_sec;type:numeric" json:"duration_sec"`
+	OriginalName     *string        `gorm:"column:original_name;type:text" json:"original_name"`
+	Note             *string        `gorm:"column:note;type:text" json:"note"`
+	CreatedAt        time.Time      `gorm:"column:created_at;type:timestamp with time zone;not null;default:now()" json:"created_at"`
+	UpdatedAt        time.Time      `gorm:"column:updated_at;type:timestamp with time zone;not null;default:now()" json:"updated_at"`
+	DeletedAt        gorm.DeletedAt `gorm:"column:deleted_at;type:timestamp with time zone" json:"deleted_at"`
+	ReviewedAt       *time.Time     `gorm:"column:reviewed_at;type:timestamp with time zone" json:"reviewed_at"`
+	ReviewedByUserID *uuid.UUID     `gorm:"column:reviewed_by_user_id;type:uuid" json:"reviewed_by_user_id"`
 }
 
 // TableName SetVideo's table name

@@ -2,7 +2,11 @@
 /* eslint-disable */
 export * from './BatchUpdateSetLogItem';
 export * from './BatchUpdateSetLogsRequest';
+export * from './CoachAthleteSummaryResponse';
+export * from './CoachLinkResponse';
+export * from './CoachNoteResponse';
 export * from './CompletedDayResponse';
+export * from './CreateCoachNoteRequest';
 export * from './CreateVideoUploadRequest';
 export * from './CreateVideoUploadResponse';
 export * from './MeResponse';

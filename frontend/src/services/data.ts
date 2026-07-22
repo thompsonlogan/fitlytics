@@ -1,4 +1,6 @@
 import { AuthApi } from "./generated/apis/AuthApi"
+import { CoachApi } from "./generated/apis/CoachApi"
+import { CoachingApi } from "./generated/apis/CoachingApi"
 import { ProgramsApi } from "./generated/apis/ProgramsApi"
 import { SessionsApi } from "./generated/apis/SessionsApi"
 import { VideosApi } from "./generated/apis/VideosApi"
@@ -10,6 +12,8 @@ import { Configuration, type ConfigurationParameters } from "./generated/runtime
 // per @Tags group in the swag annotations).
 export interface ServiceApis {
   authApi: AuthApi
+  coachApi: CoachApi
+  coachingApi: CoachingApi
   programsApi: ProgramsApi
   sessionsApi: SessionsApi
   videosApi: VideosApi
@@ -29,6 +33,8 @@ export function createServiceApis(configParams?: ConfigurationParameters): Servi
 
   return {
     authApi: new AuthApi(config),
+    coachApi: new CoachApi(config),
+    coachingApi: new CoachingApi(config),
     programsApi: new ProgramsApi(config),
     sessionsApi: new SessionsApi(config),
     videosApi: new VideosApi(config),

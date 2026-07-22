@@ -39,6 +39,7 @@ type Service interface {
 	CreateUpload(ctx context.Context, sessionID, setLogID, ownerID uuid.UUID, in CreateVideoUploadRequest) (*CreateVideoUploadResponse, error)
 	Finalize(ctx context.Context, videoID, ownerID uuid.UUID) (*VideoResponse, error)
 	ListForSession(ctx context.Context, sessionID, ownerID uuid.UUID) ([]VideoResponse, error)
+	MarkReviewed(ctx context.Context, videoID, reviewerID uuid.UUID) (*VideoResponse, error)
 	UpdateNote(ctx context.Context, videoID, ownerID uuid.UUID, in UpdateVideoRequest) (*VideoResponse, error)
 	Delete(ctx context.Context, videoID, ownerID uuid.UUID) error
 }
@@ -217,6 +218,19 @@ func (s *service) ListForSession(ctx context.Context, sessionID, ownerID uuid.UU
 		out = append(out, mapVideo(row, playback))
 	}
 	return out, nil
+}
+
+func (s *service) MarkReviewed(ctx context.Context, videoID, reviewerID uuid.UUID) (*VideoResponse, error) {
+	row, err := s.repo.MarkReviewed(ctx, videoID, reviewerID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, apierr.ErrNotFound
+		}
+		return nil, fmt.Errorf("mark video reviewed: %w", err)
+	}
+
+	resp := mapVideo(*row, s.playbackURL(ctx, row.StorageKey))
+	return &resp, nil
 }
 
 func (s *service) UpdateNote(ctx context.Context, videoID, ownerID uuid.UUID, in UpdateVideoRequest) (*VideoResponse, error) {

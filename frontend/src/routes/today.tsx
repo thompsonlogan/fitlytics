@@ -88,7 +88,7 @@ export function TodayPage() {
   return (
     <div className="grid min-h-0" style={{ gridTemplateRows: "auto minmax(0,1fr)" }}>
       <SubBar
-        programName={program?.name ?? "Loading…"}
+        breadcrumb={[{ label: "Programs" }, { label: program?.name ?? "Loading…" }]}
         weekCount={Math.max(1, weekCount)}
         days={days}
         week={week}

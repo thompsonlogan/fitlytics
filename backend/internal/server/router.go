@@ -10,7 +10,9 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"gorm.io/gorm"
 
+	"github.com/thompsonlogan/fitlytics/backend/internal/access"
 	"github.com/thompsonlogan/fitlytics/backend/internal/auth"
+	"github.com/thompsonlogan/fitlytics/backend/internal/coaching"
 	"github.com/thompsonlogan/fitlytics/backend/internal/handlers"
 	"github.com/thompsonlogan/fitlytics/backend/internal/middleware"
 	"github.com/thompsonlogan/fitlytics/backend/internal/programs"
@@ -65,14 +67,28 @@ func NewRouter(deps Dependencies, isProduction bool) *gin.Engine {
 	// each feature can be tested in isolation without booting the router.
 	programsRepo := programs.NewRepository(deps.DB)
 	programsService := programs.NewService(programsRepo)
-	programsHandler := programs.NewHandler(programsService, deps.Log)
+
+	coachingRepo := coaching.NewRepository(deps.DB)
+	accessChecker := access.NewChecker(coachingRepo)
+
+	programRead := middleware.RequireProgramRead(programsRepo, accessChecker, deps.Log)
+
+	programsHandler := programs.NewHandler(programsService, programRead, deps.Log)
 
 	sessionsRepo := sessions.NewRepository(deps.DB)
 	sessionsService := sessions.NewService(sessionsRepo)
-	sessionsHandler := sessions.NewHandler(sessionsService, deps.Log)
+	sessionsHandler := sessions.NewHandler(sessionsService, programRead, deps.Log)
 
-	videosService := videos.NewService(videos.NewRepository(deps.DB), deps.VideoStore, deps.VideoLimits, deps.Log)
-	videosHandler := videos.NewHandler(videosService, deps.VideoLimits, deps.Log)
+	videosRepo := videos.NewRepository(deps.DB)
+	videosService := videos.NewService(videosRepo, deps.VideoStore, deps.VideoLimits, deps.Log)
+
+	sessionRead := middleware.RequireSessionRead(videosRepo, accessChecker, deps.Log)
+	videoReviewer := middleware.RequireVideoReviewer(videosRepo, accessChecker, deps.Log)
+
+	videosHandler := videos.NewHandler(videosService, deps.VideoLimits, sessionRead, videoReviewer, deps.Log)
+
+	linkParticipant := middleware.RequireLinkParticipant(coachingRepo, deps.Log)
+	coachingHandler := coaching.NewHandler(coaching.NewService(coachingRepo), linkParticipant, deps.Log)
 
 	// Authenticated routes — every handler below can call auth.MustPrincipal.
 	api := r.Group("/api")
@@ -88,6 +104,13 @@ func NewRouter(deps Dependencies, isProduction bool) *gin.Engine {
 		programsHandler.Register(api)
 		sessionsHandler.Register(api)
 		videosHandler.Register(api)
+		coachingHandler.RegisterShared(api)
+	}
+
+	coach := api.Group("/coach")
+	coach.Use(middleware.RequireRole(auth.RoleCoach, deps.Log))
+	{
+		coachingHandler.Register(coach)
 	}
 
 	return r

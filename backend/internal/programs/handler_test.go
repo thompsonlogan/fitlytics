@@ -15,6 +15,7 @@ import (
 
 	"github.com/thompsonlogan/fitlytics/backend/internal/apierr"
 	"github.com/thompsonlogan/fitlytics/backend/internal/auth"
+	"github.com/thompsonlogan/fitlytics/backend/internal/middleware"
 	"github.com/thompsonlogan/fitlytics/backend/internal/models/generated"
 )
 
@@ -39,11 +40,20 @@ func newTestContext(t *testing.T, principalUserID uuid.UUID, idParam string) (*g
 	auth.SetPrincipal(c, &auth.Principal{
 		User: &generated.User{ID: principalUserID},
 	})
+	middleware.SetResourceOwner(c, principalUserID)
 	return c, w
 }
 
+func newTestHandler(svc Service) *Handler {
+	guard := func(c *gin.Context) {
+		middleware.SetResourceOwner(c, auth.MustPrincipal(c).User.ID)
+		c.Next()
+	}
+	return NewHandler(svc, guard, silentLogger())
+}
+
 func TestHandler_GetProgramById_InvalidUUIDReturns400(t *testing.T) {
-	h := NewHandler(&fakeService{}, silentLogger())
+	h := newTestHandler(&fakeService{})
 	c, w := newTestContext(t, uuid.New(), "not-a-uuid")
 
 	h.GetProgramById(c)
@@ -71,7 +81,7 @@ func TestHandler_GetProgramById_ServiceNotFoundReturns404(t *testing.T) {
 	}
 	c, w := newTestContext(t, uuid.New(), uuid.NewString())
 
-	NewHandler(svc, silentLogger()).GetProgramById(c)
+	newTestHandler(svc).GetProgramById(c)
 
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("status: want 404, got %d", w.Code)
@@ -96,7 +106,7 @@ func TestHandler_GetProgramById_GenericServiceErrorReturns500(t *testing.T) {
 	}
 	c, w := newTestContext(t, uuid.New(), uuid.NewString())
 
-	NewHandler(svc, silentLogger()).GetProgramById(c)
+	newTestHandler(svc).GetProgramById(c)
 
 	if w.Code != http.StatusInternalServerError {
 		t.Fatalf("status: want 500, got %d", w.Code)
@@ -132,7 +142,7 @@ func TestHandler_GetProgramById_SuccessReturns200WithJSON(t *testing.T) {
 	}
 
 	c, w := newTestContext(t, userID, programID.String())
-	NewHandler(svc, silentLogger()).GetProgramById(c)
+	newTestHandler(svc).GetProgramById(c)
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("status: want 200, got %d (body=%s)", w.Code, w.Body.String())
@@ -181,7 +191,7 @@ func TestHandler_GetProgramsByUserId_SuccessReturnsArray(t *testing.T) {
 	}
 
 	c, w := newListTestContext(t, userID)
-	NewHandler(svc, silentLogger()).GetProgramsByUserId(c)
+	newTestHandler(svc).GetProgramsByUserId(c)
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("status: want 200, got %d (body=%s)", w.Code, w.Body.String())
@@ -207,7 +217,7 @@ func TestHandler_GetProgramsByUserId_EmptyReturnsEmptyArray(t *testing.T) {
 	}
 
 	c, w := newListTestContext(t, uuid.New())
-	NewHandler(svc, silentLogger()).GetProgramsByUserId(c)
+	newTestHandler(svc).GetProgramsByUserId(c)
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("status: want 200, got %d", w.Code)
@@ -225,7 +235,7 @@ func TestHandler_GetProgramsByUserId_ServiceErrorReturns500(t *testing.T) {
 	}
 
 	c, w := newListTestContext(t, uuid.New())
-	NewHandler(svc, silentLogger()).GetProgramsByUserId(c)
+	newTestHandler(svc).GetProgramsByUserId(c)
 
 	if w.Code != http.StatusInternalServerError {
 		t.Fatalf("status: want 500, got %d", w.Code)
@@ -252,7 +262,7 @@ func TestHandlerRegisterMountsRoute(t *testing.T) {
 		},
 	}
 
-	h := NewHandler(svc, silentLogger())
+	h := newTestHandler(svc)
 
 	g.Use(func(c *gin.Context) {
 		auth.SetPrincipal(c, &auth.Principal{User: &generated.User{ID: uuid.New()}})

@@ -18,6 +18,8 @@ import (
 func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 	return &Query{
 		db:                db,
+		CoachAthlete:      newCoachAthlete(db, opts...),
+		CoachNote:         newCoachNote(db, opts...),
 		Equipment:         newEquipment(db, opts...),
 		Exercise:          newExercise(db, opts...),
 		ExerciseEquipment: newExerciseEquipment(db, opts...),
@@ -38,6 +40,8 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 type Query struct {
 	db *gorm.DB
 
+	CoachAthlete      coachAthlete
+	CoachNote         coachNote
 	Equipment         equipment
 	Exercise          exercise
 	ExerciseEquipment exerciseEquipment
@@ -59,6 +63,8 @@ func (q *Query) Available() bool { return q.db != nil }
 func (q *Query) clone(db *gorm.DB) *Query {
 	return &Query{
 		db:                db,
+		CoachAthlete:      q.CoachAthlete.clone(db),
+		CoachNote:         q.CoachNote.clone(db),
 		Equipment:         q.Equipment.clone(db),
 		Exercise:          q.Exercise.clone(db),
 		ExerciseEquipment: q.ExerciseEquipment.clone(db),
@@ -87,6 +93,8 @@ func (q *Query) WriteDB() *Query {
 func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 	return &Query{
 		db:                db,
+		CoachAthlete:      q.CoachAthlete.replaceDB(db),
+		CoachNote:         q.CoachNote.replaceDB(db),
 		Equipment:         q.Equipment.replaceDB(db),
 		Exercise:          q.Exercise.replaceDB(db),
 		ExerciseEquipment: q.ExerciseEquipment.replaceDB(db),
@@ -105,6 +113,8 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 }
 
 type queryCtx struct {
+	CoachAthlete      *coachAthleteDo
+	CoachNote         *coachNoteDo
 	Equipment         *equipmentDo
 	Exercise          *exerciseDo
 	ExerciseEquipment *exerciseEquipmentDo
@@ -123,6 +133,8 @@ type queryCtx struct {
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
 	return &queryCtx{
+		CoachAthlete:      q.CoachAthlete.WithContext(ctx),
+		CoachNote:         q.CoachNote.WithContext(ctx),
 		Equipment:         q.Equipment.WithContext(ctx),
 		Exercise:          q.Exercise.WithContext(ctx),
 		ExerciseEquipment: q.ExerciseEquipment.WithContext(ctx),
