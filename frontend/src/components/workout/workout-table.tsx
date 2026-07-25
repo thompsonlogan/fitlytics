@@ -8,7 +8,8 @@ import {
 import { Moon } from "lucide-react"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import { LoadCellInput } from "@/components/workout/load-cell-input"
+import { RpeCellInput } from "@/components/workout/rpe-cell-input"
 import { SetStateCell } from "@/components/workout/set-state-cell"
 import { type SetState } from "@/components/workout/set-state"
 import { VideoCell } from "@/components/workout/video-cell"
@@ -144,34 +145,16 @@ const COLUMNS = [
     cell: ({ row, table }) => {
       const meta = table.options.meta as WorkoutTableMeta
       const r = row.original
-      const edited = meta.loadEdits[r.key]
-      // Session actual overrides the program's empty `used` field. Local edit
-      // wins while the user is typing.
-      const persisted = meta.persistedLoad[r.key]
-      const fallback = persisted == null || persisted === "" ? "" : String(persisted)
-      const value = edited != null ? edited : fallback
-      const isEmpty = value === ""
-      const errorMsg = meta.cellErrors[`${r.key}:load`]
       return (
-        <span className="inline-flex items-center gap-1 tabular-nums">
-          <Input
-            value={value}
-            onChange={(e) => meta.onEditLoad(r.key, e.target.value)}
-            onBlur={(e) => meta.onBlurLoad(r.key, e.target.value)}
-            placeholder="—"
-            inputMode="numeric"
-            maxLength={4}
-            title={errorMsg}
-            aria-invalid={!!errorMsg}
-            data-testid={`load-input-${r.key}`}
-            className={cn(
-              "h-6 w-14 border-transparent bg-transparent px-1.5 text-right text-[0.8125rem] tabular-nums shadow-none hover:border-input hover:bg-background",
-              isEmpty && "text-muted-foreground",
-              errorMsg && "border-destructive bg-destructive/10 text-destructive"
-            )}
-          />
-          <span className="text-xs text-muted-foreground">lb</span>
-        </span>
+        <LoadCellInput
+          cellKey={r.key}
+          edited={meta.loadEdits[r.key]}
+          persisted={meta.persistedLoad[r.key]}
+          error={meta.cellErrors[`${r.key}:load`]}
+          onEdit={meta.onEditLoad}
+          onBlur={meta.onBlurLoad}
+          className="h-6 w-14 border-transparent bg-transparent px-1.5 text-right text-[0.8125rem] tabular-nums shadow-none hover:border-input hover:bg-background"
+        />
       )
     },
   }),
@@ -181,32 +164,17 @@ const COLUMNS = [
     cell: ({ row, table }) => {
       const meta = table.options.meta as WorkoutTableMeta
       const r = row.original
-      const edited = meta.rpeEdits[r.key]
-      // Session actual is the source of truth. We don't pre-populate from
-      // prescribed_rpe — this cell is "what you actually felt", not "what was
-      // targeted".
-      const persisted = meta.persistedRpe[r.key]
-      const fallback = persisted == null ? "" : String(persisted)
-      const value = edited != null ? edited : fallback
-      const isEmpty = value === ""
-      const errorMsg = meta.cellErrors[`${r.key}:rpe`]
       return (
-        <Input
-          value={value}
-          onChange={(e) => meta.onEditRpe(r.key, e.target.value)}
-          onBlur={(e) => meta.onBlurRpe(r.key, e.target.value)}
-          placeholder="—"
-          inputMode="numeric"
-          maxLength={2}
-          aria-label={`RPE for ${r.exercise.name} set ${r.blIdx + 1}`}
-          aria-invalid={!!errorMsg}
-          title={errorMsg}
-          data-testid={`rpe-input-${r.key}`}
-          className={cn(
-            "mx-auto inline-flex h-[1.125rem] w-10 items-center justify-center rounded-full border-transparent bg-muted px-1.5 text-center text-[0.6875rem] font-medium tabular-nums shadow-none hover:border-input hover:bg-background focus-visible:bg-background",
-            isEmpty && "border border-dashed border-border bg-transparent text-muted-foreground",
-            errorMsg && "border border-destructive bg-destructive/10 text-destructive"
-          )}
+        <RpeCellInput
+          cellKey={r.key}
+          edited={meta.rpeEdits[r.key]}
+          persisted={meta.persistedRpe[r.key]}
+          error={meta.cellErrors[`${r.key}:rpe`]}
+          ariaLabel={`RPE for ${r.exercise.name} set ${r.blIdx + 1}`}
+          onEdit={meta.onEditRpe}
+          onBlur={meta.onBlurRpe}
+          className="mx-auto inline-flex h-[1.125rem] w-10 items-center justify-center rounded-full border-transparent bg-muted px-1.5 text-center text-[0.6875rem] font-medium tabular-nums shadow-none hover:border-input hover:bg-background focus-visible:bg-background"
+          emptyClassName="border border-dashed border-border bg-transparent text-muted-foreground"
         />
       )
     },
