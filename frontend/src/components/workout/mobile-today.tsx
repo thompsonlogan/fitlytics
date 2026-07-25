@@ -1,5 +1,5 @@
 import { MobileDayBoard, MobileDayBoardSkeleton } from "@/components/workout/mobile-day-board"
-import { MobileSubBar } from "@/components/workout/mobile-sub-bar"
+import { SubBar } from "@/components/workout/sub-bar"
 import { type Program, type ProgramDay } from "@/lib/program-data"
 
 type MobileTodayProps = {
@@ -41,8 +41,8 @@ export function MobileToday({
 }: MobileTodayProps) {
   return (
     <>
-      <MobileSubBar
-        programName={programName}
+      <SubBar
+        breadcrumb={[{ label: "Programs" }, { label: programName }]}
         weekCount={weekCount}
         days={days}
         week={week}

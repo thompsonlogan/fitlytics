@@ -1,9 +1,10 @@
-import { CalendarCheck2, ChevronLeft, ChevronRight } from "lucide-react"
+import { CalendarCheck2 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DaySelector } from "@/components/workout/day-selector"
 import { SubBarBreadcrumb, type Crumb } from "@/components/workout/sub-bar-breadcrumb"
+import { WeekPager } from "@/components/workout/week-pager"
 import { type ProgramDay } from "@/lib/program-data"
 
 type SubBarProps = {
@@ -19,7 +20,7 @@ type SubBarProps = {
   completedDays: Record<string, boolean>
   onWeekChange: (next: number) => void
   onDayChange: (next: number) => void
-  onResetToToday: () => void
+  onResetToToday?: () => void
 }
 
 export function SubBar({
@@ -38,52 +39,41 @@ export function SubBar({
   onResetToToday,
 }: SubBarProps) {
   const isToday = todayWeek === week && todayDayIndex === dayIndex
-  const showTodayButton = todayWeek != null && todayDayIndex != null && !isToday
+  const showTodayButton =
+    onResetToToday != null && todayWeek != null && todayDayIndex != null && !isToday
+
   return (
-    <div className="flex flex-wrap items-center gap-3 border-b bg-background px-5 py-3.5">
-      <div className="min-w-0 flex-shrink">
+    <div className="border-b bg-background px-3.5 pt-3.5 pb-4 md:flex md:flex-wrap md:items-center md:gap-3 md:px-5 md:py-3.5">
+      <div className="min-w-0 flex-shrink overflow-hidden [&>nav]:mb-0 [&>nav]:text-[0.625rem] md:[&>nav]:mb-1 md:[&>nav]:text-[0.6875rem] [&>nav>a:last-child]:truncate [&>nav>span:last-child]:truncate">
         <SubBarBreadcrumb crumbs={breadcrumb} />
-        <div className="flex items-center gap-2 text-[1.0625rem] font-semibold tracking-tight whitespace-nowrap">
-          <span>{dayData.off ? "Rest day" : dayData.name}</span>
-          <span className="font-medium text-muted-foreground">
-            · Week {week} · {dayData.tag}
-          </span>
+        <div className="mt-1.5 flex items-start gap-2.5 md:mt-0 md:items-center md:gap-2 md:whitespace-nowrap">
+          <div className="min-w-0 flex-1 md:flex md:items-center md:gap-2">
+            <span className="block text-xl font-semibold tracking-tight md:text-[1.0625rem]">
+              {dayData.off ? "Rest day" : dayData.name}
+            </span>
+            <span className="mt-0.5 block text-[0.8125rem] font-medium text-muted-foreground md:mt-0 md:inline">
+              <span className="hidden md:inline">· </span>
+              Week {week} · {dayData.tag}
+            </span>
+          </div>
           {isToday && (
-            <Badge variant="outline" className="ml-1">
+            <Badge variant="outline" className="mt-1 flex-none md:mt-0 md:ml-1">
               Today
             </Badge>
           )}
         </div>
       </div>
 
-      <div className="flex-1" />
+      <div className="hidden md:block md:flex-1" />
 
-      <div
-        className="inline-flex h-7 items-stretch overflow-hidden rounded-md border bg-background"
-        aria-label="Week selector"
-      >
-        <button
-          type="button"
-          className="inline-flex w-7 items-center justify-center text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
-          onClick={() => onWeekChange(Math.max(1, week - 1))}
-          disabled={week === 1}
-          title="Previous week"
-        >
-          <ChevronLeft className="size-3.5" />
-        </button>
-        <span className="inline-flex min-w-20 items-center justify-center border-x px-2 text-[0.8125rem] font-medium">
-          Week {week}
-        </span>
-        <button
-          type="button"
-          className="inline-flex w-7 items-center justify-center text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
-          onClick={() => onWeekChange(Math.min(weekCount, week + 1))}
-          disabled={week === weekCount}
-          title="Next week"
-        >
-          <ChevronRight className="size-3.5" />
-        </button>
-      </div>
+      <WeekPager
+        week={week}
+        weekCount={weekCount}
+        onWeekChange={onWeekChange}
+        className="mt-3.5 h-8 w-full md:mt-0 md:h-7 md:w-auto"
+        buttonClassName="w-9 md:w-7"
+        labelClassName="flex-1 md:min-w-20 md:flex-none md:px-2"
+      />
 
       <DaySelector
         days={days}
@@ -94,10 +84,16 @@ export function SubBar({
         startDate={startDate}
         completedDays={completedDays}
         onDayChange={onDayChange}
+        className="mt-2.5 [scrollbar-width:none] overflow-x-auto md:mt-0 md:overflow-visible [&::-webkit-scrollbar]:hidden [&>button]:min-w-13 [&>button]:flex-1 md:[&>button]:flex-none"
       />
 
       {showTodayButton && (
-        <Button variant="outline" size="sm" onClick={onResetToToday}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onResetToToday}
+          className="hidden md:inline-flex"
+        >
           <CalendarCheck2 className="size-3.5" />
           Today
         </Button>
