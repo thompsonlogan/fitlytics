@@ -153,6 +153,40 @@ Postgres 16 via Docker Compose in `database/`. Flyway manages schema migrations.
 - Repeatable migrations (views, seed data): `database/flyway/sql_repeatable/`
 - All DDL must use `IF (NOT) EXISTS` guards for idempotent re-runs
 
+## Responsive design (web + mobile)
+
+The app serves two viewports from one codebase: desktop web and phone
+(≤767px — `MOBILE_MAX_WIDTH` in `src/lib/breakpoints.ts`, deliberately one
+pixel under Tailwind's `md`). When a page or component must differ between
+them, use the **weakest tool that works**, escalating only when the current
+rung provably cannot express the difference:
+
+1. **Tailwind responsive classes** — when only spacing, columns, ordering,
+   or visibility change. Exemplar: `day-board.tsx` (`lg:` grid, side panel
+   `hidden lg:block`). This should cover most cases.
+2. **A `layout` prop on one shared component** — when the content is
+   identical but its arrangement differs. Exemplar: `side-panel.tsx`
+   (`layout="panel" | "stack"`).
+3. **Forked presentation components** — only when the DOM structure is
+   fundamentally different (a `<table>` vs a card list; top nav vs bottom
+   tab bar). Exemplar: `workout-table.tsx` vs `mobile-exercise-card.tsx`.
+   Three rules make a fork acceptable:
+   - the fork sits at the **lowest** node where structure actually diverges,
+     never higher;
+   - **all** behavior lives in a shared headless hook (`use-day-board.ts`,
+     `use-cell-logging.ts`) — a mobile variant never re-implements logic;
+   - interactive leaves (inputs, state cells, video triggers) are shared
+     components both variants compose — markup may fork, widgets may not.
+4. **Never fork a page.** Route components own data fetching and state
+   exactly once and render adaptive sections. `useIsMobile` belongs in
+   section-level components choosing between rung-3 variants — never in a
+   route file, and never to duplicate state plumbing.
+
+Naming: a rung-3 phone variant is `mobile-<name>.tsx` next to its desktop
+counterpart, and both must consume the same hook and the same leaf
+components. If you find yourself passing a page's state through a dozen
+props to reach a `Mobile*` component, the fork is too high — move it down.
+
 ## Conventions
 
 - Backend follows a layered architecture: handler -> service -> repository
