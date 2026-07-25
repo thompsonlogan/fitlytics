@@ -8,9 +8,11 @@ import {
   redirect,
 } from "@tanstack/react-router"
 
+import { CoachLayout } from "@/components/coach/coach-layout"
 import { AppLayout } from "@/components/workout/app-layout"
 import { NotFoundPage } from "@/components/not-found/not-found-page"
 import { fetchMe, ME_KEY } from "@/hooks/use-auth"
+import { isCoach } from "@/lib/is-coach"
 import type { ServiceApis } from "@/services/data"
 
 const WORKOS_LOGIN = "/auth/login"
@@ -51,6 +53,36 @@ const todayRoute = createRoute({
   component: lazyRouteComponent(() => import("@/routes/today"), "TodayPage"),
 })
 
+const coachLayoutRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  id: "coach",
+  beforeLoad: async ({ context }) => {
+    const me = await context.queryClient.ensureQueryData({
+      queryKey: ME_KEY,
+      queryFn: () => fetchMe(context.services.authApi),
+    })
+    if (!me) {
+      throw redirect({ href: WORKOS_LOGIN })
+    }
+    if (!isCoach(me)) {
+      throw redirect({ to: "/today" })
+    }
+  },
+  component: CoachLayout,
+})
+
+const coachRosterRoute = createRoute({
+  getParentRoute: () => coachLayoutRoute,
+  path: "/coach",
+  component: lazyRouteComponent(() => import("@/routes/coach-roster"), "CoachRosterPage"),
+})
+
+const coachAthleteRoute = createRoute({
+  getParentRoute: () => coachLayoutRoute,
+  path: "/coach/athletes/$athleteId",
+  component: lazyRouteComponent(() => import("@/routes/coach-athlete"), "CoachAthletePage"),
+})
+
 const programRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/program",
@@ -70,6 +102,7 @@ const analyticsRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   indexRoute,
   appLayoutRoute.addChildren([todayRoute]),
+  coachLayoutRoute.addChildren([coachRosterRoute, coachAthleteRoute]),
   programRoute,
   historyRoute,
   analyticsRoute,

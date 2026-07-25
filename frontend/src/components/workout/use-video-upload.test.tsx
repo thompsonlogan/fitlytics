@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { act, renderHook, waitFor } from "@testing-library/react"
-import type { ChangeEvent } from "react"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import type { ChangeEvent, ReactNode } from "react"
 
 import { toast } from "sonner"
 
 import { useVideoUpload } from "./use-video-upload"
-import { MAX_VIDEO_BYTES } from "@/hooks/use-set-videos"
+import { MAX_VIDEO_BYTES, sessionVideosQueryKey } from "@/hooks/use-set-videos"
 import type { SetBlock } from "@/lib/program-data"
 import type { SetLogResponse, VideoResponse } from "@/services/generated"
 
@@ -62,6 +63,19 @@ function pickEvent(file: File): ChangeEvent<HTMLInputElement> {
   return { target: { files: [file], value: "" } } as unknown as ChangeEvent<HTMLInputElement>
 }
 
+function renderUseVideoUpload(opts: Opts = makeOpts()) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  })
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  )
+  return {
+    queryClient,
+    ...renderHook(() => useVideoUpload(opts), { wrapper }),
+  }
+}
+
 const mp4 = () => new File(["x"], "lift.mp4", { type: "video/mp4" })
 
 beforeEach(() => {
@@ -74,7 +88,7 @@ beforeEach(() => {
 
 describe("useVideoUpload — staging", () => {
   it("rejects an unsupported file type without staging", async () => {
-    const { result } = renderHook(() => useVideoUpload(makeOpts()))
+    const { result } = renderUseVideoUpload()
     act(() => result.current.onPick(pickEvent(new File(["x"], "a.png", { type: "image/png" }))))
     await waitFor(() => expect(result.current.localError).toBe("Use an MP4, MOV or WebM video."))
     expect(result.current.staged).toBeUndefined()
@@ -83,7 +97,7 @@ describe("useVideoUpload — staging", () => {
   it("rejects a file over the size cap", async () => {
     const big = mp4()
     Object.defineProperty(big, "size", { value: MAX_VIDEO_BYTES + 1 })
-    const { result } = renderHook(() => useVideoUpload(makeOpts()))
+    const { result } = renderUseVideoUpload()
     act(() => result.current.onPick(pickEvent(big)))
     await waitFor(() => expect(result.current.localError).toMatch(/over the/))
     expect(result.current.staged).toBeUndefined()
@@ -91,7 +105,7 @@ describe("useVideoUpload — staging", () => {
 
   it("stages a valid file with its probed duration", async () => {
     const file = mp4()
-    const { result } = renderHook(() => useVideoUpload(makeOpts()))
+    const { result } = renderUseVideoUpload()
     act(() => result.current.onPick(pickEvent(file)))
     await waitFor(() => expect(result.current.staged).toBeDefined())
     expect(result.current.staged?.file).toBe(file)
@@ -102,7 +116,7 @@ describe("useVideoUpload — staging", () => {
 
 describe("useVideoUpload — confirmUpload", () => {
   it("does nothing when no file is staged", async () => {
-    const { result } = renderHook(() => useVideoUpload(makeOpts()))
+    const { result } = renderUseVideoUpload()
     await act(async () => {
       await result.current.confirmUpload()
     })
@@ -112,7 +126,7 @@ describe("useVideoUpload — confirmUpload", () => {
   it("uploads the staged file to the resolved set log, then clears the preview", async () => {
     const ensureSetLog = vi.fn().mockResolvedValue({ sessionId: "s1", setLogId: "log0" })
     const file = mp4()
-    const { result } = renderHook(() => useVideoUpload(makeOpts({ ensureSetLog })))
+    const { result } = renderUseVideoUpload(makeOpts({ ensureSetLog }))
 
     act(() => result.current.onPick(pickEvent(file)))
     await waitFor(() => expect(result.current.staged).toBeDefined())
@@ -135,7 +149,7 @@ describe("useVideoUpload — confirmUpload", () => {
 
   it("surfaces an error and skips upload when the set can't be prepared", async () => {
     const ensureSetLog = vi.fn().mockResolvedValue(undefined)
-    const { result } = renderHook(() => useVideoUpload(makeOpts({ ensureSetLog })))
+    const { result } = renderUseVideoUpload(makeOpts({ ensureSetLog }))
 
     act(() => result.current.onPick(pickEvent(mp4())))
     await waitFor(() => expect(result.current.staged).toBeDefined())
@@ -150,30 +164,73 @@ describe("useVideoUpload — confirmUpload", () => {
 })
 
 describe("useVideoUpload — existing video", () => {
-  const withReadyVideo = () =>
+  const withReadyVideo = (overrides: Partial<Opts> = {}) =>
     makeOpts({
       videosBySetLogId: new Map<string, VideoResponse>([
-        ["log0", { id: "v0", status: "ready", note: "" } as VideoResponse],
+        [
+          "log0",
+          {
+            id: "v0",
+            status: "ready",
+            note: "",
+            playbackUrl: "https://r2/old",
+          } as VideoResponse,
+        ],
       ]),
+      ...overrides,
     })
 
   it("exposes the current set's ready video", () => {
-    const { result } = renderHook(() => useVideoUpload(withReadyVideo()))
+    const { result } = renderUseVideoUpload(withReadyVideo())
     expect(result.current.isReady).toBe(true)
     expect(result.current.currentVideo?.id).toBe("v0")
     expect(result.current.filmedCount).toBe(1)
   })
 
   it("deletes the current set's video on remove", async () => {
-    const { result } = renderHook(() => useVideoUpload(withReadyVideo()))
+    const { result } = renderUseVideoUpload(withReadyVideo())
     await act(async () => {
       await result.current.handleRemove()
     })
     expect(deleteMutateAsync).toHaveBeenCalledWith({ sessionId: "s1", videoId: "v0" })
   })
 
+  it("refreshes the session videos silently on the first saved-playback error", () => {
+    const { result, queryClient } = renderUseVideoUpload(withReadyVideo())
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries")
+
+    act(() => result.current.handlePlaybackError("https://r2/old"))
+
+    expect(invalidate).toHaveBeenCalledOnce()
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: sessionVideosQueryKey("s1") })
+    expect(result.current.erroredSrc).toBeNull()
+  })
+
+  it("shows the format warning on a second saved-playback error for the same video", () => {
+    const { result, queryClient } = renderUseVideoUpload(withReadyVideo())
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries")
+
+    act(() => result.current.handlePlaybackError("https://r2/old"))
+    act(() => result.current.handlePlaybackError("https://r2/old"))
+
+    expect(invalidate).toHaveBeenCalledOnce()
+    expect(result.current.erroredSrc).toBe("https://r2/old")
+  })
+
+  it("shows the format warning immediately when playback cannot refresh without a session", () => {
+    const { result, queryClient } = renderUseVideoUpload(
+      withReadyVideo({ sessionId: undefined })
+    )
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries")
+
+    act(() => result.current.handlePlaybackError("https://r2/old"))
+
+    expect(invalidate).not.toHaveBeenCalled()
+    expect(result.current.erroredSrc).toBe("https://r2/old")
+  })
+
   it("saves a changed note but skips an unchanged one", async () => {
-    const { result } = renderHook(() => useVideoUpload(withReadyVideo()))
+    const { result } = renderUseVideoUpload(withReadyVideo())
 
     act(() => result.current.setNoteDraft("felt heavy"))
     await waitFor(() => expect(result.current.noteValue).toBe("felt heavy"))
@@ -195,7 +252,7 @@ describe("useVideoUpload — existing video", () => {
 describe("useVideoUpload — close", () => {
   it("drops staged files and notifies the parent on close", async () => {
     const onOpenChange = vi.fn()
-    const { result } = renderHook(() => useVideoUpload(makeOpts({ onOpenChange })))
+    const { result } = renderUseVideoUpload(makeOpts({ onOpenChange }))
 
     act(() => result.current.onPick(pickEvent(mp4())))
     await waitFor(() => expect(result.current.staged).toBeDefined())

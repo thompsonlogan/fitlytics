@@ -3,10 +3,11 @@ import { CalendarCheck2, ChevronLeft, ChevronRight } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DaySelector } from "@/components/workout/day-selector"
+import { SubBarBreadcrumb, type Crumb } from "@/components/workout/sub-bar-breadcrumb"
 import { type ProgramDay } from "@/lib/program-data"
 
 type SubBarProps = {
-  programName: string
+  breadcrumb: Crumb[]
   weekCount: number
   days: ProgramDay[]
   week: number
@@ -22,7 +23,7 @@ type SubBarProps = {
 }
 
 export function SubBar({
-  programName,
+  breadcrumb,
   weekCount,
   days,
   week,
@@ -41,11 +42,7 @@ export function SubBar({
   return (
     <div className="flex flex-wrap items-center gap-3 border-b bg-background px-5 py-3.5">
       <div className="min-w-0 flex-shrink">
-        <div className="mb-1 flex items-center gap-1.5 text-[0.6875rem] font-medium tracking-wider text-muted-foreground uppercase">
-          <span>Programs</span>
-          <ChevronRight className="size-2.5" />
-          <span>{programName}</span>
-        </div>
+        <SubBarBreadcrumb crumbs={breadcrumb} />
         <div className="flex items-center gap-2 text-[1.0625rem] font-semibold tracking-tight whitespace-nowrap">
           <span>{dayData.off ? "Rest day" : dayData.name}</span>
           <span className="font-medium text-muted-foreground">

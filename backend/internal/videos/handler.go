@@ -10,21 +10,32 @@ import (
 
 	"github.com/thompsonlogan/fitlytics/backend/internal/apierr"
 	"github.com/thompsonlogan/fitlytics/backend/internal/auth"
+	"github.com/thompsonlogan/fitlytics/backend/internal/middleware"
 )
 
 type Handler struct {
-	service Service
-	limits  Limits
-	log     *slog.Logger
+	service       Service
+	limits        Limits
+	sessionRead   gin.HandlerFunc
+	videoReviewer gin.HandlerFunc
+	log           *slog.Logger
 }
 
-func NewHandler(service Service, limits Limits, log *slog.Logger) *Handler {
-	return &Handler{service: service, limits: limits, log: log}
+func NewHandler(service Service, limits Limits, sessionRead, videoReviewer gin.HandlerFunc, log *slog.Logger) *Handler {
+	return &Handler{
+		service:       service,
+		limits:        limits,
+		sessionRead:   sessionRead,
+		videoReviewer: videoReviewer,
+		log:           log,
+	}
 }
 
 func (h *Handler) Register(rg *gin.RouterGroup) {
+	rg.GET("/sessions/:sessionId/videos", h.sessionRead, h.ListForSession)
+	rg.POST("/videos/:videoId/reviewed", h.videoReviewer, h.MarkReviewed)
+
 	rg.POST("/sessions/:sessionId/set-logs/:setLogId/videos", h.CreateUpload)
-	rg.GET("/sessions/:sessionId/videos", h.ListForSession)
 	rg.POST("/videos/:videoId/finalize", h.Finalize)
 	rg.PATCH("/videos/:videoId", h.UpdateNote)
 	rg.DELETE("/videos/:videoId", h.Delete)
@@ -77,13 +88,14 @@ func (h *Handler) CreateUpload(c *gin.Context) {
 // ListForSession returns every video attached to the session's sets.
 //
 // @Summary      List a session's set videos
-// @Description  Returns all non-deleted videos whose set log belongs to the given session (owned by the caller). Ready videos include a short-lived presigned playback URL. An unknown or unowned session yields an empty list.
+// @Description  Returns all non-deleted videos whose set log belongs to the given session. Readable by the session's owner, or by a coach with an active link to them. Ready videos include a short-lived presigned playback URL.
 // @Tags         Videos
 // @Produce      json
 // @Param        sessionId  path      string  true  "Session UUID"  Format(uuid)
 // @Success      200  {array}   VideoResponse
 // @Failure      400  {object}  apierr.ProblemDetails  "invalid id"
 // @Failure      401  {object}  apierr.ProblemDetails  "missing or invalid auth token"
+// @Failure      404  {object}  apierr.ProblemDetails  "session not found"
 // @Security     BearerAuth
 // @Router       /api/sessions/{sessionId}/videos [get]
 func (h *Handler) ListForSession(c *gin.Context) {
@@ -93,13 +105,46 @@ func (h *Handler) ListForSession(c *gin.Context) {
 		return
 	}
 
-	principal := auth.MustPrincipal(c)
-	videos, err := h.service.ListForSession(c.Request.Context(), sessionID, principal.User.ID)
+	owner := middleware.MustResourceOwner(c)
+
+	videos, err := h.service.ListForSession(c.Request.Context(), sessionID, owner)
 	if err != nil {
-		h.writeServiceError(c, "list session videos", err, slog.String("session_id", sessionID.String()), slog.String("user_id", principal.User.ID.String()))
+		h.writeServiceError(c, "list session videos", err, slog.String("session_id", sessionID.String()), slog.String("owner_user_id", owner.String()))
 		return
 	}
 	c.JSON(http.StatusOK, videos)
+}
+
+// MarkReviewed records that the calling coach has watched the video.
+//
+// @Summary      Mark a set video reviewed
+// @Description  Stamps the video as reviewed by the calling coach, which is what clears it from the roster's "videos waiting" count. Only a coach with an active link to the video's owner may call this; the athlete marking their own footage reviewed would mean nothing. Already-reviewed and still-uploading videos answer 404, so the first reviewer's attribution cannot be overwritten.
+// @Tags         Videos
+// @Produce      json
+// @Param        videoId  path      string  true  "Video UUID"  Format(uuid)
+// @Success      200  {object}  VideoResponse
+// @Failure      400  {object}  apierr.ProblemDetails  "invalid id"
+// @Failure      401  {object}  apierr.ProblemDetails  "missing or invalid auth token"
+// @Failure      404  {object}  apierr.ProblemDetails  "video not found"
+// @Security     BearerAuth
+// @Router       /api/videos/{videoId}/reviewed [post]
+func (h *Handler) MarkReviewed(c *gin.Context) {
+	videoID, err := uuid.Parse(c.Param("videoId"))
+	if err != nil {
+		apierr.BadRequest(c, "invalid video id")
+		return
+	}
+
+	reviewer := auth.MustPrincipal(c).User.ID
+
+	video, err := h.service.MarkReviewed(c.Request.Context(), videoID, reviewer)
+	if err != nil {
+		h.writeServiceError(c, "mark video reviewed", err,
+			slog.String("video_id", videoID.String()),
+			slog.String("reviewer_user_id", reviewer.String()))
+		return
+	}
+	c.JSON(http.StatusOK, video)
 }
 
 // Finalize verifies an upload landed and marks it ready.
@@ -194,8 +239,6 @@ func (h *Handler) Delete(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// writeServiceError maps the service sentinel errors onto problem responses,
-// logging only the unexpected (5xx) ones.
 func (h *Handler) writeServiceError(c *gin.Context, op string, err error, attrs ...slog.Attr) {
 	switch {
 	case errors.Is(err, apierr.ErrNotFound):

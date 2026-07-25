@@ -44,6 +44,11 @@ vi.mock("@/components/ui/tooltip", () => tooltipMock)
 
 vi.mock("lucide-react", () => lucideReactMock)
 
+// jsdom has no layout engine, so scrollIntoView is unimplemented and throws.
+// Components that scroll a thread/list to the bottom call it in an effect;
+// stub it to a no-op so those effects don't crash the test render.
+Element.prototype.scrollIntoView = vi.fn()
+
 // Auto-cleanup the testing-library DOM between tests so leaked nodes from one
 // test can't poison the next one's queries.
 afterEach(() => {

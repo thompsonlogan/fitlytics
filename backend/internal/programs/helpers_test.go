@@ -144,6 +144,7 @@ func exerciseNames() map[uuid.UUID]string {
 // ── Test doubles ────────────────────────────────────────────────────────────
 
 type fakeRepository struct {
+	getProgramOwnerFn        func(ctx context.Context, programID uuid.UUID) (uuid.UUID, error)
 	getProgramByIdFn         func(ctx context.Context, programID, ownerUserID uuid.UUID) (*generated.Program, error)
 	getProgramsByUserIdFn    func(ctx context.Context, ownerUserID uuid.UUID) ([]generated.Program, error)
 	getExercisesByIdsFn      func(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]string, error)
@@ -152,6 +153,13 @@ type fakeRepository struct {
 	getProgramByIdCount      int
 	getProgramsByUserIdCount int
 	lastListOwnerID          uuid.UUID
+}
+
+func (f *fakeRepository) GetProgramOwner(ctx context.Context, programID uuid.UUID) (uuid.UUID, error) {
+	if f.getProgramOwnerFn == nil {
+		return fixedID("user:1"), nil
+	}
+	return f.getProgramOwnerFn(ctx, programID)
 }
 
 func (f *fakeRepository) GetProgramById(ctx context.Context, programID, ownerUserID uuid.UUID) (*generated.Program, error) {

@@ -17,7 +17,14 @@ import (
 
 var ErrQuotaExceeded = errors.New("video quota exceeded")
 
+const statusReady = "ready"
+
 type Repository interface {
+	GetSessionOwner(ctx context.Context, sessionID uuid.UUID) (uuid.UUID, error)
+	GetVideoOwner(ctx context.Context, videoID uuid.UUID) (uuid.UUID, error)
+
+	MarkReviewed(ctx context.Context, videoID, reviewerID uuid.UUID) (*generated.SetVideo, error)
+
 	VerifySetLogOwned(ctx context.Context, sessionID, setLogID, ownerID uuid.UUID) error
 	CreateUpload(ctx context.Context, ownerID uuid.UUID, row *generated.SetVideo, maxPerUser, maxPerDay int) (oldStorageKey string, err error)
 	GetOwned(ctx context.Context, videoID, ownerID uuid.UUID) (*generated.SetVideo, error)
@@ -41,6 +48,33 @@ func lockUserVideoQuota(ctx context.Context, tx *gorm.DB, ownerID uuid.UUID) err
 	return tx.WithContext(ctx).
 		Exec("select pg_advisory_xact_lock(hashtextextended(?::text, 0))", ownerID.String()).
 		Error
+}
+
+func (r *repository) GetSessionOwner(ctx context.Context, sessionID uuid.UUID) (uuid.UUID, error) {
+	return repoauth.SessionOwner(ctx, r.q, sessionID)
+}
+
+func (r *repository) GetVideoOwner(ctx context.Context, videoID uuid.UUID) (uuid.UUID, error) {
+	return repoauth.VideoOwner(ctx, r.q, videoID)
+}
+
+func (r *repository) MarkReviewed(ctx context.Context, videoID, reviewerID uuid.UUID) (*generated.SetVideo, error) {
+	v := r.q.SetVideo
+
+	res, err := v.WithContext(ctx).
+		Where(v.ID.Eq(videoID), v.Status.Eq(statusReady), v.ReviewedAt.IsNull()).
+		UpdateSimple(
+			v.ReviewedAt.Value(time.Now()),
+			v.ReviewedByUserID.Value(reviewerID),
+		)
+	if err != nil {
+		return nil, fmt.Errorf("mark video reviewed: %w", err)
+	}
+	if res.RowsAffected == 0 {
+		return nil, gorm.ErrRecordNotFound
+	}
+
+	return v.WithContext(ctx).Where(v.ID.Eq(videoID)).First()
 }
 
 func (r *repository) VerifySetLogOwned(ctx context.Context, sessionID, setLogID, ownerID uuid.UUID) error {

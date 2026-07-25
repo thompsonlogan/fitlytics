@@ -1,4 +1,5 @@
 import { useReducer, useRef, useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
 import { fmtBytes, type StagedFile } from "@/components/workout/video-format"
@@ -6,6 +7,7 @@ import { probeDuration } from "@/components/workout/video-probe"
 import {
   isAllowedVideoType,
   MAX_VIDEO_BYTES,
+  sessionVideosQueryKey,
   useDeleteSetVideo,
   useUpdateVideoNote,
   useUploadSetVideo,
@@ -60,6 +62,8 @@ export function useVideoUpload({
   // — no effect needed to reset it.
   const [erroredSrc, setErroredSrc] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const queryClient = useQueryClient()
+  const refreshedIdsRef = useRef<Set<string>>(new Set())
 
   const upload = useUploadSetVideo()
   const remove = useDeleteSetVideo()
@@ -80,6 +84,17 @@ export function useVideoUpload({
   const isReady = currentVideo?.status === "ready"
 
   const noteValue = noteDrafts[setIdx] ?? currentVideo?.note ?? ""
+
+  // Saved-clip URLs are presigned and can expire while a dialog stays open.
+  // Try one list refetch per video id before surfacing the codec warning.
+  function handlePlaybackError(src: string) {
+    if (currentVideo?.id && sessionId && !refreshedIdsRef.current.has(currentVideo.id)) {
+      refreshedIdsRef.current.add(currentVideo.id)
+      void queryClient.invalidateQueries({ queryKey: sessionVideosQueryKey(sessionId) })
+      return
+    }
+    setErroredSrc(src)
+  }
 
   // stageFile validates the pick and shows it for local preview. It does NOT
   // upload — the bytes only leave the browser when the user confirms.
@@ -212,6 +227,7 @@ export function useVideoUpload({
     filmedCount,
     erroredSrc,
     setErroredSrc,
+    handlePlaybackError,
     fileRef,
     onPick,
     onDrop,

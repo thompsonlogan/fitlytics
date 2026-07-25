@@ -67,6 +67,7 @@ export function VideoUploadDialog({
     filmedCount,
     erroredSrc,
     setErroredSrc,
+    handlePlaybackError,
     fileRef,
     onPick,
     onDrop,
@@ -117,6 +118,7 @@ export function VideoUploadDialog({
           currentVideo={currentVideo}
           erroredSrc={erroredSrc}
           setErroredSrc={setErroredSrc}
+          onPlaybackError={handlePlaybackError}
           fileRef={fileRef}
           exercise={exercise}
           setIdx={setIdx}

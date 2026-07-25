@@ -51,6 +51,31 @@ func RequireAuth(verifier *auth.Verifier, userSvc *users.Service, log *slog.Logg
 	}
 }
 
+func RequireRole(role auth.Role, log *slog.Logger) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		principal, ok := auth.PrincipalFrom(c)
+		if !ok {
+			log.ErrorContext(c.Request.Context(), "role check ran without a principal",
+				slog.String("path", c.Request.URL.Path),
+				slog.String("required_role", string(role)))
+			apierr.Abort(c, http.StatusForbidden, "forbidden")
+			return
+		}
+
+		if !principal.Claims.HasRole(role) {
+			log.InfoContext(c.Request.Context(), "role check denied",
+				slog.String("path", c.Request.URL.Path),
+				slog.String("user_id", principal.User.ID.String()),
+				slog.String("required_role", string(role)),
+				slog.String("actual_role", string(principal.Claims.Role)))
+			apierr.Abort(c, http.StatusForbidden, "forbidden")
+			return
+		}
+
+		c.Next()
+	}
+}
+
 // DevAuthBypass skips JWT verification and authenticates every request as the
 // given user. Development only — never enable in production.
 func DevAuthBypass(userSvc *users.Service, userID uuid.UUID, log *slog.Logger) gin.HandlerFunc {
@@ -64,7 +89,7 @@ func DevAuthBypass(userSvc *users.Service, userID uuid.UUID, log *slog.Logger) g
 			return
 		}
 
-		claims := &auth.Claims{}
+		claims := &auth.Claims{Role: auth.RoleCoach}
 		claims.Subject = user.WorkosUserID
 
 		auth.SetPrincipal(c, &auth.Principal{User: user, Claims: claims})

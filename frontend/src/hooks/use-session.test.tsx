@@ -31,6 +31,7 @@ function makeWrapper(queryClient: QueryClient, sessionsApi: SessionsApi) {
           apis: {
             sessionsApi,
             authApi: {} as never,
+            coachApi: {} as never, coachingApi: {} as never,
             programsApi: {} as never,
             videosApi: {} as never,
           } as ServiceApis,

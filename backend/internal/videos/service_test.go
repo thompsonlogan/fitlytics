@@ -32,6 +32,31 @@ type fakeRepo struct {
 	updateNoteFn  func(ctx context.Context, videoID, ownerID uuid.UUID, note *string) (*generated.SetVideo, error)
 	softDeleteFn  func(ctx context.Context, videoID, ownerID uuid.UUID) (string, error)
 	listFn        func(ctx context.Context, sessionID, ownerID uuid.UUID) ([]generated.SetVideo, error)
+
+	sessionOwnerFn func(ctx context.Context, sessionID uuid.UUID) (uuid.UUID, error)
+	videoOwnerFn   func(ctx context.Context, videoID uuid.UUID) (uuid.UUID, error)
+	markReviewedFn func(ctx context.Context, videoID, reviewerID uuid.UUID) (*generated.SetVideo, error)
+}
+
+func (f *fakeRepo) GetSessionOwner(ctx context.Context, s uuid.UUID) (uuid.UUID, error) {
+	if f.sessionOwnerFn == nil {
+		return uuid.Nil, nil
+	}
+	return f.sessionOwnerFn(ctx, s)
+}
+
+func (f *fakeRepo) GetVideoOwner(ctx context.Context, v uuid.UUID) (uuid.UUID, error) {
+	if f.videoOwnerFn == nil {
+		return uuid.Nil, nil
+	}
+	return f.videoOwnerFn(ctx, v)
+}
+
+func (f *fakeRepo) MarkReviewed(ctx context.Context, v, r uuid.UUID) (*generated.SetVideo, error) {
+	if f.markReviewedFn == nil {
+		return nil, nil
+	}
+	return f.markReviewedFn(ctx, v, r)
 }
 
 func (f *fakeRepo) VerifySetLogOwned(ctx context.Context, s, l, o uuid.UUID) error {
