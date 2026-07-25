@@ -16,6 +16,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
@@ -47,10 +48,11 @@ func run() error {
 	g := gen.NewGenerator(gen.Config{
 		// Query-side (type-safe DAO) code lands here.
 		OutPath: "./internal/query",
-		// ModelPkgPath is resolved as a sibling of OutPath, so "models/generated"
-		// lands at ./internal/models/generated, keeping generated code separate
-		// from hand-written types.
-		ModelPkgPath: "models/generated",
+		// Use the host OS's separator so gorm/gen consistently recognizes this
+		// as an explicit path on Windows and Linux. A slash-delimited relative
+		// path was interpreted as a sibling package on Windows but as
+		// ./models/generated on Linux.
+		ModelPkgPath: filepath.Join("internal", "models", "generated"),
 
 		// Nullable columns become pointer types.
 		FieldNullable: true,
