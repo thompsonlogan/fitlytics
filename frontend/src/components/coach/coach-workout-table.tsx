@@ -13,7 +13,7 @@ import { CoachVideoCell } from "@/components/coach/coach-video-cell"
 import { DeviationChip } from "@/components/coach/deviation-chip"
 import { RpePairCell } from "@/components/coach/rpe-pair-cell"
 import type { BlockActuals } from "@/hooks/use-coach-session"
-import { flattenRows, totalSets, type ProgramDay } from "@/lib/program-data"
+import { flattenRows, formatReps, totalSets, type ProgramDay } from "@/lib/program-data"
 import { cn } from "@/lib/utils"
 
 type CoachWorkoutTableProps = {
@@ -125,7 +125,7 @@ export function CoachWorkoutTable({ day, actualsFor, onOpenVideo }: CoachWorkout
                 </TableCell>
 
                 <TableCell className="px-2.5 py-1.5 text-right tabular-nums">
-                  {r.block.reps}
+                  {formatReps(r.block.repsMin, r.block.repsMax)}
                   {actual.repsActual != null && actual.repsActual !== 0 && (
                     <span className="ml-1 text-[0.6875rem] text-muted-foreground">
                       ({actual.repsActual})
