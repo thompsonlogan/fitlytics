@@ -16,17 +16,6 @@ export const LB_TO_KG = lbToKg
 // 60s per minute — `rest_seconds` on the backend, minutes in the UI.
 const REST_DEFAULT_MIN = 2
 
-// formatReps composes the human-readable rep string the UI cell shows. Single
-// value when min==max (e.g. "3"); en-dash range otherwise ("6–10"). The
-// en-dash (not ASCII hyphen) matches the existing fixture convention.
-function formatReps(min: number | null | undefined, max: number | null | undefined): string {
-  const lo = min ?? undefined
-  const hi = max ?? undefined
-  if (lo == null && hi == null) return ""
-  if (lo != null && hi != null && lo !== hi) return `${lo}–${hi}`
-  return String(lo ?? hi)
-}
-
 // mapGroup converts one prescribed set group (e.g. "2 sets of 2 reps at 285lb
 // RPE 5") into the SetBlock the workout table renders. A group is a run of
 // normalized one-per-row sets sharing a prescription; the block count is the
@@ -42,7 +31,8 @@ export function mapGroup(g: ProgramSetGroupResponse): SetBlock {
   return {
     id: g.id ?? "",
     sets: sets.length,
-    reps: formatReps(first?.repsMin, first?.repsMax),
+    repsMin: first?.repsMin ?? null,
+    repsMax: first?.repsMax ?? null,
     intensity: first?.intensityText ?? "",
     cap: capLb,
     rpe: first?.prescribedRpe ?? null,

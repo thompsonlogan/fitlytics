@@ -22,39 +22,39 @@ bypass the API (browser→R2 presigned PUT).
 
 ## Execution order & status
 
-| Plan | Title | Priority | Effort | Depends on | Status |
-|------|-------|----------|--------|------------|--------|
-| [001](001-cell-logging-characterization-tests.md) | Characterization tests for the workout cell-logging hook | P1 | M | — | DONE |
-| [002](002-session-refresh-middleware.md) | Auto-refresh expired sessions on any API call (fix mid-workout 401s) | P1 | M | 001 | DONE |
-| [003](003-new-user-empty-state.md) | Empty state for users with no programs | P1 | S | — | DONE |
-| [010](010-dst-today-position.md) | Fix the DST off-by-one in Today-page date resolution | P1 | S | — | DONE |
-| [011](011-remove-dead-buttons.md) | Remove non-functional buttons from the workout views | P1 | S | — | DONE |
-| [004](004-prune-prod-dependencies.md) | Move build-time packages out of prod dependencies | P2 | S | — | DONE |
-| [005](005-nginx-security-headers.md) | Security headers in the production nginx config | P2 | S | — | DONE |
-| [006](006-rate-limit-and-body-cap.md) | Rate-limit auth endpoints + cap API request bodies | P2 | M | 005 | DONE |
-| [007](007-request-id-correlation.md) | Correlate logs with a per-request ID | P2 | M | 006 | DONE |
-| [012](012-makefile-swagger-deps.md) | Makefile: swagger docs depend on all annotated packages | P2 | S | — | DONE |
-| [013](013-consolidate-unit-conversion.md) | Consolidate kg↔lb conversion into one units module | P2 | S | 001* | DONE |
-| [014](014-auth-handler-tests.md) | Fakeable WorkOS seam + OAuth handler tests | P2 | M | — | TODO |
-| [015](015-video-limits-env-hardening.md) | Harden video-limit env parsing (no module-load crash) | P2 | S | — | REJECTED (operator prefers env-controlled video limits) |
-| [019](019-numeric-reps-view-model.md) | Numeric reps in the program view model; format at render | P2 | S | 013 | TODO |
-| [021](021-responsive-design-doctrine.md) | Responsive design doctrine (CLAUDE.md) + breakpoint module | P2 | S | — | TODO |
-| [022](022-shared-cell-editors.md) | Shared load/RPE cell editors (table + mobile card) | P2 | S | 011, 019, 021 | TODO |
-| [023](023-merge-sub-bars.md) | Merge SubBar + MobileSubBar into one responsive component | P2 | M | 011, 021 | TODO |
-| [024](024-unfork-today-page.md) | Un-fork the Today page (AppChrome + adaptive DayBoard) | P2 | M | 003, 011, 023 | TODO |
-| [018](018-required-fields-in-api-contract.md) | Declare required fields in the API contract; regenerate client | P2 | M | 001, 002, 013, 019 | TODO |
-| [025](025-migration-ci-checks.md) | CI migration checks (upgrade path, immutability, guards, model drift) | P2 | M | — | TODO |
-| [028](028-postgres-backup-verification.md) | Postgres backup runbook + verified restore (operator finishes in Coolify) | P1 | S | — | TODO |
-| [026](026-posthog-product-analytics.md) | PostHog Cloud analytics behind an /ingest nginx proxy | P2 | M | 005, 006, 007 | TODO |
-| [027](027-error-tracking.md) | Sentry error tracking, backend + frontend, request-id correlated | P2 | M | 005, 007, 009 | TODO |
-| [029](029-upgrade-go-toolchain.md) | Upgrade the Go toolchain to 1.26.x | P2 | S | — | TODO |
-| [030](030-adopt-typescript-native-compiler.md) | Adopt the TypeScript 7.0 native (Go) compiler for the frontend | P2 | L | 018* | TODO |
-| [008](008-pgconn-unique-violation.md) | Detect unique violations via pgconn error codes | P3 | S | — | DONE |
-| [009](009-configurable-db-pool.md) | Configurable DB connection pool | P3 | S | — | DONE |
-| [016](016-dev-db-bind-localhost.md) | Bind the dev Postgres to localhost only | P3 | S | — | REJECTED (operator skipped localhost-only dev DB binding) |
-| [017](017-playback-url-refresh.md) | Refresh expired playback URLs before the codec warning | P3 | S | — | DONE |
-| [020](020-one-hook-per-api.md) | One hook module per backend API (merge day-completions into use-session) | P3 | S | — | TODO |
-| [031](031-tanstack-query-config.md) | Rationalize the TanStack Query config (caching, refetch, retry, keys) | P3 | M | — | TODO |
+| Plan                                              | Title                                                                     | Priority | Effort | Depends on         | Status                                                    |
+| ------------------------------------------------- | ------------------------------------------------------------------------- | -------- | ------ | ------------------ | --------------------------------------------------------- |
+| [001](001-cell-logging-characterization-tests.md) | Characterization tests for the workout cell-logging hook                  | P1       | M      | —                  | DONE                                                      |
+| [002](002-session-refresh-middleware.md)          | Auto-refresh expired sessions on any API call (fix mid-workout 401s)      | P1       | M      | 001                | DONE                                                      |
+| [003](003-new-user-empty-state.md)                | Empty state for users with no programs                                    | P1       | S      | —                  | DONE                                                      |
+| [010](010-dst-today-position.md)                  | Fix the DST off-by-one in Today-page date resolution                      | P1       | S      | —                  | DONE                                                      |
+| [011](011-remove-dead-buttons.md)                 | Remove non-functional buttons from the workout views                      | P1       | S      | —                  | DONE                                                      |
+| [004](004-prune-prod-dependencies.md)             | Move build-time packages out of prod dependencies                         | P2       | S      | —                  | DONE                                                      |
+| [005](005-nginx-security-headers.md)              | Security headers in the production nginx config                           | P2       | S      | —                  | DONE                                                      |
+| [006](006-rate-limit-and-body-cap.md)             | Rate-limit auth endpoints + cap API request bodies                        | P2       | M      | 005                | DONE                                                      |
+| [007](007-request-id-correlation.md)              | Correlate logs with a per-request ID                                      | P2       | M      | 006                | DONE                                                      |
+| [012](012-makefile-swagger-deps.md)               | Makefile: swagger docs depend on all annotated packages                   | P2       | S      | —                  | DONE                                                      |
+| [013](013-consolidate-unit-conversion.md)         | Consolidate kg↔lb conversion into one units module                        | P2       | S      | 001\*              | DONE                                                      |
+| [014](014-auth-handler-tests.md)                  | Fakeable WorkOS seam + OAuth handler tests                                | P2       | M      | —                  | TODO                                                      |
+| [015](015-video-limits-env-hardening.md)          | Harden video-limit env parsing (no module-load crash)                     | P2       | S      | —                  | REJECTED (operator prefers env-controlled video limits)   |
+| [019](019-numeric-reps-view-model.md)             | Numeric reps in the program view model; format at render                  | P2       | S      | 013                | DONE                                                      |
+| [021](021-responsive-design-doctrine.md)          | Responsive design doctrine (CLAUDE.md) + breakpoint module                | P2       | S      | —                  | TODO                                                      |
+| [022](022-shared-cell-editors.md)                 | Shared load/RPE cell editors (table + mobile card)                        | P2       | S      | 011, 019, 021      | TODO                                                      |
+| [023](023-merge-sub-bars.md)                      | Merge SubBar + MobileSubBar into one responsive component                 | P2       | M      | 011, 021           | TODO                                                      |
+| [024](024-unfork-today-page.md)                   | Un-fork the Today page (AppChrome + adaptive DayBoard)                    | P2       | M      | 003, 011, 023      | TODO                                                      |
+| [018](018-required-fields-in-api-contract.md)     | Declare required fields in the API contract; regenerate client            | P2       | M      | 001, 002, 013, 019 | TODO                                                      |
+| [025](025-migration-ci-checks.md)                 | CI migration checks (upgrade path, immutability, guards, model drift)     | P2       | M      | —                  | TODO                                                      |
+| [028](028-postgres-backup-verification.md)        | Postgres backup runbook + verified restore (operator finishes in Coolify) | P1       | S      | —                  | TODO                                                      |
+| [026](026-posthog-product-analytics.md)           | PostHog Cloud analytics behind an /ingest nginx proxy                     | P2       | M      | 005, 006, 007      | TODO                                                      |
+| [027](027-error-tracking.md)                      | Sentry error tracking, backend + frontend, request-id correlated          | P2       | M      | 005, 007, 009      | TODO                                                      |
+| [029](029-upgrade-go-toolchain.md)                | Upgrade the Go toolchain to 1.26.x                                        | P2       | S      | —                  | TODO                                                      |
+| [030](030-adopt-typescript-native-compiler.md)    | Adopt the TypeScript 7.0 native (Go) compiler for the frontend            | P2       | L      | 018\*              | TODO                                                      |
+| [008](008-pgconn-unique-violation.md)             | Detect unique violations via pgconn error codes                           | P3       | S      | —                  | DONE                                                      |
+| [009](009-configurable-db-pool.md)                | Configurable DB connection pool                                           | P3       | S      | —                  | DONE                                                      |
+| [016](016-dev-db-bind-localhost.md)               | Bind the dev Postgres to localhost only                                   | P3       | S      | —                  | REJECTED (operator skipped localhost-only dev DB binding) |
+| [017](017-playback-url-refresh.md)                | Refresh expired playback URLs before the codec warning                    | P3       | S      | —                  | DONE                                                      |
+| [020](020-one-hook-per-api.md)                    | One hook module per backend API (merge day-completions into use-session)  | P3       | S      | —                  | TODO                                                      |
+| [031](031-tanstack-query-config.md)               | Rationalize the TanStack Query config (caching, refetch, retry, keys)     | P3       | M      | —                  | TODO                                                      |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
 REJECTED (with one-line rationale).
@@ -80,7 +80,7 @@ REJECTED (with one-line rationale).
 - **020** must not run concurrently with 001/002 (`use-session.ts` churn
   should serialize); otherwise independent.
 - **031 (data-layer config)** edits the same five hook files as 018 and 020
-  (query *options* only, not fetch logic). It is small and mechanical —
+  (query _options_ only, not fetch logic). It is small and mechanical —
   prefer to land it **before** 018/020 so they rebase onto the consolidated
   config; if 018/020 land first, 031's scope must be re-derived against the
   renamed/merged hooks. Independent of everything else.

@@ -9,7 +9,10 @@ export type SetBlock = {
   // weren't loaded from the API (defensive — should never happen in prod).
   id: string
   sets: number
-  reps: string
+  // Prescribed rep range, numeric. Rendered by formatReps at display time so
+  // volume math never has to parse a display string.
+  repsMin: number | null
+  repsMax: number | null
   intensity: string
   cap: number | ""
   rpe: number | null
@@ -57,6 +60,17 @@ export type Program = {
 }
 
 export const DAY_LETTERS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const
+
+export function formatReps(
+  min: number | null | undefined,
+  max: number | null | undefined
+): string {
+  const lo = min ?? undefined
+  const hi = max ?? undefined
+  if (lo == null && hi == null) return ""
+  if (lo != null && hi != null && lo !== hi) return `${lo}–${hi}`
+  return String(lo ?? hi)
+}
 
 export function calendarDayOfMonth(startDate: string, week: number, dayIndex: number): number {
   const d = new Date(startDate + "T00:00:00")
@@ -135,22 +149,15 @@ export function estimateDuration(day: ProgramDay): number {
   return Math.round(total)
 }
 
-// repsLowerBound pulls the conservative rep count out of a SetBlock's display
-// string ("3" → 3, "6–10" → 6). Used for planned-volume math, which multiplies
-// load × reps × sets. Returns 0 when the string carries no number.
-function repsLowerBound(reps: string): number {
-  return parseInt(String(reps).split(/[–-]/)[0], 10) || 0
-}
-
-// plannedVolume totals the day's prescribed working volume in lb:
-// Σ (prescribed load × lower-bound reps × sets) over every block that carries
-// an absolute load. Blocks prescribed by text/RIR only (prescribedLoad == null)
-// contribute nothing — this is "planned barbell volume", not a rep-count proxy.
+// plannedVolume totals the day's prescribed working volume in lb using the
+// lower rep bound when prescribed, else the max bound for single-sided targets.
+// Blocks prescribed by text/RIR only (prescribedLoad == null) contribute nothing.
 export function plannedVolume(day: ProgramDay): number {
   return flattenRows(day).reduce((sum, r) => {
     const load = r.block.prescribedLoad
     if (load == null) return sum
-    return sum + load * repsLowerBound(r.block.reps) * r.block.sets
+    const reps = r.block.repsMin ?? r.block.repsMax ?? 0
+    return sum + load * reps * r.block.sets
   }, 0)
 }
 

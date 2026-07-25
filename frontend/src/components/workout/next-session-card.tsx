@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import type { Exercise, ProgramDay } from "@/lib/program-data"
+import { formatReps, type Exercise, type ProgramDay } from "@/lib/program-data"
 
 type NextSessionCardProps = {
   // nextDay is the next non-rest day after the viewed rest day, or null at the
@@ -16,7 +16,7 @@ const PREVIEW_COUNT = 3
 function scheme(exercise: Exercise): string {
   const block = exercise.blocks[0]
   if (!block) return ""
-  const base = `${block.sets}×${block.reps}`
+  const base = `${block.sets}×${formatReps(block.repsMin, block.repsMax)}`
   return block.prescribedLoad != null ? `${base} @ ${block.prescribedLoad}` : base
 }
 

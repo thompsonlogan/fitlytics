@@ -17,7 +17,7 @@ import { MAX_NOTE_LENGTH } from "@/hooks/use-coach-notes"
 import { usePostCoachNote } from "@/hooks/use-coach-notes"
 import { useReviewVideo } from "@/hooks/use-review-video"
 import { sessionVideosQueryKey } from "@/hooks/use-set-videos"
-import type { Exercise, SetBlock } from "@/lib/program-data"
+import { formatReps, type Exercise, type SetBlock } from "@/lib/program-data"
 import { cn } from "@/lib/utils"
 import type { SetLogResponse, VideoResponse } from "@/services/generated"
 
@@ -110,7 +110,7 @@ export function VideoReviewDialog({
             {exercise.name}
           </DialogTitle>
           <DialogDescription>
-            {block.sets} × {block.reps}
+            {block.sets} × {formatReps(block.repsMin, block.repsMax)}
             {block.prescribedLoad != null ? ` at ${block.prescribedLoad} lb` : ""}
             {block.rpe != null ? ` · RPE ${block.rpe}` : ""}
           </DialogDescription>

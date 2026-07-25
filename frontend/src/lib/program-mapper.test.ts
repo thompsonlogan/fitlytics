@@ -29,16 +29,22 @@ describe("mapGroup", () => {
     expect(out.intensity).toBe("285lb (0.95)")
   })
 
-  it("formats reps as a single value when min == max", () => {
-    expect(mapGroup({ sets: [{ repsMin: 3, repsMax: 3 }] }).reps).toBe("3")
+  it("maps reps as a single numeric range when min == max", () => {
+    expect(mapGroup({ sets: [{ repsMin: 3, repsMax: 3 }] })).toMatchObject({
+      repsMin: 3,
+      repsMax: 3,
+    })
   })
 
-  it("formats reps as an en-dash range when min < max", () => {
-    expect(mapGroup({ sets: [{ repsMin: 6, repsMax: 10 }] }).reps).toBe("6–10")
+  it("maps reps as numeric min/max bounds when min < max", () => {
+    expect(mapGroup({ sets: [{ repsMin: 6, repsMax: 10 }] })).toMatchObject({
+      repsMin: 6,
+      repsMax: 10,
+    })
   })
 
-  it("emits empty reps when neither min nor max is set", () => {
-    expect(mapGroup({ sets: [{}] }).reps).toBe("")
+  it("emits null rep bounds when neither min nor max is set", () => {
+    expect(mapGroup({ sets: [{}] })).toMatchObject({ repsMin: null, repsMax: null })
   })
 
   it("returns cap='' when capLoadKg is missing (preserves table placeholder)", () => {
@@ -258,7 +264,7 @@ describe("mapProgram", () => {
     expect(ex.sub).toBe("Belt + sleeves")
     expect(ex.rest).toBe(3)
     expect(ex.blocks[0].cap).toBe(300)
-    expect(ex.blocks[0].reps).toBe("3")
+    expect(ex.blocks[0]).toMatchObject({ repsMin: 3, repsMax: 3 })
   })
 
   it("returns an empty weeks array when backend sends none", () => {

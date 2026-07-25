@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { SetVideoPicker } from "@/components/workout/set-video-picker"
 import { type EnsureSetLog, useVideoUpload } from "@/components/workout/use-video-upload"
 import { VideoMediaRegion } from "@/components/workout/video-media-region"
-import { type Exercise, type SetBlock } from "@/lib/program-data"
+import { formatReps, type Exercise, type SetBlock } from "@/lib/program-data"
 import { kgToLbRounded } from "@/lib/units"
 import { type SetLogResponse, type VideoResponse } from "@/services/generated"
 
@@ -150,7 +150,7 @@ export function VideoUploadDialog({
         {/* prescription context */}
         <div className="grid grid-cols-4 overflow-hidden rounded-md border">
           <ContextCell label="Set" value={`${setIdx + 1}`} unit={`/${block.sets}`} />
-          <ContextCell label="Reps" value={block.reps} />
+          <ContextCell label="Reps" value={formatReps(block.repsMin, block.repsMax)} />
           <ContextCell label="Load" value={loadUsed} unit="lb" />
           <ContextCell label="RPE" value={block.rpe == null ? "—" : String(block.rpe)} last />
         </div>

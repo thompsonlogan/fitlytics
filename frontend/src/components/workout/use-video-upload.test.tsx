@@ -42,7 +42,8 @@ function makeOpts(overrides: Partial<Opts> = {}): Opts {
     block: {
       id: "b",
       sets: 2,
-      reps: "5",
+      repsMin: 5,
+      repsMax: 5,
       intensity: "",
       cap: "",
       rpe: null,

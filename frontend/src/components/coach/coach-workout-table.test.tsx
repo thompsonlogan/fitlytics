@@ -33,7 +33,8 @@ function day(overrides: Partial<ProgramDay> = {}): ProgramDay {
           {
             id: "block-1",
             sets: 3,
-            reps: "5",
+            repsMin: 5,
+            repsMax: 5,
             intensity: "80% 1RM",
             cap: "",
             rpe: 8,
