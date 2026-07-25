@@ -1,0 +1,141 @@
+name: Migrations
+
+# Path-filtered: this job costs minutes only when migration-related files
+# change. The workflow's own path is included so the PR introducing it
+# exercises it end-to-end.
+on:
+  pull_request:
+    paths:
+      - "database/flyway/**"
+      - "backend/cmd/gen/**"
+      - ".github/workflows/migrations.yml"
+  push:
+    branches: [master]
+    paths:
+      - "database/flyway/**"
+      - "backend/cmd/gen/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: migrations-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  migrations:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: fitlytics
+          POSTGRES_PASSWORD: fitlytics
+          POSTGRES_DB: fitlytics
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fitlytics -d fitlytics"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # Mirrors database/docker-compose.prod.yml: pinned image, fitlytics
+      # schema, migrate only (never clean).
+      FLYWAY_IMAGE: flyway/flyway:11-alpine
+      PGPASSWORD: fitlytics
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The immutability diff and base-branch extraction need history.
+          fetch-depth: 0
+
+      # 1. Versioned migrations are append-only. Editing, deleting, or
+      # renaming an applied migration breaks production checksum validation.
+      - name: Versioned migrations are append-only
+        if: github.event_name == 'pull_request'
+        run: |
+          changed=$(git diff --name-only --diff-filter=MDR \
+            "origin/${{ github.base_ref }}...HEAD" -- database/flyway/sql_versioned/)
+          if [ -n "$changed" ]; then
+            echo "::error::Versioned migrations are immutable once merged. Modified/deleted:"
+            echo "$changed"
+            echo "Add a new V<next>__*.sql instead of editing an applied one."
+            exit 1
+          fi
+
+      # 2. Apply the base branch first, then the PR migrations on top. This
+      # mirrors the production upgrade path and validates applied checksums.
+      - name: Extract base-branch migrations
+        if: github.event_name == 'pull_request'
+        run: |
+          mkdir -p /tmp/base-migrations
+          git archive "origin/${{ github.base_ref }}" database/flyway/sql_versioned \
+            | tar -x --strip-components=2 -C /tmp/base-migrations
+      - name: Migrate to base (production state)
+        if: github.event_name == 'pull_request'
+        run: |
+          docker run --rm --network host \
+            -v /tmp/base-migrations:/flyway/sql:ro \
+            "$FLYWAY_IMAGE" \
+            -url=jdbc:postgresql://localhost:5432/fitlytics \
+            -user=fitlytics -password=fitlytics \
+            -schemas=fitlytics -defaultSchema=fitlytics \
+            migrate
+      - name: Apply PR migrations on top (the upgrade path)
+        if: github.event_name == 'pull_request'
+        run: |
+          docker run --rm --network host \
+            -v "$PWD/database/flyway/sql_versioned:/flyway/sql:ro" \
+            "$FLYWAY_IMAGE" \
+            -url=jdbc:postgresql://localhost:5432/fitlytics \
+            -user=fitlytics -password=fitlytics \
+            -schemas=fitlytics -defaultSchema=fitlytics \
+            migrate
+
+      # 3. Exercise the same empty-database flow used by local development,
+      # including both versioned migrations and repeatable seed data.
+      - name: Create fresh database
+        run: createdb -h localhost -U fitlytics fitlytics_fresh
+      - name: Fresh migrate (versioned + repeatable)
+        run: |
+          docker run --rm --network host \
+            -v "$PWD/database/flyway/sql_versioned:/flyway/versioned:ro" \
+            -v "$PWD/database/flyway/sql_repeatable:/flyway/repeatable:ro" \
+            "$FLYWAY_IMAGE" \
+            -url=jdbc:postgresql://localhost:5432/fitlytics_fresh \
+            -user=fitlytics -password=fitlytics \
+            -schemas=fitlytics -defaultSchema=fitlytics \
+            -locations=filesystem:/flyway/versioned,filesystem:/flyway/repeatable \
+            migrate
+
+      # 4. Flyway skips unchanged repeatables, so execute them directly to
+      # enforce the repository's IF (NOT) EXISTS re-run convention.
+      - name: Repeatable migrations are re-runnable
+        run: |
+          shopt -s nullglob
+          for f in database/flyway/sql_repeatable/*.sql; do
+            echo "re-running $f"
+            PGOPTIONS="-c search_path=fitlytics" \
+              psql -h localhost -U fitlytics -d fitlytics_fresh \
+              -v ON_ERROR_STOP=1 -q -f "$f"
+          done
+
+      # 5. Regenerate the database-first Go models and reject schema drift.
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: backend/go.sum
+      - name: Generated models are in sync with the schema
+        working-directory: backend
+        env:
+          DATABASE_URL: postgres://fitlytics:fitlytics@localhost:5432/fitlytics_fresh?sslmode=disable&search_path=fitlytics
+        run: |
+          go run ./cmd/gen
+          if ! git diff --exit-code -- internal/models/generated internal/query; then
+            echo "::error::Schema and generated models are out of sync. Run 'make generate' and commit the result."
+            exit 1
+          fi
