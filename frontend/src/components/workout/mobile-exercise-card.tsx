@@ -1,4 +1,5 @@
-import { Input } from "@/components/ui/input"
+import { LoadCellInput } from "@/components/workout/load-cell-input"
+import { RpeCellInput } from "@/components/workout/rpe-cell-input"
 import { SetStateCell } from "@/components/workout/set-state-cell"
 import { type SetState } from "@/components/workout/set-state"
 import { VideoCell } from "@/components/workout/video-cell"
@@ -66,19 +67,6 @@ export function MobileExerciseCard({
         const state = cellState[key] ?? "pending"
         const done = state === "completed" || state === "skipped"
 
-        const loadEdited = loadEdits[key]
-        const loadPersisted = persistedLoad[key]
-        const loadFallback =
-          loadPersisted == null || loadPersisted === "" ? "" : String(loadPersisted)
-        const loadValue = loadEdited != null ? loadEdited : loadFallback
-        const loadErr = cellErrors[`${key}:load`]
-
-        const rpeEdited = rpeEdits[key]
-        const rpePersisted = persistedRpe[key]
-        const rpeFallback = rpePersisted == null ? "" : String(rpePersisted)
-        const rpeValue = rpeEdited != null ? rpeEdited : rpeFallback
-        const rpeErr = cellErrors[`${key}:rpe`]
-
         const info = videoInfo[key] ?? { filmedCount: 0, firstFilmedSet: null }
 
         return (
@@ -125,25 +113,15 @@ export function MobileExerciseCard({
                 <span className="text-[0.625rem] font-medium tracking-wider text-muted-foreground uppercase">
                   Load
                 </span>
-                <span className="inline-flex items-center gap-1 tabular-nums">
-                  <Input
-                    value={loadValue}
-                    onChange={(e) => onEditLoad(key, e.target.value)}
-                    onBlur={(e) => onBlurLoad(key, e.target.value)}
-                    placeholder="—"
-                    inputMode="numeric"
-                    maxLength={4}
-                    title={loadErr}
-                    aria-invalid={!!loadErr}
-                    data-testid={`load-input-${key}`}
-                    className={cn(
-                      "h-8 w-16 border-input bg-background px-2 text-right text-[0.8125rem] tabular-nums shadow-none",
-                      loadValue === "" && "text-muted-foreground",
-                      loadErr && "border-destructive bg-destructive/10 text-destructive"
-                    )}
-                  />
-                  <span className="text-xs text-muted-foreground">lb</span>
-                </span>
+                <LoadCellInput
+                  cellKey={key}
+                  edited={loadEdits[key]}
+                  persisted={persistedLoad[key]}
+                  error={cellErrors[`${key}:load`]}
+                  onEdit={onEditLoad}
+                  onBlur={onBlurLoad}
+                  className="h-8 w-16 border-input bg-background px-2 text-right text-[0.8125rem] tabular-nums shadow-none"
+                />
               </label>
 
               <div className="flex-1" />
@@ -152,23 +130,16 @@ export function MobileExerciseCard({
                 <span className="text-[0.625rem] font-medium tracking-wider text-muted-foreground uppercase">
                   RPE
                 </span>
-                <Input
-                  value={rpeValue}
-                  onChange={(e) => onEditRpe(key, e.target.value)}
-                  onBlur={(e) => onBlurRpe(key, e.target.value)}
-                  placeholder="—"
-                  inputMode="numeric"
-                  maxLength={2}
-                  aria-label={`RPE for ${exercise.name} block ${blIdx + 1}`}
-                  aria-invalid={!!rpeErr}
-                  title={rpeErr}
-                  data-testid={`rpe-input-${key}`}
-                  className={cn(
-                    "h-8 w-12 rounded-full border-transparent bg-muted px-2 text-center text-[0.8125rem] font-medium tabular-nums shadow-none focus-visible:bg-background",
-                    rpeValue === "" &&
-                      "border border-dashed border-border bg-transparent text-muted-foreground",
-                    rpeErr && "border border-destructive bg-destructive/10 text-destructive"
-                  )}
+                <RpeCellInput
+                  cellKey={key}
+                  edited={rpeEdits[key]}
+                  persisted={persistedRpe[key]}
+                  error={cellErrors[`${key}:rpe`]}
+                  ariaLabel={`RPE for ${exercise.name} block ${blIdx + 1}`}
+                  onEdit={onEditRpe}
+                  onBlur={onBlurRpe}
+                  className="h-8 w-12 rounded-full border-transparent bg-muted px-2 text-center text-[0.8125rem] font-medium tabular-nums shadow-none focus-visible:bg-background"
+                  emptyClassName="border border-dashed border-border bg-transparent text-muted-foreground"
                 />
               </label>
             </div>
