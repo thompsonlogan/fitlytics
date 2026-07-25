@@ -152,6 +152,7 @@ Postgres 16 via Docker Compose in `database/`. Flyway manages schema migrations.
 - Versioned migrations: `database/flyway/sql_versioned/`
 - Repeatable migrations (views, seed data): `database/flyway/sql_repeatable/`
 - All DDL must use `IF (NOT) EXISTS` guards for idempotent re-runs
+- Backups and restore: see `database/BACKUPS.md`
 
 ## Responsive design (web + mobile)
 
