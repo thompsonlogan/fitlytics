@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ─ Build stage ────────────────────────────────────────────────────────────────
-FROM golang:1.25-alpine AS build
+FROM golang:1.26-alpine AS build
 
 # git: some module fetches fall back to VCS. ca-certificates: module-proxy TLS.
 RUN apk add --no-cache git ca-certificates
