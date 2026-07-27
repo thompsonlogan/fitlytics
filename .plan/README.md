@@ -54,7 +54,7 @@ bypass the API (browser→R2 presigned PUT).
 | [016](016-dev-db-bind-localhost.md)               | Bind the dev Postgres to localhost only                                   | P3       | S      | —                  | REJECTED (operator skipped localhost-only dev DB binding) |
 | [017](017-playback-url-refresh.md)                | Refresh expired playback URLs before the codec warning                    | P3       | S      | —                  | DONE                                                      |
 | [020](020-one-hook-per-api.md)                    | One hook module per backend API (merge day-completions into use-session)  | P3       | S      | —                  | TODO                                                      |
-| [031](031-tanstack-query-config.md)               | Rationalize the TanStack Query config (caching, refetch, retry, keys)     | P3       | M      | —                  | TODO                                                      |
+| [031](031-tanstack-query-config.md)               | Rationalize the TanStack Query config (caching, refetch, retry, keys)     | P3       | M      | —                  | DONE                                                      |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
 REJECTED (with one-line rationale).

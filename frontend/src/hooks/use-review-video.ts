@@ -1,9 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 
-import { COACH_ROSTER_QUERY_KEY } from "@/hooks/use-coach-roster"
-import { sessionVideosQueryKey } from "@/hooks/use-set-videos"
 import { useServices } from "@/services/context"
 import type { VideoResponse } from "@/services/generated"
+import { queryKeys } from "@/services/query-keys"
 
 export function useReviewVideo(sessionId: string | undefined) {
   const { videosApi } = useServices()
@@ -15,11 +14,12 @@ export function useReviewVideo(sessionId: string | undefined) {
 
     onSuccess: (updated) => {
       if (sessionId) {
-        queryClient.setQueryData<VideoResponse[]>(sessionVideosQueryKey(sessionId), (prev) =>
-          prev?.map((v) => (v.id === updated.id ? updated : v))
+        queryClient.setQueryData<VideoResponse[]>(
+          queryKeys.sessionVideos.bySession(sessionId),
+          (prev) => prev?.map((v) => (v.id === updated.id ? updated : v))
         )
       }
-      void queryClient.invalidateQueries({ queryKey: COACH_ROSTER_QUERY_KEY })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.coachRoster })
     },
   })
 }

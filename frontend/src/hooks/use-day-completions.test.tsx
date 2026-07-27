@@ -3,10 +3,11 @@ import { renderHook, waitFor } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import type { ReactNode } from "react"
 
-import { dayCompletionsQueryKey, useDayCompletions } from "./use-day-completions"
+import { useDayCompletions } from "./use-day-completions"
 import { ServiceContext } from "@/services/context"
 import type { ServiceApis } from "@/services/data"
 import type { SessionsApi } from "@/services/generated"
+import { queryKeys } from "@/services/query-keys"
 
 function fakeSessionsApi(
   rows: { weekSequence?: number | null; daySequence?: number | null }[]
@@ -90,7 +91,7 @@ describe("useDayCompletions", () => {
     expect(result.current.data).toEqual({})
   })
 
-  it("dayCompletionsQueryKey returns the expected stable shape", () => {
-    expect(dayCompletionsQueryKey("prog-1")).toEqual(["day-completions", "prog-1"])
+  it("uses the expected stable day-completions key shape", () => {
+    expect(queryKeys.dayCompletions.byProgram("prog-1")).toEqual(["day-completions", "prog-1"])
   })
 })

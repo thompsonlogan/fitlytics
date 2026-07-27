@@ -3,10 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { isResponseErrorWithStatus } from "@/services/api-error"
 import { useServices } from "@/services/context"
 import type { AuthApi, MeResponse } from "@/services/generated"
-
-// ME_KEY is exported so route guards (beforeLoad in the router) can read the
-// cached value via queryClient.ensureQueryData without re-declaring the key.
-export const ME_KEY = ["me"] as const
+import { queryKeys } from "@/services/query-keys"
 
 // fetchMe resolves the current session through the typed Auth API. A 401
 // triggers one silent refresh; if the refresh also fails we return null so
@@ -40,10 +37,8 @@ export function useAuth() {
   const { authApi } = useServices()
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ME_KEY,
+    queryKey: queryKeys.me,
     queryFn: () => fetchMe(authApi),
-    retry: false,
-    staleTime: 5 * 60 * 1000,
   })
 
   return {
@@ -62,7 +57,7 @@ export function useAuth() {
       try {
         await authApi.authLogoutPost()
       } finally {
-        queryClient.setQueryData(ME_KEY, null)
+        queryClient.setQueryData(queryKeys.me, null)
         // Full-page navigation rather than router.navigate so any React state
         // tied to the previous session is reset cleanly. Lands on the public
         // landing page ("/").

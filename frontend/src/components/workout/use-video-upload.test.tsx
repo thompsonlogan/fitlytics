@@ -6,9 +6,10 @@ import type { ChangeEvent, ReactNode } from "react"
 import { toast } from "sonner"
 
 import { useVideoUpload } from "./use-video-upload"
-import { MAX_VIDEO_BYTES, sessionVideosQueryKey } from "@/hooks/use-set-videos"
+import { MAX_VIDEO_BYTES } from "@/hooks/use-set-videos"
 import type { SetBlock } from "@/lib/program-data"
 import type { SetLogResponse, VideoResponse } from "@/services/generated"
+import { queryKeys } from "@/services/query-keys"
 
 // Mocked mutation hooks so the orchestration is unit-tested without the real
 // reserve → XHR PUT → finalize network lifecycle.
@@ -202,7 +203,9 @@ describe("useVideoUpload — existing video", () => {
     act(() => result.current.handlePlaybackError("https://r2/old"))
 
     expect(invalidate).toHaveBeenCalledOnce()
-    expect(invalidate).toHaveBeenCalledWith({ queryKey: sessionVideosQueryKey("s1") })
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: queryKeys.sessionVideos.bySession("s1"),
+    })
     expect(result.current.erroredSrc).toBeNull()
   })
 

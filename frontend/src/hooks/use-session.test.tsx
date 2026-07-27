@@ -3,11 +3,11 @@ import { renderHook, waitFor } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import type { ReactNode } from "react"
 
-import { countPending, sessionQueryKey, useLogSet } from "./use-session"
-import { dayCompletionsQueryKey } from "./use-day-completions"
+import { countPending, useLogSet } from "./use-session"
 import { ServiceContext } from "@/services/context"
 import type { ServiceApis } from "@/services/data"
 import type { SessionResponse, SessionExerciseResponse, SetLogResponse, SessionsApi } from "@/services/generated"
+import { queryKeys } from "@/services/query-keys"
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -101,7 +101,7 @@ describe("useLogSet invalidation boundary", () => {
     // Seed a session with exactly one pending set log
     const pendingLog = makeSetLog("log-1", "pending")
     const session = makeSession("session-abc", [makeExercise([pendingLog])])
-    queryClient.setQueryData(sessionQueryKey("p", "d"), session)
+    queryClient.setQueryData(queryKeys.session.byDay("p", "d"), session)
 
     // The PATCH resolves with the same log now marked completed
     const updatedLog: SetLogResponse = { id: "log-1", state: "completed" }
@@ -117,7 +117,7 @@ describe("useLogSet invalidation boundary", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: dayCompletionsQueryKey("p"),
+      queryKey: queryKeys.dayCompletions.byProgram("p"),
     })
   })
 
@@ -130,7 +130,7 @@ describe("useLogSet invalidation boundary", () => {
     // Seed a session with one pending log
     const pendingLog = makeSetLog("log-1", "pending")
     const session = makeSession("session-abc", [makeExercise([pendingLog])])
-    queryClient.setQueryData(sessionQueryKey("p", "d"), session)
+    queryClient.setQueryData(queryKeys.session.byDay("p", "d"), session)
 
     // PATCH updates a weight, not the state
     const updatedLog: SetLogResponse = { id: "log-1", state: "pending", actualLoadKg: 100 }

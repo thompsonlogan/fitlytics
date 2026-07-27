@@ -6,6 +6,7 @@ import {
   type StoragePresignedUpload,
   type VideoResponse,
 } from "@/services/generated"
+import { queryKeys } from "@/services/query-keys"
 
 // Pre-upload UX hints, sourced entirely from Vite build-time env (see
 // frontend/.env). These only drive client-side validation messages and the
@@ -23,11 +24,6 @@ export function isAllowedVideoType(type: string, allowed?: string[]): boolean {
   return (allowed ?? (ALLOWED_VIDEO_TYPES as readonly string[])).includes(type)
 }
 
-// sessionVideosQueryKey scopes the per-session video list. Exported so callers
-// can invalidate it after a mutation.
-export const sessionVideosQueryKey = (sessionId: string) =>
-  ["session-videos", sessionId] as const
-
 // useSessionVideos loads every video attached to the session's sets in one
 // request. Returns [] until a session exists. Videos rarely change outside the
 // user's own actions, so a generous stale window avoids refetch churn.
@@ -35,11 +31,12 @@ export function useSessionVideos(sessionId: string | undefined) {
   const { videosApi } = useServices()
 
   return useQuery({
-    queryKey: sessionId ? sessionVideosQueryKey(sessionId) : ["session-videos", "disabled"],
+    queryKey: sessionId
+      ? queryKeys.sessionVideos.bySession(sessionId)
+      : queryKeys.sessionVideos.disabled,
     enabled: !!sessionId,
     queryFn: (): Promise<VideoResponse[]> =>
       videosApi.apiSessionsSessionIdVideosGet({ sessionId: sessionId! }),
-    staleTime: 60 * 1000,
   })
 }
 
@@ -124,7 +121,9 @@ export function useUploadSetVideo() {
     // Reserving an upload replaces the previous video server-side before the
     // bytes move, so the list must be refetched even when the upload fails.
     onSettled: (_data, _error, vars) => {
-      queryClient.invalidateQueries({ queryKey: sessionVideosQueryKey(vars.sessionId) })
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.sessionVideos.bySession(vars.sessionId),
+      })
     },
   })
 }
@@ -140,7 +139,9 @@ export function useDeleteSetVideo() {
       await videosApi.apiVideosVideoIdDelete({ videoId: vars.videoId })
     },
     onSuccess: (_data, vars) => {
-      queryClient.invalidateQueries({ queryKey: sessionVideosQueryKey(vars.sessionId) })
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.sessionVideos.bySession(vars.sessionId),
+      })
     },
   })
 }
@@ -155,7 +156,9 @@ export function useUpdateVideoNote() {
     mutationFn: (vars: UpdateVideoNoteVars): Promise<VideoResponse> =>
       videosApi.apiVideosVideoIdPatch({ videoId: vars.videoId, body: { note: vars.note } }),
     onSuccess: (_data, vars) => {
-      queryClient.invalidateQueries({ queryKey: sessionVideosQueryKey(vars.sessionId) })
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.sessionVideos.bySession(vars.sessionId),
+      })
     },
   })
 }

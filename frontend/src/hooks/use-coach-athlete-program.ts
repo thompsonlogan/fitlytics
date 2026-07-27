@@ -4,8 +4,7 @@ import { useCoachRoster, type RosterAthlete } from "@/hooks/use-coach-roster"
 import { mapProgram } from "@/lib/program-mapper"
 import type { Program } from "@/lib/program-data"
 import { useServices } from "@/services/context"
-
-export const coachProgramQueryKey = (programId: string) => ["program", programId] as const
+import { queryKeys } from "@/services/query-keys"
 
 type CoachAthleteProgram = {
   athlete: RosterAthlete | null
@@ -23,11 +22,10 @@ export function useCoachAthleteProgram(athleteId: string): CoachAthleteProgram {
   const programId = athlete?.programId
 
   const program = useQuery({
-    queryKey: coachProgramQueryKey(programId ?? "none"),
+    queryKey: queryKeys.program.byId(programId ?? "none"),
     enabled: !!programId,
     queryFn: async (): Promise<Program> =>
       mapProgram(await programsApi.apiProgramsIdGet({ id: programId! })),
-    staleTime: 5 * 60 * 1000,
   })
 
   return {

@@ -7,12 +7,12 @@ import {
   ALLOWED_VIDEO_TYPES,
   isAllowedVideoType,
   MAX_VIDEO_BYTES,
-  sessionVideosQueryKey,
   useUploadSetVideo,
 } from "./use-set-videos"
 import { ServiceContext } from "@/services/context"
 import type { ServiceApis } from "@/services/data"
 import type { VideosApi } from "@/services/generated"
+import { queryKeys } from "@/services/query-keys"
 
 describe("use-set-videos client guards", () => {
   it("accepts the allowed video MIME types", () => {
@@ -79,7 +79,7 @@ describe("useUploadSetVideo", () => {
 
     await waitFor(() => {
       expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-        queryKey: sessionVideosQueryKey("s1"),
+        queryKey: queryKeys.sessionVideos.bySession("s1"),
       })
     })
   })

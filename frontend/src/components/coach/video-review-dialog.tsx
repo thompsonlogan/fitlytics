@@ -16,10 +16,10 @@ import { Textarea } from "@/components/ui/textarea"
 import { MAX_NOTE_LENGTH } from "@/hooks/use-coach-notes"
 import { usePostCoachNote } from "@/hooks/use-coach-notes"
 import { useReviewVideo } from "@/hooks/use-review-video"
-import { sessionVideosQueryKey } from "@/hooks/use-set-videos"
 import { formatReps, type Exercise, type SetBlock } from "@/lib/program-data"
 import { cn } from "@/lib/utils"
 import type { SetLogResponse, VideoResponse } from "@/services/generated"
+import { queryKeys } from "@/services/query-keys"
 
 type VideoReviewDialogProps = {
   open: boolean
@@ -74,7 +74,9 @@ export function VideoReviewDialog({
   const retryPlayback = () => {
     setPlaybackFailed(false)
     if (sessionId) {
-      void queryClient.invalidateQueries({ queryKey: sessionVideosQueryKey(sessionId) })
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.sessionVideos.bySession(sessionId),
+      })
     }
   }
 
