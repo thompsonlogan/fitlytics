@@ -1,6 +1,7 @@
 import { Bell, Moon, Sun } from "lucide-react"
 
 import { useTheme } from "@/components/theme-provider"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { AccountMenu } from "@/components/workout/account-menu"
 import type { MeResponse } from "@/services/generated"
@@ -8,13 +9,10 @@ import type { MeResponse } from "@/services/generated"
 type MobileAppBarProps = {
   user: MeResponse | null
   onLogout: () => void
+  badge?: string
 }
 
-// MobileAppBar is the sticky top bar for the phone layout: brand on the left,
-// then notifications, theme toggle and the shared account menu on the right.
-// Primary navigation lives in the bottom tab bar, so no nav links here. The top
-// padding folds in the safe-area inset so content clears the status bar / notch.
-export function MobileAppBar({ user, onLogout }: MobileAppBarProps) {
+export function MobileAppBar({ user, onLogout, badge }: MobileAppBarProps) {
   const { theme, setTheme } = useTheme()
   const isDark = theme === "dark"
 
@@ -28,6 +26,7 @@ export function MobileAppBar({ user, onLogout }: MobileAppBarProps) {
           F
         </span>
         <span className="text-[0.9375rem] font-semibold tracking-tight">Fitlytics</span>
+        {badge && <Badge variant="secondary">{badge}</Badge>}
       </div>
 
       <div className="flex-1" />

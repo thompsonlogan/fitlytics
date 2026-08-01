@@ -22,17 +22,17 @@ export function RosterToolbar({
   videosWaiting,
 }: RosterToolbarProps) {
   return (
-    <div className="flex flex-wrap items-end gap-3">
+    <div className="flex flex-col gap-2.5 md:flex-row md:flex-wrap md:items-end md:gap-3">
       <div>
-        <h1 className="text-lg font-semibold tracking-tight">Athletes</h1>
-        <p className="mt-0.5 text-[0.8125rem] text-muted-foreground">
+        <h1 className="text-xl font-semibold tracking-tight md:text-lg">Athletes</h1>
+        <p className="mt-0.5 text-[0.75rem] text-muted-foreground md:text-[0.8125rem]">
           {athleteCount} active {athleteCount === 1 ? "program" : "programs"}
           {videosWaiting > 0 &&
             ` · ${videosWaiting} ${videosWaiting === 1 ? "video" : "videos"} waiting for review`}
         </p>
       </div>
 
-      <div className="flex-1" />
+      <div className="hidden md:block md:flex-1" />
 
       <label className="relative">
         <span className="sr-only">Filter athletes</span>
@@ -41,11 +41,15 @@ export function RosterToolbar({
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
           placeholder="Filter athletes…"
-          className="h-8 w-52 pl-8 text-[0.8125rem]"
+          className="h-9 w-full pl-8 text-[0.8125rem] md:h-8 md:w-52"
         />
       </label>
 
-      <div role="tablist" aria-label="Roster filter" className="flex items-center rounded-lg border p-0.5">
+      <div
+        role="tablist"
+        aria-label="Roster filter"
+        className="flex items-center rounded-lg border p-0.5"
+      >
         {ROSTER_FILTERS.map(({ id, label }) => (
           <button
             key={id}
@@ -54,7 +58,7 @@ export function RosterToolbar({
             aria-selected={filter === id}
             onClick={() => onFilterChange(id)}
             className={cn(
-              "rounded-md px-2.5 py-1 text-[0.75rem] font-medium transition-colors",
+              "flex-1 rounded-md px-2.5 py-1.5 text-[0.75rem] font-medium transition-colors md:flex-none md:py-1",
               filter === id
                 ? "bg-muted text-foreground"
                 : "text-muted-foreground hover:text-foreground"

@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router"
-import { ChevronRight, Video } from "lucide-react"
+import { ChevronRight } from "lucide-react"
 
 import {
   Table,
@@ -13,9 +13,9 @@ import { AthleteIdentityCell } from "@/components/coach/athlete-identity-cell"
 import { AthleteStatusBadge } from "@/components/coach/athlete-status-badge"
 import { ComplianceCell } from "@/components/coach/compliance-cell"
 import { ProgramProgressCell } from "@/components/coach/program-progress-cell"
+import { VideosWaitingCell } from "@/components/coach/videos-waiting-cell"
 import type { RosterAthlete } from "@/hooks/use-coach-roster"
 import { formatRelativeDay } from "@/lib/relative-time"
-import { cn } from "@/lib/utils"
 
 type RosterTableProps = {
   athletes: RosterAthlete[]
@@ -90,15 +90,7 @@ export function RosterTable({ athletes }: RosterTableProps) {
             </TableCell>
 
             <TableCell>
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1.5 text-[0.8125rem] tabular-nums",
-                  a.videosWaiting > 0 ? "font-medium text-foreground" : "text-muted-foreground"
-                )}
-              >
-                <Video className="size-3.5" strokeWidth={1.75} />
-                {a.videosWaiting}
-              </span>
+              <VideosWaitingCell count={a.videosWaiting} />
             </TableCell>
 
             <TableCell>

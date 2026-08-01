@@ -14,6 +14,11 @@ import {
   tooltipMock,
 } from "./mocks/ui-mocks"
 import { lucideReactMock } from "./mocks/lucide-react-mock"
+import {
+  DEFAULT_TEST_WIDTH,
+  installMatchMedia,
+  setViewportWidth,
+} from "./mocks/match-media-mock"
 
 // Global mocks for the shadcn UI primitives and lucide-react. Rationale and
 // per-primitive notes live in ui-mocks.tsx / lucide-react-mock.tsx.
@@ -49,8 +54,14 @@ vi.mock("lucide-react", () => lucideReactMock)
 // stub it to a no-op so those effects don't crash the test render.
 Element.prototype.scrollIntoView = vi.fn()
 
+// jsdom has no matchMedia at all; useIsMobile and the theme provider both read
+// it during render. See match-media-mock.ts.
+installMatchMedia()
+
 // Auto-cleanup the testing-library DOM between tests so leaked nodes from one
-// test can't poison the next one's queries.
+// test can't poison the next one's queries, and put the viewport back to
+// desktop so a phone-width test can't leak into the next file's expectations.
 afterEach(() => {
   cleanup()
+  setViewportWidth(DEFAULT_TEST_WIDTH)
 })

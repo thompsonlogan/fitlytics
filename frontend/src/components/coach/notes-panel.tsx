@@ -8,13 +8,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { NoteMessage } from "@/components/coach/note-message"
 import { MAX_NOTE_LENGTH, useCoachNotes, usePostCoachNote } from "@/hooks/use-coach-notes"
+import { cn } from "@/lib/utils"
 
 type NotesPanelProps = {
   linkId: string | undefined
   currentUserId: string | undefined
+  className?: string
 }
 
-export function NotesPanel({ linkId, currentUserId }: NotesPanelProps) {
+export function NotesPanel({ linkId, currentUserId, className }: NotesPanelProps) {
   const { data: notes, isLoading, isError } = useCoachNotes(linkId)
   const postNote = usePostCoachNote(linkId)
   const [draft, setDraft] = useState("")
@@ -47,7 +49,7 @@ export function NotesPanel({ linkId, currentUserId }: NotesPanelProps) {
   const showCount = remaining <= 200
 
   return (
-    <Card size="sm" className="flex min-h-0 flex-col gap-0 py-0">
+    <Card size="sm" className={cn("flex min-h-0 flex-col gap-0 py-0", className)}>
       <CardHeader className="border-b px-3.5 py-2.5">
         <CardTitle className="text-[0.8125rem]">Notes</CardTitle>
       </CardHeader>

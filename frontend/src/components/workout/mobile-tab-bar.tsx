@@ -1,23 +1,30 @@
 import { Link, useLocation } from "@tanstack/react-router"
 
-import { NAV_ITEMS } from "@/components/workout/nav-items"
+import { NAV_ITEMS, type NavItem, type NavPlaceholder } from "@/components/workout/nav-items"
 import { cn } from "@/lib/utils"
 
-// MobileTabBar is the fixed bottom navigation for the phone layout. It replaces
-// the desktop header's inline top nav, exposing the same NAV_ITEMS as icon +
-// label tabs. Frosted background + a safe-area inset so it clears the home
-// indicator on notched devices.
-export function MobileTabBar() {
+type MobileTabBarProps = {
+  navItems?: NavItem[]
+  navPlaceholders?: NavPlaceholder[]
+}
+
+export function MobileTabBar({
+  navItems = NAV_ITEMS,
+  navPlaceholders = [],
+}: MobileTabBarProps = {}) {
   const pathname = useLocation({ select: (l) => l.pathname })
 
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-30 flex border-t bg-background/90 px-2 backdrop-blur-md backdrop-saturate-150"
-      style={{ paddingBottom: "calc(0.375rem + env(safe-area-inset-bottom))", paddingTop: "0.375rem" }}
+      style={{
+        paddingBottom: "calc(0.375rem + env(safe-area-inset-bottom))",
+        paddingTop: "0.375rem",
+      }}
       aria-label="Primary"
     >
-      {NAV_ITEMS.map(({ label, to, Icon }) => {
-        const active = pathname === to
+      {navItems.map(({ label, to, Icon }) => {
+        const active = pathname === to || pathname.startsWith(`${to}/`)
         return (
           <Link
             key={to}
@@ -33,6 +40,18 @@ export function MobileTabBar() {
           </Link>
         )
       })}
+
+      {navPlaceholders.map(({ label, Icon }) => (
+        <span
+          key={label}
+          aria-disabled="true"
+          title="Not built yet"
+          className="flex flex-1 cursor-not-allowed flex-col items-center gap-0.5 py-1 text-[0.625rem] font-medium text-muted-foreground/50"
+        >
+          <Icon className="size-5" strokeWidth={1.75} />
+          <span>{label}</span>
+        </span>
+      ))}
     </nav>
   )
 }
