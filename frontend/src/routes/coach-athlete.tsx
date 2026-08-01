@@ -4,12 +4,10 @@ import { Link, useParams } from "@tanstack/react-router"
 
 import { buttonVariants } from "@/components/ui/button"
 import { AthleteSummaryCard } from "@/components/coach/athlete-summary-card"
-import { CoachWorkoutTable } from "@/components/coach/coach-workout-table"
-import { CoachWorkoutTableSkeleton } from "@/components/coach/coach-workout-table-skeleton"
+import { CoachSessionView } from "@/components/coach/coach-session-view"
 import { NotesPanel } from "@/components/coach/notes-panel"
 import { VideoReviewDialog } from "@/components/coach/video-review-dialog"
 import { SubBar } from "@/components/workout/sub-bar"
-import { RestDayCard } from "@/components/workout/workout-table"
 import { useAuth } from "@/hooks/use-auth"
 import { useCoachAthleteProgram } from "@/hooks/use-coach-athlete-program"
 import { useCoachSession } from "@/hooks/use-coach-session"
@@ -47,8 +45,6 @@ export function CoachAthletePage() {
   const { actualsFor, notStarted, session, blockLogsByKey, videosBySetLogId, videosError } =
     useCoachSession(program?.id, dayData.id || undefined)
 
-  // Moving to a shorter week must not keep an out-of-range day, or days[dayIndex]
-  // falls back to the placeholder and the page renders a permanent "Loading…".
   const selectWeek = (nextWeek: number) => {
     const nextDays = program?.weeks[Math.min(nextWeek, weekCount) - 1]?.days ?? []
     const clamped = nextDays.length > 0 ? Math.min(dayIndex, nextDays.length - 1) : 0
@@ -93,7 +89,10 @@ export function CoachAthletePage() {
   }
 
   return (
-    <div className="grid min-h-0" style={{ gridTemplateRows: "auto minmax(0,1fr)" }}>
+    <div
+      className="flex flex-col md:grid md:min-h-0"
+      style={{ gridTemplateRows: "auto minmax(0,1fr)" }}
+    >
       <SubBar
         breadcrumb={[
           { label: "Athletes", to: "/coach" },
@@ -114,20 +113,15 @@ export function CoachAthletePage() {
         onResetToToday={() => setSelected(null)}
       />
 
-      <main className="grid min-h-0 grid-cols-1 gap-4 overflow-auto px-5 py-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
+      <main className="grid grid-cols-1 gap-3 px-3.5 py-3.5 md:min-h-0 md:gap-4 md:overflow-auto md:px-5 md:py-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="min-h-0">
-          {isLoading ? (
-            <CoachWorkoutTableSkeleton />
-          ) : dayData.off ? (
-            <RestDayCard name={dayData.name} />
-          ) : (
-            <CoachWorkoutTable
-              key={`${week}-${dayIndex}`}
-              day={dayData}
-              actualsFor={actualsFor}
-              onOpenVideo={setVideoRowKey}
-            />
-          )}
+          <CoachSessionView
+            key={`${week}-${dayIndex}`}
+            day={dayData}
+            isLoading={isLoading}
+            actualsFor={actualsFor}
+            onOpenVideo={setVideoRowKey}
+          />
 
           {!isLoading && !dayData.off && notStarted && (
             <p className="mt-2 text-[0.75rem] text-muted-foreground">
@@ -146,7 +140,11 @@ export function CoachAthletePage() {
         {athlete && (
           <aside className="flex min-h-0 min-w-0 flex-col gap-3">
             <AthleteSummaryCard athlete={athlete} />
-            <NotesPanel linkId={athlete.linkId} currentUserId={user?.id} />
+            <NotesPanel
+              linkId={athlete.linkId}
+              currentUserId={user?.id}
+              className="max-h-96 md:max-h-none"
+            />
           </aside>
         )}
       </main>

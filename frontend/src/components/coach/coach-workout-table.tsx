@@ -1,5 +1,3 @@
-import { Check, CircleDashed, Minus, X } from "lucide-react"
-
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Table,
@@ -9,6 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { BlockStateIcon } from "@/components/coach/block-state-icon"
 import { CoachVideoCell } from "@/components/coach/coach-video-cell"
 import { DeviationChip } from "@/components/coach/deviation-chip"
 import { RpePairCell } from "@/components/coach/rpe-pair-cell"
@@ -33,30 +32,6 @@ const COLUMNS: { key: string; header: string; align?: "right" | "center" }[] = [
   { key: "rpe", header: "RPE", align: "center" },
   { key: "video", header: "Video", align: "center" },
 ]
-
-const STATE_ICON: Record<
-  string,
-  { Icon: typeof Check; className: string; label: string } | undefined
-> = {
-  completed: {
-    Icon: Check,
-    className: "text-emerald-600 dark:text-emerald-400",
-    label: "Completed",
-  },
-  partial: {
-    Icon: CircleDashed,
-    className: "text-amber-600 dark:text-amber-400",
-    label: "Partly completed",
-  },
-  skipped: { Icon: X, className: "text-muted-foreground", label: "Skipped" },
-  pending: { Icon: Minus, className: "text-muted-foreground/40", label: "Not logged" },
-}
-
-const UNKNOWN_STATE = {
-  Icon: Minus,
-  className: "text-muted-foreground/40",
-  label: "Unknown",
-} as const
 
 export function CoachWorkoutTable({ day, actualsFor, onOpenVideo }: CoachWorkoutTableProps) {
   const rows = flattenRows(day)
@@ -92,7 +67,6 @@ export function CoachWorkoutTable({ day, actualsFor, onOpenVideo }: CoachWorkout
         <TableBody>
           {rows.map((r, rowIdx) => {
             const actual = actualsFor(r.key)
-            const { Icon, className, label } = STATE_ICON[actual.state] ?? UNKNOWN_STATE
 
             return (
               <TableRow
@@ -100,7 +74,7 @@ export function CoachWorkoutTable({ day, actualsFor, onOpenVideo }: CoachWorkout
                 className={cn("hover:bg-muted/40", r.first && rowIdx > 0 && "border-t")}
               >
                 <TableCell className="w-7 px-2.5 py-1.5">
-                  <Icon className={cn("size-3.5", className)} aria-label={label} />
+                  <BlockStateIcon state={actual.state} />
                 </TableCell>
 
                 {r.first ? (
