@@ -36,6 +36,13 @@ type AuthDeps struct {
 // short-lived HttpOnly cookie, and echoed in the authorize URL. AuthCallback
 // requires the two to match — that's what prevents a third party from forging
 // a callback request that completes sign-in as their account.
+//
+// @Summary      Start sign-in
+// @Description  Generates an OAuth state cookie and redirects the browser to WorkOS AuthKit.
+// @Tags         Auth
+// @Success      302  "redirect to WorkOS AuthKit"
+// @Failure      500  {object}  apierr.ProblemDetails  "could not start sign-in"
+// @Router       /auth/login [get]
 func AuthLogin(d AuthDeps) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		state, err := auth.NewOAuthState()
@@ -67,6 +74,14 @@ func AuthLogin(d AuthDeps) gin.HandlerFunc {
 // pair, stores both as HttpOnly cookies, and bounces the browser back to the
 // SPA. On failure the user is redirected to the SPA with an `auth_error`
 // query param so the frontend can surface the cause.
+//
+// @Summary      Complete sign-in
+// @Description  Handles the WorkOS AuthKit callback, validates OAuth state, exchanges the authorization code, stores session cookies, and redirects back to the SPA. Auth failures also redirect to the SPA with an auth_error query parameter.
+// @Tags         Auth
+// @Param        code   query  string  false  "WorkOS authorization code"
+// @Param        state  query  string  false  "OAuth state echoed from /auth/login"
+// @Success      302    "redirect to the SPA"
+// @Router       /auth/callback [get]
 func AuthCallback(d AuthDeps) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Validate state first. The cookie is consumed regardless of outcome
