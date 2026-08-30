@@ -49,7 +49,7 @@ func TestRequireRole_AllowsMatchingRole(t *testing.T) {
 }
 
 func TestRequireRole_RejectsOtherRoles(t *testing.T) {
-	for _, role := range []auth.Role{"", "Athlete", "admin", "coach", "COACH", "Coach "} {
+	for _, role := range []auth.Role{"", "Athlete", "admin", "Coach", "COACH", "coach "} {
 		t.Run("role="+string(role), func(t *testing.T) {
 			r, reached := newRoleEngine(auth.RoleCoach, &auth.Claims{Role: role})
 
