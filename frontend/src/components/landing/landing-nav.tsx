@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router"
 import { ArrowRight, Moon, Sun } from "lucide-react"
 
 import { useTheme } from "@/components/theme-provider"
@@ -58,15 +57,17 @@ export function LandingNav() {
           >
             {isDark ? <Sun /> : <Moon />}
           </Button>
-          <a
-            href="/auth/login"
-            className={landingButton({ variant: "ghost", size: "sm", className: "max-[640px]:hidden" })}
-          >
+          {/* Returning users need "Log in" everywhere; on mobile it replaces
+              "Get started", which only duplicates the hero's "Start free". */}
+          <a href="/auth/login" className={landingButton({ variant: "ghost", size: "sm" })}>
             Log in
           </a>
-          <Link to="/today" className={landingButton({ variant: "primary", size: "sm" })}>
+          <a
+            href="/auth/login"
+            className={landingButton({ variant: "primary", size: "sm", className: "max-[640px]:hidden" })}
+          >
             Get started <ArrowRight />
-          </Link>
+          </a>
         </div>
       </Wrap>
     </header>

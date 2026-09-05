@@ -1,5 +1,4 @@
 import type { ReactNode } from "react"
-import { Link } from "@tanstack/react-router"
 import { ArrowRight, Check } from "lucide-react"
 
 import { Eyebrow } from "@/components/landing/eyebrow"
@@ -24,7 +23,7 @@ type FeatureSectionProps = {
   body: string
   items: FeatureItem[]
   ctaLabel: string
-  /** App route the CTA links into. */
+  /** href the CTA links to (a logged-out visitor funnels straight to sign-in). */
   ctaTo: string
   visual: ReactNode
 }
@@ -69,12 +68,12 @@ export function FeatureSection({
                 </li>
               ))}
             </ul>
-            <Link
-              to={ctaTo}
+            <a
+              href={ctaTo}
               className="mt-7 inline-flex items-center gap-1.5 text-[0.9375rem] font-medium [&_svg]:size-4 [&_svg]:transition-transform hover:[&_svg]:translate-x-[3px]"
             >
               {ctaLabel} <ArrowRight />
-            </Link>
+            </a>
           </div>
           <Card
             data-reveal

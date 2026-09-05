@@ -1,5 +1,4 @@
 import * as React from "react"
-import { Link } from "@tanstack/react-router"
 import { Check } from "lucide-react"
 
 import { landingButton } from "@/components/landing/landing-button"
@@ -160,12 +159,12 @@ export function PricingSection() {
                   {note}
                 </div>
                 <div className="mt-6">
-                  <Link
-                    to="/today"
+                  <a
+                    href="/auth/login"
                     className={landingButton({ variant: plan.ctaVariant, className: "w-full" })}
                   >
                     {plan.ctaLabel}
-                  </Link>
+                  </a>
                 </div>
                 <ul className="mt-6 grid list-none gap-3 border-t border-border pt-6">
                   {plan.features.map((feature) => (
