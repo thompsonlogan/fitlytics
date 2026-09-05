@@ -1,5 +1,3 @@
-import { Link } from "@tanstack/react-router"
-
 import { Wrap } from "@/components/landing/wrap"
 import { Separator } from "@/components/ui/separator"
 
@@ -61,7 +59,7 @@ export function LandingFooter() {
             <a href="#builder" className={COL_LINK}>Program builder</a>
             <a href="#analytics" className={COL_LINK}>Analytics</a>
             <a href="#pricing" className={COL_LINK}>Pricing</a>
-            <Link to="/today" className={COL_LINK}>Open app</Link>
+            <a href="/auth/login" className={COL_LINK}>Open app</a>
           </div>
           <div>
             <h4 className="mb-[0.875rem] text-[0.8125rem] font-semibold tracking-[0.01em]">Resources</h4>

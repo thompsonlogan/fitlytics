@@ -1,10 +1,14 @@
-import { Bell, Moon, Sun } from "lucide-react"
+import { ArrowLeft, Bell, Moon, Sun, Users } from "lucide-react"
+
+import { Link } from "@tanstack/react-router"
 
 import { useTheme } from "@/components/theme-provider"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { AccountMenu } from "@/components/workout/account-menu"
 import type { MeResponse } from "@/services/generated"
+import { isCoach } from "@/lib/is-coach"
+import { cn } from "@/lib/utils"
 
 type MobileAppBarProps = {
   user: MeResponse | null
@@ -15,6 +19,8 @@ type MobileAppBarProps = {
 export function MobileAppBar({ user, onLogout, badge }: MobileAppBarProps) {
   const { theme, setTheme } = useTheme()
   const isDark = theme === "dark"
+  const isCoachView = badge === "Coach"
+  const showCoachLink = !isCoachView && isCoach(user)
 
   return (
     <header
@@ -30,6 +36,34 @@ export function MobileAppBar({ user, onLogout, badge }: MobileAppBarProps) {
       </div>
 
       <div className="flex-1" />
+
+      {showCoachLink && (
+        <Link
+          to="/coach"
+          aria-label="Coach view"
+          className={cn(
+            buttonVariants({ variant: "ghost", size: "sm" }),
+            "h-7 gap-1.5 px-2.5 text-[0.8125rem] font-medium text-muted-foreground"
+          )}
+        >
+          <Users className="size-3.5" strokeWidth={1.75} />
+          <span>Coach</span>
+        </Link>
+      )}
+
+      {isCoachView && (
+        <Link
+          to="/today"
+          aria-label="Exit coach view"
+          className={cn(
+            buttonVariants({ variant: "ghost", size: "sm" }),
+            "h-7 gap-1.5 px-2.5 text-[0.8125rem] font-medium text-muted-foreground"
+          )}
+        >
+          <ArrowLeft className="size-3.5" strokeWidth={1.75} />
+          <span>Exit</span>
+        </Link>
+      )}
 
       <Button variant="ghost" size="icon-sm" aria-label="Notifications" className="relative">
         <Bell className="size-4" strokeWidth={1.75} />

@@ -27,9 +27,12 @@ const TRACKING_VISUAL = <MockTable rows={TRACKING_ROWS} />
 const BUILDER_VISUAL = <BuilderMock />
 const ANALYTICS_VISUAL = <AnalyticsMock />
 
-// LandingPage is the public marketing page served at "/". App CTAs route to
-// /today (whose guard sends unauthenticated visitors to the WorkOS login) and
-// the nav "Log in" hands off directly to WorkOS via /auth/login.
+// LandingPage is the public marketing page served at "/". Its CTAs hand off
+// directly to WorkOS via /auth/login rather than the guarded /today route: a
+// marketing visitor is logged out by definition, so routing them through the
+// SPA's auth probe (GET /api/me + refresh) only adds latency — and on touch
+// devices, with no hover to warm the router's intent-preload, that probe runs
+// on the tap and stalls the redirect for seconds.
 export function LandingPage() {
   const revealRef = useReveal<HTMLDivElement>()
 
@@ -50,7 +53,7 @@ export function LandingPage() {
           { lead: "Rest timers & supersets.", body: "Grouped exercises and per-set rest, built in." },
         ]}
         ctaLabel="Open the tracker"
-        ctaTo="/today"
+        ctaTo="/auth/login"
         visual={TRACKING_VISUAL}
       />
 
@@ -67,7 +70,7 @@ export function LandingPage() {
           { lead: "Reusable templates.", body: "Clone a block, swap accessories, ship to clients." },
         ]}
         ctaLabel="Start a program"
-        ctaTo="/today"
+        ctaTo="/auth/login"
         visual={BUILDER_VISUAL}
       />
 
@@ -82,7 +85,7 @@ export function LandingPage() {
           { lead: "Full session history.", body: "Replay any past workout, exactly as logged." },
         ]}
         ctaLabel="View analytics"
-        ctaTo="/today"
+        ctaTo="/auth/login"
         visual={ANALYTICS_VISUAL}
       />
 

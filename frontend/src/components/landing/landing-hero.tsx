@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router"
 import { ArrowRight, Play, Star } from "lucide-react"
 
 import { landingButton } from "@/components/landing/landing-button"
@@ -48,12 +47,12 @@ export function LandingHero() {
           periodized programs, and watch the numbers move. Built for lifters who log.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link
-            to="/today"
+          <a
+            href="/auth/login"
             className={landingButton({ variant: "primary", size: "lg", className: "max-[640px]:flex-1" })}
           >
             Start free <ArrowRight />
-          </Link>
+          </a>
           <a
             href="#tracking"
             className={landingButton({ variant: "outline", size: "lg", className: "max-[640px]:flex-1" })}

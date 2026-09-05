@@ -1,4 +1,4 @@
-import { Bell, Moon, Search, Sun, Users } from "lucide-react"
+import { ArrowLeft, Bell, Moon, Search, Sun, Users } from "lucide-react"
 
 import { Link, useLocation } from "@tanstack/react-router"
 
@@ -34,7 +34,8 @@ export function AppHeader({
   const { theme, setTheme } = useTheme()
   const isDark = theme === "dark"
   const pathname = useLocation({ select: (l) => l.pathname })
-  const showCoachLink = !badge && isCoach(user)
+  const isCoachView = badge === "Coach"
+  const showCoachLink = !isCoachView && isCoach(user)
 
   return (
     <header className="flex items-center gap-3 border-b bg-background px-5 py-2.5">
@@ -98,6 +99,19 @@ export function AppHeader({
         >
           <Users className="size-3.5" strokeWidth={1.75} />
           <span>Coach</span>
+        </Link>
+      )}
+
+      {isCoachView && (
+        <Link
+          to="/today"
+          className={cn(
+            buttonVariants({ variant: "ghost", size: "sm" }),
+            "h-7 gap-1.5 px-2.5 text-[0.8125rem] font-medium text-muted-foreground"
+          )}
+        >
+          <ArrowLeft className="size-3.5" strokeWidth={1.75} />
+          <span>Exit coach</span>
         </Link>
       )}
 

@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router"
 import { ArrowRight } from "lucide-react"
 
 import { landingButton } from "@/components/landing/landing-button"
@@ -33,12 +32,12 @@ export function CtaBand() {
               Bring your program over in minutes. Track your first session free — keep it forever.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <Link
-                to="/today"
+              <a
+                href="/auth/login"
                 className={landingButton({ variant: "primary", size: "lg", className: "max-[640px]:flex-1" })}
               >
                 Start free <ArrowRight />
-              </Link>
+              </a>
               <a
                 href="#pricing"
                 className={landingButton({ variant: "outline", size: "lg", className: "max-[640px]:flex-1" })}
