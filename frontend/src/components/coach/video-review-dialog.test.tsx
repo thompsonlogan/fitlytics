@@ -10,6 +10,8 @@ vi.mock(
 
 import { VideoReviewDialog } from "@/components/coach/video-review-dialog"
 import { ServiceContext } from "@/services/context"
+import { MOBILE_MAX_WIDTH } from "@/lib/breakpoints"
+import { setViewportWidth } from "@/test/mocks/match-media-mock"
 import type { Exercise, SetBlock } from "@/lib/program-data"
 import type { SetLogResponse, VideoResponse } from "@/services/generated"
 import type { ServiceApis } from "@/services/data"
@@ -184,5 +186,26 @@ describe("VideoReviewDialog", () => {
       "maxlength",
       "4000"
     )
+  })
+
+  it("pins the review actions outside the scrolling body on a phone", () => {
+    setViewportWidth(MOBILE_MAX_WIDTH)
+    renderDialog(new Map([["log-0", video()]]))
+
+    const sheet = document.querySelector('[data-slot="dialog-content"]')
+    const body = document.querySelector('[data-slot="dialog-body"]')
+    const send = screen.getByRole("button", { name: /send feedback/i })
+
+    expect(sheet).toHaveAttribute("data-layout", "sheet")
+    expect(body).toContainElement(screen.getByRole("textbox", { name: /feedback/i }))
+    expect(body!.contains(send)).toBe(false)
+  })
+
+  it("keeps every review control reachable when nothing is filmed", () => {
+    setViewportWidth(MOBILE_MAX_WIDTH)
+    renderDialog(new Map())
+
+    expect(screen.getByText(/Nothing filmed on this block yet/i)).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /send feedback/i })).not.toBeInTheDocument()
   })
 })

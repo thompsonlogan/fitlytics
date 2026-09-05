@@ -44,6 +44,7 @@ do $$
 declare
   v_coach    uuid := '265f6d7d-c361-4189-ac41-3f053b2b217d';
   v_link     uuid := 'a1c0ac11-0000-4000-8000-000000000001';
+  v_self     uuid := 'a1c0ac11-0000-4000-8000-000000000002';
   v_athlete  uuid := 'f69f8e5a-9800-4665-9739-2f5b52687902';
   v_program  uuid := md5('coach-seed:program')::uuid;
   v_start    date := (current_date - interval '15 days')::date;
@@ -72,6 +73,10 @@ begin
   insert into coach_athletes (id, coach_user_id, athlete_user_id, status)
   values (v_link, v_coach, v_athlete, 'active')
   on conflict (id) do nothing;
+
+  insert into coach_athletes (id, coach_user_id, athlete_user_id, status)
+  values (v_self, v_coach, v_coach, 'active')
+  on conflict do nothing;
 
   if exists (select 1 from programs where id = v_program) then
     return;  -- already seeded

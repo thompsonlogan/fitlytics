@@ -6,15 +6,11 @@ import { cn } from "@/lib/utils"
 type SetVideoPickerProps = {
   count: number
   value: number
-  // filmed[i] / uploading[i] describe the status of set i within the block.
   filmed: boolean[]
   uploading: boolean[]
   onChange: (idx: number) => void
 }
 
-// SetVideoPicker is the segmented "Set 1 / Set 2…" control inside the upload
-// dialog: a video binds to one physical set, so the user picks which. A filmed
-// set shows a dot; an in-flight upload shows a spinner.
 export function SetVideoPicker({ count, value, filmed, uploading, onChange }: SetVideoPickerProps) {
   return (
     <ToggleGroup
@@ -25,11 +21,15 @@ export function SetVideoPicker({ count, value, filmed, uploading, onChange }: Se
         const next = groupValue[0]
         if (next != null) onChange(Number(next))
       }}
-      className="flex-wrap"
+      className="-mx-4 [scrollbar-width:none] flex-nowrap overflow-x-auto px-4 md:mx-0 md:flex-wrap md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden"
       aria-label="Which set?"
     >
       {Array.from({ length: count }).map((_, i) => (
-        <ToggleGroupItem key={i} value={String(i)} className="gap-1.5">
+        <ToggleGroupItem
+          key={i}
+          value={String(i)}
+          className="h-9.5 flex-none gap-1.5 px-3.5 text-[0.8125rem] md:h-8 md:px-3 md:text-xs"
+        >
           <span>Set {i + 1}</span>
           {uploading[i] ? (
             <Loader2 className="size-2.5 animate-spin" />

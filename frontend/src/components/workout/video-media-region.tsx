@@ -1,19 +1,12 @@
-import { CircleCheck, Film, Repeat2, UploadCloud } from "lucide-react"
+import { CircleCheck, Film, Repeat2 } from "lucide-react"
 
 import { Progress } from "@/components/ui/progress"
 import { type Exercise } from "@/lib/program-data"
-import { ALLOWED_VIDEO_TYPES, MAX_VIDEO_BYTES } from "@/hooks/use-set-videos"
 import { type VideoResponse } from "@/services/generated"
 import { fmtBytes, fmtTime, type StagedFile } from "@/components/workout/video-format"
+import { VideoDropZone } from "@/components/workout/video-drop-zone"
 
-function cnDrop(dragOver: boolean): string {
-  return [
-    "flex min-h-40 w-full flex-col items-center justify-center gap-1.5 rounded-md border-[1.5px] border-dashed p-6 text-center text-muted-foreground transition-colors",
-    dragOver
-      ? "border-foreground border-solid bg-muted"
-      : "border-border bg-background hover:border-ring hover:bg-muted",
-  ].join(" ")
-}
+const PLAYER = "aspect-[4/3] max-h-72 w-full rounded-md border bg-black md:aspect-video"
 
 type VideoMediaRegionProps = {
   isUploading: boolean
@@ -25,6 +18,8 @@ type VideoMediaRegionProps = {
   setErroredSrc: (src: string | null) => void
   onPlaybackError: (src: string) => void
   fileRef: React.RefObject<HTMLInputElement | null>
+  camRef: React.RefObject<HTMLInputElement | null>
+  isMobile: boolean
   exercise: Exercise
   setIdx: number
   dragOver: boolean
@@ -33,10 +28,6 @@ type VideoMediaRegionProps = {
   localError: string | null
 }
 
-// VideoMediaRegion is the dialog's main visual: the uploading progress card,
-// the staged-file preview, the saved-clip player, or the empty drop-zone —
-// whichever the current state calls for. Purely presentational; all state and
-// handlers live in VideoUploadDialog.
 export function VideoMediaRegion({
   isUploading,
   progress,
@@ -47,6 +38,8 @@ export function VideoMediaRegion({
   setErroredSrc,
   onPlaybackError,
   fileRef,
+  camRef,
+  isMobile,
   exercise,
   setIdx,
   dragOver,
@@ -83,7 +76,7 @@ export function VideoMediaRegion({
             preload="metadata"
             aria-label={`Preview of ${staged.file.name} for set ${setIdx + 1}`}
             onError={() => setErroredSrc(staged.url)}
-            className="aspect-video max-h-72 w-full rounded-md border bg-black"
+            className={PLAYER}
           >
             {/* User-recorded lift clips ship without a caption file; an
                 empty captions track satisfies the a11y contract without
@@ -96,7 +89,7 @@ export function VideoMediaRegion({
             <span className="max-w-44 truncate font-medium text-foreground">
               {staged.file.name}
             </span>
-            <span className="tabular-nums whitespace-nowrap">
+            <span className="whitespace-nowrap tabular-nums">
               {fmtBytes(staged.file.size)} · {fmtTime(staged.durationSec)}
             </span>
             <span className="flex-1" />
@@ -120,7 +113,7 @@ export function VideoMediaRegion({
             preload="metadata"
             aria-label={`${exercise.name} — set ${setIdx + 1} video`}
             onError={() => onPlaybackError(currentVideo.playbackUrl!)}
-            className="aspect-video max-h-72 w-full rounded-md border bg-black"
+            className={PLAYER}
           >
             <track kind="captions" />
           </video>
@@ -130,7 +123,7 @@ export function VideoMediaRegion({
             <span className="max-w-44 truncate font-medium text-foreground">
               {currentVideo.originalName}
             </span>
-            <span className="tabular-nums whitespace-nowrap">
+            <span className="whitespace-nowrap tabular-nums">
               {fmtBytes(currentVideo.sizeBytes)} · {fmtTime(currentVideo.durationSec)}
             </span>
             <span className="flex-1" />
@@ -145,31 +138,15 @@ export function VideoMediaRegion({
           </div>
         </div>
       ) : (
-        <button
-          type="button"
-          onClick={() => fileRef.current?.click()}
-          onDragOver={(e) => {
-            e.preventDefault()
-            setDragOver(true)
-          }}
-          onDragLeave={() => setDragOver(false)}
+        <VideoDropZone
+          isMobile={isMobile}
+          setNumber={setIdx + 1}
+          onBrowse={() => fileRef.current?.click()}
+          onRecord={() => camRef.current?.click()}
+          dragOver={dragOver}
+          setDragOver={setDragOver}
           onDrop={onDrop}
-          className={cnDrop(dragOver)}
-        >
-          <span className="mb-1 flex size-11 items-center justify-center rounded-full bg-muted text-foreground">
-            <UploadCloud className="size-5.5" />
-          </span>
-          <span className="text-sm font-semibold text-foreground">
-            Drag &amp; drop your lift video
-          </span>
-          <span className="text-[0.8125rem]">
-            or <u className="underline-offset-2">browse files</u> to upload
-          </span>
-          <span className="mt-1 text-[0.6875rem] opacity-80">
-            {ALLOWED_VIDEO_TYPES.map((t) => t.split("/")[1]?.toUpperCase()).join(", ")} · up to{" "}
-            {fmtBytes(MAX_VIDEO_BYTES)}
-          </span>
-        </button>
+        />
       )}
       {localError ? (
         <p className="mt-2 text-xs text-destructive" role="alert">
@@ -186,8 +163,8 @@ export function VideoMediaRegion({
 function FormatWarning({ staged }: { staged?: boolean }) {
   return (
     <p className="text-xs text-muted-foreground" role="status">
-      This video can&rsquo;t be played in this browser &mdash; likely an iPhone HEVC
-      (H.265) .mov, which Chrome and Firefox can&rsquo;t decode.{" "}
+      This video can&rsquo;t be played in this browser &mdash; likely an iPhone HEVC (H.265) .mov,
+      which Chrome and Firefox can&rsquo;t decode.{" "}
       {staged
         ? "You can still upload it; it will play on devices that support the format, such as Safari or iOS."
         : "The file is saved and will play in browsers that support the format, such as Safari or iOS."}

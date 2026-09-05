@@ -1,8 +1,11 @@
-import { Check, Info, Trash2, UploadCloud, Video } from "lucide-react"
+import { useRef } from "react"
+
+import { Camera, Check, Info, Trash2, UploadCloud, Video } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -12,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { SetVideoPicker } from "@/components/workout/set-video-picker"
 import { type EnsureSetLog, useVideoUpload } from "@/components/workout/use-video-upload"
 import { VideoMediaRegion } from "@/components/workout/video-media-region"
+import { useIsMobile } from "@/hooks/use-is-mobile"
 import { formatReps, type Exercise, type SetBlock } from "@/lib/program-data"
 import { kgToLbRounded } from "@/lib/units"
 import { type SetLogResponse, type VideoResponse } from "@/services/generated"
@@ -87,14 +91,17 @@ export function VideoUploadDialog({
     onOpenChange,
   })
 
+  const isMobile = useIsMobile()
+  const camRef = useRef<HTMLInputElement>(null)
+
   const loadUsedKg = blockLogs[0]?.actualLoadKg
   const loadUsed = loadUsedKg == null ? "—" : String(kgToLbRounded(loadUsedKg))
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <span className="inline-flex w-fit items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[0.625rem] font-semibold tracking-wider text-muted-foreground uppercase">
+      <DialogContent layout="sheet" className="md:max-w-md">
+        <DialogHeader className="px-4 pt-2.5 md:px-0 md:pt-0">
+          <span className="hidden w-fit items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[0.625rem] font-semibold tracking-wider text-muted-foreground uppercase md:inline-flex">
             <Video className="size-3" />
             Set video
           </span>
@@ -109,76 +116,81 @@ export function VideoUploadDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {/* media region */}
-        <VideoMediaRegion
-          isUploading={isUploading}
-          progress={progress}
-          staged={staged}
-          isReady={isReady}
-          currentVideo={currentVideo}
-          erroredSrc={erroredSrc}
-          setErroredSrc={setErroredSrc}
-          onPlaybackError={handlePlaybackError}
-          fileRef={fileRef}
-          exercise={exercise}
-          setIdx={setIdx}
-          dragOver={dragOver}
-          setDragOver={setDragOver}
-          onDrop={onDrop}
-          localError={localError}
-        />
+        <DialogBody>
+          {/* media region */}
+          <VideoMediaRegion
+            isUploading={isUploading}
+            progress={progress}
+            staged={staged}
+            isReady={isReady}
+            currentVideo={currentVideo}
+            erroredSrc={erroredSrc}
+            setErroredSrc={setErroredSrc}
+            onPlaybackError={handlePlaybackError}
+            fileRef={fileRef}
+            camRef={camRef}
+            isMobile={isMobile}
+            exercise={exercise}
+            setIdx={setIdx}
+            dragOver={dragOver}
+            setDragOver={setDragOver}
+            onDrop={onDrop}
+            localError={localError}
+          />
 
-        {/* set picker */}
-        {block.sets > 1 ? (
+          {/* set picker */}
+          {block.sets > 1 ? (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-baseline gap-1.5 text-xs font-semibold text-foreground">
+                Which set?
+                <span className="ml-auto text-[0.625rem] font-medium tracking-wide text-muted-foreground uppercase">
+                  {filmedCount}/{block.sets} filmed
+                </span>
+              </div>
+              <SetVideoPicker
+                count={block.sets}
+                value={setIdx}
+                filmed={filmed}
+                uploading={uploadingArr}
+                onChange={setSetIdx}
+              />
+            </div>
+          ) : null}
+
+          {/* prescription context */}
+          <div className="grid grid-cols-4 overflow-hidden rounded-md border">
+            <ContextCell label="Set" value={`${setIdx + 1}`} unit={`/${block.sets}`} />
+            <ContextCell label="Reps" value={formatReps(block.repsMin, block.repsMax)} />
+            <ContextCell label="Load" value={loadUsed} unit="lb" />
+            <ContextCell label="RPE" value={block.rpe == null ? "—" : String(block.rpe)} last />
+          </div>
+
+          {/* note */}
           <div className="flex flex-col gap-1.5">
             <div className="flex items-baseline gap-1.5 text-xs font-semibold text-foreground">
-              Which set?
-              <span className="ml-auto text-[0.625rem] font-medium tracking-wide text-muted-foreground uppercase">
-                {filmedCount}/{block.sets} filmed
+              Note
+              <span className="text-[0.625rem] font-medium tracking-wide text-muted-foreground uppercase">
+                optional
               </span>
             </div>
-            <SetVideoPicker
-              count={block.sets}
-              value={setIdx}
-              filmed={filmed}
-              uploading={uploadingArr}
-              onChange={setSetIdx}
+            <Textarea
+              value={noteValue}
+              placeholder="How did it feel? e.g. felt heavy, slight knee cave, good bar speed…"
+              onChange={(e) => setNoteDraft(e.target.value)}
+              onBlur={commitNote}
+              className="min-h-21 resize-none text-base md:min-h-18 md:text-[0.8125rem]"
             />
           </div>
-        ) : null}
-
-        {/* prescription context */}
-        <div className="grid grid-cols-4 overflow-hidden rounded-md border">
-          <ContextCell label="Set" value={`${setIdx + 1}`} unit={`/${block.sets}`} />
-          <ContextCell label="Reps" value={formatReps(block.repsMin, block.repsMax)} />
-          <ContextCell label="Load" value={loadUsed} unit="lb" />
-          <ContextCell label="RPE" value={block.rpe == null ? "—" : String(block.rpe)} last />
-        </div>
-
-        {/* note */}
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-baseline gap-1.5 text-xs font-semibold text-foreground">
-            Note
-            <span className="text-[0.625rem] font-medium tracking-wide text-muted-foreground uppercase">
-              optional
-            </span>
-          </div>
-          <Textarea
-            value={noteValue}
-            placeholder="How did it feel? e.g. felt heavy, slight knee cave, good bar speed…"
-            onChange={(e) => setNoteDraft(e.target.value)}
-            onBlur={commitNote}
-            className="min-h-18 resize-none text-[0.8125rem]"
-          />
-        </div>
+        </DialogBody>
 
         {/* footer */}
         <DialogFooterRow
           status={isUploading ? "uploading" : staged ? "staged" : isReady ? "ready" : "empty"}
           setNumber={setIdx + 1}
+          isMobile={isMobile}
           onRemove={handleRemove}
           onDone={() => handleOpenChange(false)}
-          onChooseFile={() => fileRef.current?.click()}
+          onChooseFile={() => (isMobile ? camRef : fileRef).current?.click()}
           onUpload={() => void confirmUpload()}
           onDiscard={() => discardStaged(setIdx)}
           removing={removing}
@@ -191,6 +203,15 @@ export function VideoUploadDialog({
           accept="video/*"
           hidden
           aria-label="Choose a video file to upload"
+          onChange={onPick}
+        />
+        <input
+          ref={camRef}
+          type="file"
+          accept="video/*"
+          capture="environment"
+          hidden
+          aria-label="Record a video for this set"
           onChange={onPick}
         />
       </DialogContent>
@@ -227,6 +248,7 @@ function ContextCell({
 function DialogFooterRow({
   status,
   setNumber,
+  isMobile,
   onRemove,
   onDone,
   onChooseFile,
@@ -237,6 +259,7 @@ function DialogFooterRow({
 }: {
   status: "ready" | "uploading" | "staged" | "empty"
   setNumber: number
+  isMobile: boolean
   onRemove: () => void
   onDone: () => void
   onChooseFile: () => void
@@ -246,8 +269,13 @@ function DialogFooterRow({
   submitting: boolean
 }) {
   return (
-    <div className="-mx-4 -mb-4 flex items-center gap-2 rounded-b-xl border-t bg-muted/50 px-4 py-3">
-      <div className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+    // Sheet footer: status on its own line above full-width buttons, clearing
+    // the home indicator. Desktop keeps the single inline row.
+    <div
+      className="flex flex-wrap items-center gap-2 border-t bg-muted/50 px-4 py-3 md:-mx-4 md:-mb-4 md:flex-nowrap md:rounded-b-xl [&>button]:h-11 [&>button]:flex-1 md:[&>button]:h-8 md:[&>button]:flex-none"
+      style={{ paddingBottom: isMobile ? "calc(0.75rem + env(safe-area-inset-bottom))" : undefined }}
+    >
+      <div className="inline-flex w-full items-center gap-1.5 text-xs text-muted-foreground md:w-auto">
         {status === "ready" ? (
           <>
             <span className="size-1.5 rounded-full bg-emerald-500" />
@@ -270,7 +298,7 @@ function DialogFooterRow({
           </>
         )}
       </div>
-      <span className="flex-1" />
+      <span className="hidden flex-1 md:block" />
       {status === "ready" ? (
         <>
           <Button variant="ghost" size="sm" onClick={onRemove} disabled={removing}>
@@ -299,8 +327,8 @@ function DialogFooterRow({
         </>
       ) : (
         <Button size="sm" onClick={onChooseFile}>
-          <UploadCloud className="size-3.5" />
-          Choose file
+          {isMobile ? <Camera className="size-4" /> : <UploadCloud className="size-3.5" />}
+          {isMobile ? "Record" : "Choose file"}
         </Button>
       )}
     </div>
