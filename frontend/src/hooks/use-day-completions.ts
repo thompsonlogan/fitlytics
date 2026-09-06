@@ -1,13 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 
 import { useServices } from "@/services/context"
-
-// DAY_COMPLETIONS_QUERY_KEY scopes the cached completions list by program id
-// so two programs in the same user session don't collide. Exported for any
-// future invalidation logic (e.g. after marking a session complete from a
-// different page).
-export const dayCompletionsQueryKey = (programId: string) =>
-  ["day-completions", programId] as const
+import { queryKeys } from "@/services/query-keys"
 
 // useDayCompletions loads the (week, day) sequence pairs where the user's
 // session has rolled to state='completed'. The day selector renders a "done"
@@ -19,7 +13,9 @@ export function useDayCompletions(programId: string | undefined) {
   const { sessionsApi } = useServices()
 
   return useQuery({
-    queryKey: programId ? dayCompletionsQueryKey(programId) : ["day-completions", "disabled"],
+    queryKey: programId
+      ? queryKeys.dayCompletions.byProgram(programId)
+      : queryKeys.dayCompletions.disabled,
     enabled: !!programId,
     queryFn: async (): Promise<Record<string, boolean>> => {
       const rows = await sessionsApi.apiProgramsIdDayCompletionsGet({ id: programId! })
@@ -31,9 +27,5 @@ export function useDayCompletions(programId: string | undefined) {
       }
       return out
     },
-    // Completions only flip when the user finishes a workout; the page-level
-    // SubBar doesn't need this to be live-tickling. 5-minute stale matches
-    // the program + session windows.
-    staleTime: 5 * 60 * 1000,
   })
 }

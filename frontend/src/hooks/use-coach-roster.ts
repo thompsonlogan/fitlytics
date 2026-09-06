@@ -2,8 +2,7 @@ import { useQuery } from "@tanstack/react-query"
 
 import { useServices } from "@/services/context"
 import type { CoachAthleteSummaryResponse } from "@/services/generated"
-
-export const COACH_ROSTER_QUERY_KEY = ["coach", "roster"] as const
+import { queryKeys } from "@/services/query-keys"
 
 export type RosterAthlete = {
   linkId: string
@@ -47,11 +46,10 @@ export function useCoachRoster() {
   const { coachApi } = useServices()
 
   return useQuery({
-    queryKey: COACH_ROSTER_QUERY_KEY,
+    queryKey: queryKeys.coachRoster,
     queryFn: async (): Promise<RosterAthlete[]> => {
       const rows = await coachApi.apiCoachAthletesGet()
       return rows.map(toRosterAthlete)
     },
-    staleTime: 5 * 60 * 1000,
   })
 }

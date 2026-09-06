@@ -2,9 +2,10 @@ import { describe, expect, it, vi } from "vitest"
 import { renderHook, waitFor } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
-import { PROGRAM_QUERY_KEY, fetchActiveProgram, useWorkoutProgram } from "./use-workout-program"
+import { fetchActiveProgram, useWorkoutProgram } from "./use-workout-program"
 import { ServiceContext } from "@/services/context"
 import type { ProgramResponse, ProgramSummaryResponse, ProgramsApi } from "@/services/generated"
+import { queryKeys } from "@/services/query-keys"
 
 // fakeProgramsApi lets each test stub out the two endpoints we touch without
 // pulling in the real BaseAPI machinery (which would need fetch globals).
@@ -114,6 +115,6 @@ describe("useWorkoutProgram", () => {
   })
 
   it("uses a stable query key so cache invalidation has a single target", () => {
-    expect(PROGRAM_QUERY_KEY).toEqual(["program", "active"])
+    expect(queryKeys.program.active).toEqual(["program", "active"])
   })
 })

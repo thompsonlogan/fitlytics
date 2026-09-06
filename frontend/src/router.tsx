@@ -11,9 +11,10 @@ import {
 import { CoachLayout } from "@/components/coach/coach-layout"
 import { AppLayout } from "@/components/workout/app-layout"
 import { NotFoundPage } from "@/components/not-found/not-found-page"
-import { fetchMe, ME_KEY } from "@/hooks/use-auth"
+import { fetchMe } from "@/hooks/use-auth"
 import { isCoach } from "@/lib/is-coach"
 import type { ServiceApis } from "@/services/data"
+import { queryKeys } from "@/services/query-keys"
 
 const WORKOS_LOGIN = "/auth/login"
 
@@ -43,7 +44,7 @@ const todayRoute = createRoute({
   path: "/today",
   beforeLoad: async ({ context }) => {
     const me = await context.queryClient.ensureQueryData({
-      queryKey: ME_KEY,
+      queryKey: queryKeys.me,
       queryFn: () => fetchMe(context.services.authApi),
     })
     if (!me) {
@@ -58,7 +59,7 @@ const coachLayoutRoute = createRoute({
   id: "coach",
   beforeLoad: async ({ context }) => {
     const me = await context.queryClient.ensureQueryData({
-      queryKey: ME_KEY,
+      queryKey: queryKeys.me,
       queryFn: () => fetchMe(context.services.authApi),
     })
     if (!me) {

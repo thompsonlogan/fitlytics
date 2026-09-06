@@ -7,13 +7,13 @@ import { probeDuration } from "@/components/workout/video-probe"
 import {
   isAllowedVideoType,
   MAX_VIDEO_BYTES,
-  sessionVideosQueryKey,
   useDeleteSetVideo,
   useUpdateVideoNote,
   useUploadSetVideo,
 } from "@/hooks/use-set-videos"
 import { type SetBlock } from "@/lib/program-data"
 import { type SetLogResponse, type VideoResponse } from "@/services/generated"
+import { queryKeys } from "@/services/query-keys"
 
 export type EnsureSetLog = (
   setIdx: number
@@ -90,7 +90,9 @@ export function useVideoUpload({
   function handlePlaybackError(src: string) {
     if (currentVideo?.id && sessionId && !refreshedIdsRef.current.has(currentVideo.id)) {
       refreshedIdsRef.current.add(currentVideo.id)
-      void queryClient.invalidateQueries({ queryKey: sessionVideosQueryKey(sessionId) })
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.sessionVideos.bySession(sessionId),
+      })
       return
     }
     setErroredSrc(src)

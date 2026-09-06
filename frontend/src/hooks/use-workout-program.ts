@@ -4,8 +4,7 @@ import { mapProgram } from "@/lib/program-mapper"
 import type { Program } from "@/lib/program-data"
 import { useServices } from "@/services/context"
 import type { ProgramsApi } from "@/services/generated"
-
-export const PROGRAM_QUERY_KEY = ["program", "active"] as const
+import { queryKeys } from "@/services/query-keys"
 
 export async function fetchActiveProgram(programsApi: ProgramsApi): Promise<Program | null> {
   const summaries = await programsApi.apiProgramsGet()
@@ -22,8 +21,7 @@ export function useWorkoutProgram() {
   const { programsApi } = useServices()
 
   return useQuery({
-    queryKey: PROGRAM_QUERY_KEY,
+    queryKey: queryKeys.program.active,
     queryFn: () => fetchActiveProgram(programsApi),
-    staleTime: 5 * 60 * 1000,
   })
 }

@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
-import { dayCompletionsQueryKey } from "@/hooks/use-day-completions"
 import { isResponseErrorWithStatus } from "@/services/api-error"
 import { useServices } from "@/services/context"
 import {
@@ -8,12 +7,7 @@ import {
   type SetLogResponse,
   type UpdateSetLogRequest,
 } from "@/services/generated"
-
-// SESSION_QUERY_KEY scopes the cached session by (programId, programDayId) so
-// the same hook reused for two different days doesn't collide. Exported so
-// the mutation in use-log-set.ts can target the same cache entry.
-export const sessionQueryKey = (programId: string, programDayId: string) =>
-  ["session", programId, programDayId] as const
+import { queryKeys } from "@/services/query-keys"
 
 // useCurrentSession reads the active session for a (programId, programDayId)
 // pair. It does NOT create a session — the rule from the product spec is "no
@@ -28,7 +22,10 @@ export function useCurrentSession(programId: string | undefined, programDayId: s
   const { sessionsApi } = useServices()
 
   return useQuery({
-    queryKey: programId && programDayId ? sessionQueryKey(programId, programDayId) : ["session", "disabled"],
+    queryKey:
+      programId && programDayId
+        ? queryKeys.session.byDay(programId, programDayId)
+        : queryKeys.session.disabled,
     enabled: !!programId && !!programDayId,
     queryFn: async (): Promise<SessionResponse | null> => {
       try {
@@ -43,9 +40,6 @@ export function useCurrentSession(programId: string | undefined, programDayId: s
         throw err
       }
     },
-    // Session shape is mostly stable for the lifetime of a workout — match the
-    // 5-minute stale window of useWorkoutProgram so the two don't fight.
-    staleTime: 5 * 60 * 1000,
   })
 }
 
@@ -69,7 +63,7 @@ export function useStartSession(programId: string | undefined, programDayId: str
     },
     onSuccess: (session) => {
       if (!programId || !programDayId) return
-      queryClient.setQueryData(sessionQueryKey(programId, programDayId), session)
+      queryClient.setQueryData(queryKeys.session.byDay(programId, programDayId), session)
     },
   })
 }
@@ -94,7 +88,7 @@ export function useUpdateSessionNotes(
         throw new Error("missing program or day id")
       }
       const cached = queryClient.getQueryData<SessionResponse | null>(
-        sessionQueryKey(programId, programDayId)
+        queryKeys.session.byDay(programId, programDayId)
       )
       if (!cached?.id) {
         throw new Error("no session — call startSession first")
@@ -106,7 +100,7 @@ export function useUpdateSessionNotes(
     },
     onSuccess: (updated) => {
       if (!programId || !programDayId) return
-      queryClient.setQueryData(sessionQueryKey(programId, programDayId), updated)
+      queryClient.setQueryData(queryKeys.session.byDay(programId, programDayId), updated)
     },
   })
 }
@@ -151,7 +145,7 @@ export function useLogSet(programId: string | undefined, programDayId: string | 
         throw new Error("missing program or day id")
       }
       const cached = queryClient.getQueryData<SessionResponse | null>(
-        sessionQueryKey(programId, programDayId)
+        queryKeys.session.byDay(programId, programDayId)
       )
       if (!cached?.id) {
         throw new Error("no session — call startSession first")
@@ -171,7 +165,7 @@ export function useLogSet(programId: string | undefined, programDayId: string | 
       // crosses the "all sets done-or-skipped" boundary in either
       // direction — toggling between completed and skipped (both terminal)
       // can never change the session's state.
-      const cacheKey = sessionQueryKey(programId, programDayId)
+      const cacheKey = queryKeys.session.byDay(programId, programDayId)
       const prevSession = queryClient.getQueryData<SessionResponse | null>(cacheKey)
       const prevPending = countPending(prevSession)
 
@@ -195,7 +189,7 @@ export function useLogSet(programId: string | undefined, programDayId: string | 
       const nextSession = queryClient.getQueryData<SessionResponse | null>(cacheKey)
       const nextPending = countPending(nextSession)
       if ((prevPending === 0) !== (nextPending === 0)) {
-        queryClient.invalidateQueries({ queryKey: dayCompletionsQueryKey(programId) })
+        queryClient.invalidateQueries({ queryKey: queryKeys.dayCompletions.byProgram(programId) })
       }
     },
   })
@@ -224,7 +218,7 @@ export function useLogSetBatch(
         throw new Error("missing program or day id")
       }
       const cached = queryClient.getQueryData<SessionResponse | null>(
-        sessionQueryKey(programId, programDayId)
+        queryKeys.session.byDay(programId, programDayId)
       )
       if (!cached?.id) {
         throw new Error("no session — call startSession first")
@@ -245,7 +239,7 @@ export function useLogSetBatch(
     onSuccess: (updatedLogs, vars) => {
       if (!programId || !programDayId) return
 
-      const cacheKey = sessionQueryKey(programId, programDayId)
+      const cacheKey = queryKeys.session.byDay(programId, programDayId)
       const prevSession = queryClient.getQueryData<SessionResponse | null>(cacheKey)
       const prevPending = countPending(prevSession)
 
@@ -272,7 +266,7 @@ export function useLogSetBatch(
       const nextSession = queryClient.getQueryData<SessionResponse | null>(cacheKey)
       const nextPending = countPending(nextSession)
       if ((prevPending === 0) !== (nextPending === 0)) {
-        queryClient.invalidateQueries({ queryKey: dayCompletionsQueryKey(programId) })
+        queryClient.invalidateQueries({ queryKey: queryKeys.dayCompletions.byProgram(programId) })
       }
     },
   })

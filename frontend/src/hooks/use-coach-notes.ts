@@ -2,8 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { useServices } from "@/services/context"
 import type { CoachNoteResponse } from "@/services/generated"
-
-export const coachNotesQueryKey = (linkId: string) => ["coach-notes", linkId] as const
+import { queryKeys } from "@/services/query-keys"
 
 // Mirrors the backend's maxNoteChars. Applied client-side so the composer stops
 // at the limit rather than letting the server reject an over-long note — which
@@ -38,7 +37,7 @@ export function useCoachNotes(linkId: string | undefined) {
   const { coachingApi } = useServices()
 
   return useQuery({
-    queryKey: linkId ? coachNotesQueryKey(linkId) : ["coach-notes", "disabled"],
+    queryKey: linkId ? queryKeys.coachNotes.byLink(linkId) : queryKeys.coachNotes.disabled,
     enabled: !!linkId,
     queryFn: async (): Promise<CoachNote[]> => {
       const rows = await coachingApi.apiCoachingLinksLinkIdNotesGet({
@@ -47,7 +46,6 @@ export function useCoachNotes(linkId: string | undefined) {
       })
       return rows.map(toNote)
     },
-    staleTime: 60 * 1000,
   })
 }
 
@@ -70,7 +68,7 @@ export function usePostCoachNote(linkId: string | undefined) {
     },
     onSuccess: () => {
       if (!linkId) return
-      void queryClient.invalidateQueries({ queryKey: coachNotesQueryKey(linkId) })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.coachNotes.byLink(linkId) })
     },
   })
 }

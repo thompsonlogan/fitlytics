@@ -17,8 +17,11 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ""
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
+      refetchOnMount: true,
+      refetchOnReconnect: true,
       refetchOnWindowFocus: false,
-      staleTime: 1000 * 60,
+      retry: false,
+      staleTime: 2 * 60 * 1000,
     },
   },
 })
