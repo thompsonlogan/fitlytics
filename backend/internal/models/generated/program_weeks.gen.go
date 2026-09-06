@@ -14,13 +14,14 @@ const TableNameProgramWeek = "program_weeks"
 
 // ProgramWeek mapped from table <program_weeks>
 type ProgramWeek struct {
-	ID        uuid.UUID    `gorm:"column:id;type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	ProgramID uuid.UUID    `gorm:"column:program_id;type:uuid;not null" json:"program_id"`
-	Sequence  int32        `gorm:"column:sequence;type:integer;not null" json:"sequence"`
-	Name      *string      `gorm:"column:name;type:text" json:"name"`
-	CreatedAt time.Time    `gorm:"column:created_at;type:timestamp with time zone;not null;default:now()" json:"created_at"`
-	UpdatedAt time.Time    `gorm:"column:updated_at;type:timestamp with time zone;not null;default:now()" json:"updated_at"`
-	Days      []ProgramDay `json:"days"`
+	ID             uuid.UUID    `gorm:"column:id;type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	ProgramID      uuid.UUID    `gorm:"column:program_id;type:uuid;not null" json:"program_id"`
+	Sequence       int32        `gorm:"column:sequence;type:integer;not null" json:"sequence"`
+	Name           *string      `gorm:"column:name;type:text" json:"name"`
+	CreatedAt      time.Time    `gorm:"column:created_at;type:timestamp with time zone;not null;default:now()" json:"created_at"`
+	UpdatedAt      time.Time    `gorm:"column:updated_at;type:timestamp with time zone;not null;default:now()" json:"updated_at"`
+	ProgramBlockID uuid.UUID    `gorm:"column:program_block_id;type:uuid;not null" json:"program_block_id"`
+	Days           []ProgramDay `json:"days"`
 }
 
 // TableName ProgramWeek's table name

@@ -47,6 +47,7 @@ declare
   v_self     uuid := 'a1c0ac11-0000-4000-8000-000000000002';
   v_athlete  uuid := 'f69f8e5a-9800-4665-9739-2f5b52687902';
   v_program  uuid := md5('coach-seed:program')::uuid;
+  v_block    uuid := md5('coach-seed:block')::uuid;
   v_start    date := (current_date - interval '15 days')::date;
   v_squat    uuid := '704b039d-895c-476b-80ed-991010629bb2';  -- from R__seed_dev_data
   v_bench    uuid := 'eacd9689-6804-4bb6-96db-c50a46157746';  -- from R__seed_dev_data
@@ -86,10 +87,15 @@ begin
   values (v_program, v_athlete, 'Hypertrophy Block v3',
           'Coach view fixture: 4 weeks, 3 training days a week.', v_start);
 
+  -- Single block wrapping all four weeks (program_weeks.program_block_id is
+  -- NOT NULL as of V3__003_program_blocks).
+  insert into program_blocks (id, program_id, sequence, name)
+  values (v_block, v_program, 1, 'Block 1');
+
   for w in 1..4 loop
     v_week := md5('coach-seed:week:' || w)::uuid;
-    insert into program_weeks (id, program_id, sequence, name)
-    values (v_week, v_program, w, 'Week ' || w);
+    insert into program_weeks (id, program_id, program_block_id, sequence, name)
+    values (v_week, v_program, v_block, w, 'Week ' || w);
 
     for d in 1..7 loop
       v_day := md5('coach-seed:day:' || w || ':' || d)::uuid;

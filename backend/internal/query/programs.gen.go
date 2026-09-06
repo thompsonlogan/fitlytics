@@ -79,6 +79,12 @@ func newProgram(db *gorm.DB, opts ...gen.DOOption) program {
 		},
 	}
 
+	_program.Blocks = programHasManyBlocks{
+		db: db.Session(&gorm.Session{}),
+
+		RelationField: field.NewRelation("Blocks", "generated.ProgramBlock"),
+	}
+
 	_program.fillFieldMap()
 
 	return _program
@@ -97,6 +103,8 @@ type program struct {
 	UpdatedAt   field.Time
 	DeletedAt   field.Field
 	Weeks       programHasManyWeeks
+
+	Blocks programHasManyBlocks
 
 	fieldMap map[string]field.Expr
 }
@@ -145,7 +153,7 @@ func (p *program) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (p *program) fillFieldMap() {
-	p.fieldMap = make(map[string]field.Expr, 9)
+	p.fieldMap = make(map[string]field.Expr, 10)
 	p.fieldMap["id"] = p.ID
 	p.fieldMap["owner_user_id"] = p.OwnerUserID
 	p.fieldMap["name"] = p.Name
@@ -161,12 +169,15 @@ func (p program) clone(db *gorm.DB) program {
 	p.programDo.ReplaceConnPool(db.Statement.ConnPool)
 	p.Weeks.db = db.Session(&gorm.Session{Initialized: true})
 	p.Weeks.db.Statement.ConnPool = db.Statement.ConnPool
+	p.Blocks.db = db.Session(&gorm.Session{Initialized: true})
+	p.Blocks.db.Statement.ConnPool = db.Statement.ConnPool
 	return p
 }
 
 func (p program) replaceDB(db *gorm.DB) program {
 	p.programDo.ReplaceDB(db)
 	p.Weeks.db = db.Session(&gorm.Session{})
+	p.Blocks.db = db.Session(&gorm.Session{})
 	return p
 }
 
@@ -260,6 +271,87 @@ func (a programHasManyWeeksTx) Count() int64 {
 }
 
 func (a programHasManyWeeksTx) Unscoped() *programHasManyWeeksTx {
+	a.tx = a.tx.Unscoped()
+	return &a
+}
+
+type programHasManyBlocks struct {
+	db *gorm.DB
+
+	field.RelationField
+}
+
+func (a programHasManyBlocks) Where(conds ...field.Expr) *programHasManyBlocks {
+	if len(conds) == 0 {
+		return &a
+	}
+
+	exprs := make([]clause.Expression, 0, len(conds))
+	for _, cond := range conds {
+		exprs = append(exprs, cond.BeCond().(clause.Expression))
+	}
+	a.db = a.db.Clauses(clause.Where{Exprs: exprs})
+	return &a
+}
+
+func (a programHasManyBlocks) WithContext(ctx context.Context) *programHasManyBlocks {
+	a.db = a.db.WithContext(ctx)
+	return &a
+}
+
+func (a programHasManyBlocks) Session(session *gorm.Session) *programHasManyBlocks {
+	a.db = a.db.Session(session)
+	return &a
+}
+
+func (a programHasManyBlocks) Model(m *generated.Program) *programHasManyBlocksTx {
+	return &programHasManyBlocksTx{a.db.Model(m).Association(a.Name())}
+}
+
+func (a programHasManyBlocks) Unscoped() *programHasManyBlocks {
+	a.db = a.db.Unscoped()
+	return &a
+}
+
+type programHasManyBlocksTx struct{ tx *gorm.Association }
+
+func (a programHasManyBlocksTx) Find() (result []*generated.ProgramBlock, err error) {
+	return result, a.tx.Find(&result)
+}
+
+func (a programHasManyBlocksTx) Append(values ...*generated.ProgramBlock) (err error) {
+	targetValues := make([]interface{}, len(values))
+	for i, v := range values {
+		targetValues[i] = v
+	}
+	return a.tx.Append(targetValues...)
+}
+
+func (a programHasManyBlocksTx) Replace(values ...*generated.ProgramBlock) (err error) {
+	targetValues := make([]interface{}, len(values))
+	for i, v := range values {
+		targetValues[i] = v
+	}
+	return a.tx.Replace(targetValues...)
+}
+
+func (a programHasManyBlocksTx) Delete(values ...*generated.ProgramBlock) (err error) {
+	targetValues := make([]interface{}, len(values))
+	for i, v := range values {
+		targetValues[i] = v
+	}
+	return a.tx.Delete(targetValues...)
+}
+
+func (a programHasManyBlocksTx) Clear() error {
+	return a.tx.Clear()
+}
+
+func (a programHasManyBlocksTx) Count() int64 {
+	return a.tx.Count()
+}
+
+func (a programHasManyBlocksTx) Unscoped() *programHasManyBlocksTx {
 	a.tx = a.tx.Unscoped()
 	return &a
 }

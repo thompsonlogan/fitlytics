@@ -33,6 +33,7 @@ func newProgramWeek(db *gorm.DB, opts ...gen.DOOption) programWeek {
 	_programWeek.Name = field.NewString(tableName, "name")
 	_programWeek.CreatedAt = field.NewTime(tableName, "created_at")
 	_programWeek.UpdatedAt = field.NewTime(tableName, "updated_at")
+	_programWeek.ProgramBlockID = field.NewField(tableName, "program_block_id")
 	_programWeek.Days = programWeekHasManyDays{
 		db: db.Session(&gorm.Session{}),
 
@@ -71,14 +72,15 @@ func newProgramWeek(db *gorm.DB, opts ...gen.DOOption) programWeek {
 type programWeek struct {
 	programWeekDo programWeekDo
 
-	ALL       field.Asterisk
-	ID        field.Field
-	ProgramID field.Field
-	Sequence  field.Int32
-	Name      field.String
-	CreatedAt field.Time
-	UpdatedAt field.Time
-	Days      programWeekHasManyDays
+	ALL            field.Asterisk
+	ID             field.Field
+	ProgramID      field.Field
+	Sequence       field.Int32
+	Name           field.String
+	CreatedAt      field.Time
+	UpdatedAt      field.Time
+	ProgramBlockID field.Field
+	Days           programWeekHasManyDays
 
 	fieldMap map[string]field.Expr
 }
@@ -101,6 +103,7 @@ func (p *programWeek) updateTableName(table string) *programWeek {
 	p.Name = field.NewString(table, "name")
 	p.CreatedAt = field.NewTime(table, "created_at")
 	p.UpdatedAt = field.NewTime(table, "updated_at")
+	p.ProgramBlockID = field.NewField(table, "program_block_id")
 
 	p.fillFieldMap()
 
@@ -127,13 +130,14 @@ func (p *programWeek) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (p *programWeek) fillFieldMap() {
-	p.fieldMap = make(map[string]field.Expr, 7)
+	p.fieldMap = make(map[string]field.Expr, 8)
 	p.fieldMap["id"] = p.ID
 	p.fieldMap["program_id"] = p.ProgramID
 	p.fieldMap["sequence"] = p.Sequence
 	p.fieldMap["name"] = p.Name
 	p.fieldMap["created_at"] = p.CreatedAt
 	p.fieldMap["updated_at"] = p.UpdatedAt
+	p.fieldMap["program_block_id"] = p.ProgramBlockID
 
 }
 
