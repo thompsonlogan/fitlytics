@@ -17,6 +17,7 @@ models/CreateVideoUploadRequest.ts
 models/CreateVideoUploadResponse.ts
 models/MeResponse.ts
 models/ProblemDetails.ts
+models/ProgramBlockResponse.ts
 models/ProgramDayResponse.ts
 models/ProgramExerciseResponse.ts
 models/ProgramResponse.ts

@@ -24,6 +24,7 @@ type Program struct {
 	UpdatedAt   time.Time      `gorm:"column:updated_at;type:timestamp with time zone;not null;default:now()" json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `gorm:"column:deleted_at;type:timestamp with time zone" json:"deleted_at"`
 	Weeks       []ProgramWeek  `json:"weeks"`
+	Blocks      []ProgramBlock `json:"blocks"`
 }
 
 // TableName Program's table name

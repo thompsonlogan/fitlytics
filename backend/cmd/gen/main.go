@@ -127,7 +127,7 @@ func run() error {
 		gen.FieldRelate(field.HasMany, "Exercises", sessionExercise, nil),
 	)
 
-	// ── Program tree: Program → Week → Day → Exercise → Group → Set ──────────
+	// ── Program tree: Program → Block → Week → Day → Exercise → Group → Set ──
 	programSet := g.GenerateModel("program_sets")
 
 	programSetGroup := g.GenerateModel("program_set_groups",
@@ -151,14 +151,18 @@ func run() error {
 		gen.FieldRelate(field.HasMany, "Days", programDay, nil),
 	)
 
+	programBlock := g.GenerateModel("program_blocks")
+
 	program := g.GenerateModel("programs", softDelete,
 		gen.FieldRelate(field.HasMany, "Weeks", programWeek, nil),
+		gen.FieldRelate(field.HasMany, "Blocks", programBlock, nil),
 	)
 
 	g.ApplyBasic(
 		exercise, user, equipment, exerciseEquipment, coachAthlete, coachNote,
 		setLog, setVideo, sessionExercise, session,
-		programSet, programSetGroup, programExercise, programDay, programWeek, program,
+		programSet, programSetGroup, programExercise, programDay, programWeek,
+		programBlock, program,
 	)
 	g.Execute()
 	return nil

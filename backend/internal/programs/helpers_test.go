@@ -32,12 +32,21 @@ func fullProgram() *generated.Program {
 		Description: ptr("desc"),
 		CreatedAt:   builtAt,
 		UpdatedAt:   builtAt,
-		Weeks: []generated.ProgramWeek{
+		Blocks: []generated.ProgramBlock{
 			{
-				ID:        fixedID("week:1"),
+				ID:        fixedID("block:1"),
 				ProgramID: fixedID("program:1"),
 				Sequence:  1,
-				Name:      strPtr("Week 1"),
+				Name:      strPtr("Block 1"),
+			},
+		},
+		Weeks: []generated.ProgramWeek{
+			{
+				ID:             fixedID("week:1"),
+				ProgramID:      fixedID("program:1"),
+				ProgramBlockID: fixedID("block:1"),
+				Sequence:       1,
+				Name:           strPtr("Week 1"),
 				Days: []generated.ProgramDay{
 					{
 						ID:            fixedID("day:1"),
@@ -125,10 +134,11 @@ func fullProgram() *generated.Program {
 			},
 			{
 				// Second week with no days — covers the empty Days slice branch.
-				ID:        fixedID("week:2"),
-				ProgramID: fixedID("program:1"),
-				Sequence:  2,
-				Name:      strPtr("Week 2 (placeholder)"),
+				ID:             fixedID("week:2"),
+				ProgramID:      fixedID("program:1"),
+				ProgramBlockID: fixedID("block:1"),
+				Sequence:       2,
+				Name:           strPtr("Week 2 (placeholder)"),
 			},
 		},
 	}

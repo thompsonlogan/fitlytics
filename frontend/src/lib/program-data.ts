@@ -52,19 +52,33 @@ export type ProgramWeek = {
   days: ProgramDay[]
 }
 
+// A training block (mesocycle) groups a contiguous run of weeks. weekStart /
+// weekEnd are GLOBAL week sequences (matching ProgramWeek.sequence and every
+// calendar calculation), so a block is just a window over the flat `weeks`
+// list — no week data is duplicated here.
+export type ProgramBlock = {
+  id: string
+  sequence: number
+  name: string | null
+  weekStart: number
+  weekEnd: number
+}
+
 export type Program = {
   id: string
   name: string
   startDate?: string
   weeks: ProgramWeek[]
+  blocks: ProgramBlock[]
+}
+
+export function blockForWeek(blocks: ProgramBlock[], week: number): ProgramBlock | null {
+  return blocks.find((b) => week >= b.weekStart && week <= b.weekEnd) ?? null
 }
 
 export const DAY_LETTERS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const
 
-export function formatReps(
-  min: number | null | undefined,
-  max: number | null | undefined
-): string {
+export function formatReps(min: number | null | undefined, max: number | null | undefined): string {
   const lo = min ?? undefined
   const hi = max ?? undefined
   if (lo == null && hi == null) return ""

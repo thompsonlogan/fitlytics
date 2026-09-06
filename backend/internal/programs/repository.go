@@ -37,6 +37,7 @@ func (r *repository) GetProgramById(ctx context.Context, programID, ownerUserID 
 	p := r.q.Program
 
 	program, err := p.WithContext(ctx).
+		Preload(p.Blocks).
 		Preload(p.Weeks).
 		Preload(p.Weeks.Days).
 		Preload(p.Weeks.Days.Exercises).

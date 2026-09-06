@@ -13,13 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
-import type { ProgramWeekResponse } from './ProgramWeekResponse';
+import type { ProgramBlockResponse } from './ProgramBlockResponse';
 import {
-    ProgramWeekResponseFromJSON,
-    ProgramWeekResponseFromJSONTyped,
-    ProgramWeekResponseToJSON,
-    ProgramWeekResponseToJSONTyped,
-} from './ProgramWeekResponse';
+    ProgramBlockResponseFromJSON,
+    ProgramBlockResponseFromJSONTyped,
+    ProgramBlockResponseToJSON,
+    ProgramBlockResponseToJSONTyped,
+} from './ProgramBlockResponse';
 
 /**
  * 
@@ -27,6 +27,12 @@ import {
  * @interface ProgramResponse
  */
 export interface ProgramResponse {
+    /**
+     * 
+     * @type {Array<ProgramBlockResponse>}
+     * @memberof ProgramResponse
+     */
+    blocks?: Array<ProgramBlockResponse>;
     /**
      * 
      * @type {string}
@@ -63,12 +69,6 @@ export interface ProgramResponse {
      * @memberof ProgramResponse
      */
     updatedAt?: string;
-    /**
-     * 
-     * @type {Array<ProgramWeekResponse>}
-     * @memberof ProgramResponse
-     */
-    weeks?: Array<ProgramWeekResponse>;
 }
 
 /**
@@ -88,13 +88,13 @@ export function ProgramResponseFromJSONTyped(json: any, ignoreDiscriminator: boo
     }
     return {
         
+        'blocks': json['blocks'] == null ? undefined : ((json['blocks'] as Array<any>).map(ProgramBlockResponseFromJSON)),
         'createdAt': json['created_at'] == null ? undefined : json['created_at'],
         'description': json['description'] == null ? undefined : json['description'],
         'id': json['id'] == null ? undefined : json['id'],
         'name': json['name'] == null ? undefined : json['name'],
         'startDate': json['start_date'] == null ? undefined : json['start_date'],
         'updatedAt': json['updated_at'] == null ? undefined : json['updated_at'],
-        'weeks': json['weeks'] == null ? undefined : ((json['weeks'] as Array<any>).map(ProgramWeekResponseFromJSON)),
     };
 }
 
@@ -109,13 +109,13 @@ export function ProgramResponseToJSONTyped(value?: ProgramResponse | null, ignor
 
     return {
         
+        'blocks': value['blocks'] == null ? undefined : ((value['blocks'] as Array<any>).map(ProgramBlockResponseToJSON)),
         'created_at': value['createdAt'],
         'description': value['description'],
         'id': value['id'],
         'name': value['name'],
         'start_date': value['startDate'],
         'updated_at': value['updatedAt'],
-        'weeks': value['weeks'] == null ? undefined : ((value['weeks'] as Array<any>).map(ProgramWeekResponseToJSON)),
     };
 }
 

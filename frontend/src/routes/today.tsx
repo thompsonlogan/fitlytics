@@ -69,6 +69,7 @@ export function TodayPage() {
         isLoading={isLoading}
         programName={program?.name ?? "Loading…"}
         weekCount={Math.max(1, weekCount)}
+        blocks={program?.blocks ?? []}
         days={days}
         week={week}
         dayIndex={dayIndex}
@@ -90,6 +91,7 @@ export function TodayPage() {
       <SubBar
         breadcrumb={[{ label: "Programs" }, { label: program?.name ?? "Loading…" }]}
         weekCount={Math.max(1, weekCount)}
+        blocks={program?.blocks ?? []}
         days={days}
         week={week}
         dayIndex={dayIndex}

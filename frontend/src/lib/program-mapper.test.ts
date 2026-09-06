@@ -214,11 +214,16 @@ describe("mapProgram", () => {
       id: "prog-1",
       name: "Logan PL",
       startDate: "2026-05-04",
-      weeks: [
+      blocks: [
         {
-          id: "w1",
+          id: "b1",
           sequence: 1,
-          days: [
+          name: "Block 1",
+          weeks: [
+            {
+              id: "w1",
+              sequence: 1,
+              days: [
             {
               sequence: 1,
               name: "Day 1",
@@ -247,6 +252,8 @@ describe("mapProgram", () => {
             },
           ],
         },
+          ],
+        },
       ],
     }
 
@@ -267,8 +274,41 @@ describe("mapProgram", () => {
     expect(ex.blocks[0]).toMatchObject({ repsMin: 3, repsMax: 3 })
   })
 
+  it("flattens weeks across blocks and records each block's week range", () => {
+    const out = mapProgram({
+      id: "p",
+      name: "PL",
+      blocks: [
+        {
+          id: "b2",
+          sequence: 2,
+          name: "Block 2",
+          weeks: [
+            { id: "w6", sequence: 6, days: [] },
+            { id: "w5", sequence: 5, days: [] },
+          ],
+        },
+        {
+          id: "b1",
+          sequence: 1,
+          name: "Block 1",
+          weeks: [{ id: "w1", sequence: 1, days: [] }],
+        },
+      ],
+    })
+
+    // Flat weeks are globally sorted regardless of block/week input order.
+    expect(out.weeks.map((w) => w.sequence)).toEqual([1, 5, 6])
+    // Blocks sorted by sequence, with correct global week ranges.
+    expect(out.blocks).toEqual([
+      { id: "b1", sequence: 1, name: "Block 1", weekStart: 1, weekEnd: 1 },
+      { id: "b2", sequence: 2, name: "Block 2", weekStart: 5, weekEnd: 6 },
+    ])
+  })
+
   it("returns an empty weeks array when backend sends none", () => {
     expect(mapProgram({ id: "p", name: "" }).weeks).toEqual([])
+    expect(mapProgram({ id: "p", name: "" }).blocks).toEqual([])
   })
 
   it("survives a totally-empty response (defensive defaults)", () => {

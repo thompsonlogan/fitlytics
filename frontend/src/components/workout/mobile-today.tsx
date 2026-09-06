@@ -1,12 +1,13 @@
 import { MobileDayBoard, MobileDayBoardSkeleton } from "@/components/workout/mobile-day-board"
 import { SubBar } from "@/components/workout/sub-bar"
-import { type Program, type ProgramDay } from "@/lib/program-data"
+import { type Program, type ProgramBlock, type ProgramDay } from "@/lib/program-data"
 
 type MobileTodayProps = {
   program: Program | undefined
   isLoading: boolean
   programName: string
   weekCount: number
+  blocks: ProgramBlock[]
   days: ProgramDay[]
   week: number
   dayIndex: number
@@ -26,6 +27,7 @@ export function MobileToday({
   isLoading,
   programName,
   weekCount,
+  blocks,
   days,
   week,
   dayIndex,
@@ -44,6 +46,7 @@ export function MobileToday({
       <SubBar
         breadcrumb={[{ label: "Programs" }, { label: programName }]}
         weekCount={weekCount}
+        blocks={blocks}
         days={days}
         week={week}
         dayIndex={dayIndex}

@@ -24,6 +24,7 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		Exercise:          newExercise(db, opts...),
 		ExerciseEquipment: newExerciseEquipment(db, opts...),
 		Program:           newProgram(db, opts...),
+		ProgramBlock:      newProgramBlock(db, opts...),
 		ProgramDay:        newProgramDay(db, opts...),
 		ProgramExercise:   newProgramExercise(db, opts...),
 		ProgramSet:        newProgramSet(db, opts...),
@@ -46,6 +47,7 @@ type Query struct {
 	Exercise          exercise
 	ExerciseEquipment exerciseEquipment
 	Program           program
+	ProgramBlock      programBlock
 	ProgramDay        programDay
 	ProgramExercise   programExercise
 	ProgramSet        programSet
@@ -69,6 +71,7 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		Exercise:          q.Exercise.clone(db),
 		ExerciseEquipment: q.ExerciseEquipment.clone(db),
 		Program:           q.Program.clone(db),
+		ProgramBlock:      q.ProgramBlock.clone(db),
 		ProgramDay:        q.ProgramDay.clone(db),
 		ProgramExercise:   q.ProgramExercise.clone(db),
 		ProgramSet:        q.ProgramSet.clone(db),
@@ -99,6 +102,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		Exercise:          q.Exercise.replaceDB(db),
 		ExerciseEquipment: q.ExerciseEquipment.replaceDB(db),
 		Program:           q.Program.replaceDB(db),
+		ProgramBlock:      q.ProgramBlock.replaceDB(db),
 		ProgramDay:        q.ProgramDay.replaceDB(db),
 		ProgramExercise:   q.ProgramExercise.replaceDB(db),
 		ProgramSet:        q.ProgramSet.replaceDB(db),
@@ -119,6 +123,7 @@ type queryCtx struct {
 	Exercise          *exerciseDo
 	ExerciseEquipment *exerciseEquipmentDo
 	Program           *programDo
+	ProgramBlock      *programBlockDo
 	ProgramDay        *programDayDo
 	ProgramExercise   *programExerciseDo
 	ProgramSet        *programSetDo
@@ -139,6 +144,7 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		Exercise:          q.Exercise.WithContext(ctx),
 		ExerciseEquipment: q.ExerciseEquipment.WithContext(ctx),
 		Program:           q.Program.WithContext(ctx),
+		ProgramBlock:      q.ProgramBlock.WithContext(ctx),
 		ProgramDay:        q.ProgramDay.WithContext(ctx),
 		ProgramExercise:   q.ProgramExercise.WithContext(ctx),
 		ProgramSet:        q.ProgramSet.WithContext(ctx),

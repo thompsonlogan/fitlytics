@@ -1,0 +1,6 @@
+# Local-only inputs/artifacts for the seed generator — not tracked.
+# The source spreadsheet lives on the maintainer's machine; generate_seed.py
+# reads it locally to rewrite R__seed_dev_data.sql (which IS tracked).
+__pycache__/
+*.pyc
+*.xlsx

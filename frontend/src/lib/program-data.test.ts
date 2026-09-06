@@ -331,6 +331,7 @@ describe("nextWorkoutDay", () => {
       { id: "w1", sequence: 1, days: [workout("w1d1"), rest("w1d2"), workout("w1d3")] },
       { id: "w2", sequence: 2, days: [workout("w2d1"), rest("w2d2")] },
     ],
+    blocks: [{ id: "b1", sequence: 1, name: "Block 1", weekStart: 1, weekEnd: 2 }],
   }
 
   it("finds the next non-rest day later in the same week", () => {

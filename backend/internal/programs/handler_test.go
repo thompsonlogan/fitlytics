@@ -128,9 +128,9 @@ func TestHandler_GetProgramById_SuccessReturns200WithJSON(t *testing.T) {
 	programID := uuid.New()
 
 	want := &ProgramResponse{
-		ID:    programID,
-		Name:  "Sample",
-		Weeks: []ProgramWeekResponse{},
+		ID:     programID,
+		Name:   "Sample",
+		Blocks: []ProgramBlockResponse{},
 	}
 
 	var gotProgramID, gotOwnerID uuid.UUID
