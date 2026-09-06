@@ -27,6 +27,9 @@ func collectExerciseIDs(p *generated.Program) []uuid.UUID {
 }
 
 func sortProgramTree(p *generated.Program) {
+	slices.SortFunc(p.Blocks, func(a, b generated.ProgramBlock) int {
+		return cmp.Compare(a.Sequence, b.Sequence)
+	})
 	slices.SortFunc(p.Weeks, func(a, b generated.ProgramWeek) int {
 		return cmp.Compare(a.Sequence, b.Sequence)
 	})

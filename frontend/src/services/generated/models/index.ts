@@ -11,6 +11,7 @@ export * from './CreateVideoUploadRequest';
 export * from './CreateVideoUploadResponse';
 export * from './MeResponse';
 export * from './ProblemDetails';
+export * from './ProgramBlockResponse';
 export * from './ProgramDayResponse';
 export * from './ProgramExerciseResponse';
 export * from './ProgramResponse';

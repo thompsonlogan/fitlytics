@@ -30,10 +30,24 @@ func mapProgram(p *generated.Program, names map[uuid.UUID]string) *ProgramRespon
 		StartDate:   timeutil.FormatDatePtr(p.StartDate),
 		CreatedAt:   p.CreatedAt,
 		UpdatedAt:   p.UpdatedAt,
-		Weeks:       make([]ProgramWeekResponse, 0, len(p.Weeks)),
+		Blocks:      make([]ProgramBlockResponse, 0, len(p.Blocks)),
+	}
+	// Blocks arrive sorted by sequence; index them so each week (also sorted,
+	// by its global sequence) lands under its owning block in order.
+	idx := make(map[uuid.UUID]int, len(p.Blocks))
+	for _, b := range p.Blocks {
+		idx[b.ID] = len(out.Blocks)
+		out.Blocks = append(out.Blocks, ProgramBlockResponse{
+			ID:       b.ID,
+			Sequence: b.Sequence,
+			Name:     b.Name,
+			Weeks:    make([]ProgramWeekResponse, 0),
+		})
 	}
 	for _, w := range p.Weeks {
-		out.Weeks = append(out.Weeks, mapWeek(w, names))
+		if i, ok := idx[w.ProgramBlockID]; ok {
+			out.Blocks[i].Weeks = append(out.Blocks[i].Weeks, mapWeek(w, names))
+		}
 	}
 	return out
 }

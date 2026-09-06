@@ -60,13 +60,20 @@ func TestMapProgram_StructurePreserved(t *testing.T) {
 		t.Errorf("CreatedAt: want %v, got %v", program.CreatedAt, resp.CreatedAt)
 	}
 
-	// Tree shape
-	if len(resp.Weeks) != len(program.Weeks) {
-		t.Fatalf("weeks: want %d, got %d", len(program.Weeks), len(resp.Weeks))
+	// Tree shape: one block wrapping all the weeks.
+	if len(resp.Blocks) != len(program.Blocks) {
+		t.Fatalf("blocks: want %d, got %d", len(program.Blocks), len(resp.Blocks))
+	}
+	block := resp.Blocks[0]
+	if block.Sequence != 1 {
+		t.Errorf("block 1 sequence: want 1, got %d", block.Sequence)
+	}
+	if len(block.Weeks) != len(program.Weeks) {
+		t.Fatalf("weeks: want %d, got %d", len(program.Weeks), len(block.Weeks))
 	}
 
 	// Week 1 fully populated → assert recursive shape.
-	w1 := resp.Weeks[0]
+	w1 := block.Weeks[0]
 	if w1.Sequence != 1 {
 		t.Errorf("week 1 sequence: want 1, got %d", w1.Sequence)
 	}
@@ -75,7 +82,7 @@ func TestMapProgram_StructurePreserved(t *testing.T) {
 	}
 
 	// Week 2 has no days → assert empty (not nil) slice so JSON renders [].
-	w2 := resp.Weeks[1]
+	w2 := block.Weeks[1]
 	if w2.Days == nil {
 		t.Errorf("week 2 Days should be non-nil empty slice for JSON [] rendering")
 	}
@@ -88,7 +95,7 @@ func TestMapProgram_ExerciseNameLookup(t *testing.T) {
 	resp := mapProgram(fullProgram(), exerciseNames())
 
 	// Day 1 → exercise 1 should resolve to "Competition Squat" via the map.
-	day1 := resp.Weeks[0].Days[0]
+	day1 := resp.Blocks[0].Weeks[0].Days[0]
 	if day1.Exercises[0].ExerciseName != "Competition Squat" {
 		t.Errorf("ex[0] name: want %q, got %q", "Competition Squat", day1.Exercises[0].ExerciseName)
 	}
