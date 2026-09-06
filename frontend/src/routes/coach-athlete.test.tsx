@@ -59,9 +59,16 @@ function program(): ProgramResponse {
     id: "program-1",
     name: "Hypertrophy Block v3",
     startDate: START_DATE,
-    weeks: [
-      { id: "week-1", sequence: 1, days: days(1) },
-      { id: "week-2", sequence: 2, days: days(2) },
+    blocks: [
+      {
+        id: "block-1",
+        sequence: 1,
+        name: "Block 1",
+        weeks: [
+          { id: "week-1", sequence: 1, days: days(1) },
+          { id: "week-2", sequence: 2, days: days(2) },
+        ],
+      },
     ],
   }
 }

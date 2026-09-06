@@ -6,7 +6,14 @@ import type {
   ProgramWeekResponse,
 } from "@/services/generated"
 
-import type { Exercise, Program, ProgramDay, ProgramWeek, SetBlock } from "./program-data"
+import type {
+  Exercise,
+  Program,
+  ProgramBlock,
+  ProgramDay,
+  ProgramWeek,
+  SetBlock,
+} from "./program-data"
 import { kgToLbRounded, lbToKg } from "./units"
 
 // Back-compat aliases; new code imports from "./units".
@@ -103,13 +110,35 @@ export function mapWeek(w: ProgramWeekResponse): ProgramWeek {
 }
 
 // mapProgram is the public entry point: full backend tree → full frontend
-// tree. The hook calls this once after the API returns; everything below
-// (table, sub-bar, side-panel) operates on the frontend shape only.
+// tree. The backend nests weeks under blocks; the frontend keeps a flat,
+// global-order `weeks` list (what every table/sub-bar/side-panel consumer
+// uses) plus a `blocks` grouping (block start/end as global week sequences)
+// that the block selector navigates by.
 export function mapProgram(p: ProgramResponse): Program {
+  const weeks: ProgramWeek[] = []
+  const blocks: ProgramBlock[] = []
+
+  for (const b of p.blocks ?? []) {
+    const blockWeeks = (b.weeks ?? []).map(mapWeek).sort((a, z) => a.sequence - z.sequence)
+    weeks.push(...blockWeeks)
+    const seqs = blockWeeks.map((w) => w.sequence)
+    blocks.push({
+      id: b.id ?? "",
+      sequence: b.sequence ?? 0,
+      name: b.name ?? null,
+      weekStart: seqs.length ? Math.min(...seqs) : 0,
+      weekEnd: seqs.length ? Math.max(...seqs) : 0,
+    })
+  }
+
+  weeks.sort((a, z) => a.sequence - z.sequence)
+  blocks.sort((a, z) => a.sequence - z.sequence)
+
   return {
     id: p.id ?? "",
     name: p.name ?? "",
     startDate: p.startDate ?? undefined,
-    weeks: (p.weeks ?? []).map(mapWeek),
+    weeks,
+    blocks,
   }
 }

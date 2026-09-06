@@ -2,14 +2,16 @@ import { CalendarCheck2 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { BlockSelector } from "@/components/workout/block-selector"
 import { DaySelector } from "@/components/workout/day-selector"
 import { SubBarBreadcrumb, type Crumb } from "@/components/workout/sub-bar-breadcrumb"
 import { WeekPager } from "@/components/workout/week-pager"
-import { type ProgramDay } from "@/lib/program-data"
+import { blockForWeek, type ProgramBlock, type ProgramDay } from "@/lib/program-data"
 
 type SubBarProps = {
   breadcrumb: Crumb[]
   weekCount: number
+  blocks: ProgramBlock[]
   days: ProgramDay[]
   week: number
   dayIndex: number
@@ -26,6 +28,7 @@ type SubBarProps = {
 export function SubBar({
   breadcrumb,
   weekCount,
+  blocks,
   days,
   week,
   dayIndex,
@@ -42,6 +45,24 @@ export function SubBar({
   const showTodayButton =
     onResetToToday != null && todayWeek != null && todayDayIndex != null && !isToday
 
+  // Scope the week pager to the active block: the pager pages within
+  // [weekStart, weekEnd] and shows the block-relative week number, while the
+  // parent's onWeekChange still speaks in global week sequences. Falls back to
+  // the whole program when a program somehow has no blocks.
+  const activeBlock = blockForWeek(blocks, week)
+  const weekStart = activeBlock?.weekStart ?? 1
+  const weekEnd = activeBlock?.weekEnd ?? weekCount
+  const weekInBlock = week - weekStart + 1
+  const weekCountInBlock = weekEnd - weekStart + 1
+
+  const handleBlockChange = (sequence: number) => {
+    const target = blocks.find((b) => b.sequence === sequence)
+    if (target) onWeekChange(target.weekStart)
+  }
+  const handleWeekInBlockChange = (nextInBlock: number) => {
+    onWeekChange(weekStart + nextInBlock - 1)
+  }
+
   return (
     <div className="border-b bg-background px-3.5 pt-3.5 pb-4 md:flex md:flex-wrap md:items-center md:gap-3 md:px-5 md:py-3.5">
       <div className="min-w-0 flex-shrink overflow-hidden [&>nav]:mb-0 [&>nav]:text-[0.625rem] md:[&>nav]:mb-1 md:[&>nav]:text-[0.6875rem] [&>nav>a:last-child]:truncate [&>nav>span:last-child]:truncate">
@@ -53,7 +74,7 @@ export function SubBar({
             </span>
             <span className="mt-0.5 block text-[0.8125rem] font-medium text-muted-foreground md:mt-0 md:inline">
               <span className="hidden md:inline">· </span>
-              Week {week} · {dayData.tag}
+              Week {weekInBlock} · {dayData.tag}
             </span>
           </div>
           {isToday && (
@@ -66,11 +87,18 @@ export function SubBar({
 
       <div className="hidden md:block md:flex-1" />
 
+      <BlockSelector
+        blocks={blocks}
+        activeBlockSequence={activeBlock?.sequence ?? 1}
+        onBlockChange={handleBlockChange}
+        className="mt-3.5 md:mt-0"
+      />
+
       <WeekPager
-        week={week}
-        weekCount={weekCount}
-        onWeekChange={onWeekChange}
-        className="mt-3.5 h-8 w-full md:mt-0 md:h-7 md:w-auto"
+        week={weekInBlock}
+        weekCount={weekCountInBlock}
+        onWeekChange={handleWeekInBlockChange}
+        className="mt-2.5 h-8 w-full md:mt-0 md:h-7 md:w-auto"
         buttonClassName="w-9 md:w-7"
         labelClassName="flex-1 md:min-w-20 md:flex-none md:px-2"
       />

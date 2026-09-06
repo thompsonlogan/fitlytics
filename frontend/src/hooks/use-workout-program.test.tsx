@@ -80,7 +80,9 @@ describe("useWorkoutProgram", () => {
         Promise.resolve({
           id: "p",
           name: "Prog",
-          weeks: [{ id: "w", sequence: 1, days: [] }],
+          blocks: [
+            { id: "b", sequence: 1, name: "Block 1", weeks: [{ id: "w", sequence: 1, days: [] }] },
+          ],
         }),
     })
 

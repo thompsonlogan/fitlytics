@@ -100,6 +100,7 @@ export function CoachAthletePage() {
           { label: program?.name ?? "…" },
         ]}
         weekCount={Math.max(1, weekCount)}
+        blocks={program?.blocks ?? []}
         days={days}
         week={week}
         dayIndex={dayIndex}
