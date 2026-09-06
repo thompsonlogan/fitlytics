@@ -45,10 +45,6 @@ export function SubBar({
   const showTodayButton =
     onResetToToday != null && todayWeek != null && todayDayIndex != null && !isToday
 
-  // Scope the week pager to the active block: the pager pages within
-  // [weekStart, weekEnd] and shows the block-relative week number, while the
-  // parent's onWeekChange still speaks in global week sequences. Falls back to
-  // the whole program when a program somehow has no blocks.
   const activeBlock = blockForWeek(blocks, week)
   const weekStart = activeBlock?.weekStart ?? 1
   const weekEnd = activeBlock?.weekEnd ?? weekCount

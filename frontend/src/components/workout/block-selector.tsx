@@ -21,9 +21,6 @@ function blockLabel(b: ProgramBlock): string {
   return b.name?.trim() || `Block ${b.sequence}`
 }
 
-// BlockSelector is the dropdown that scopes the week pager to one training
-// block. Shared by the desktop and mobile sub-bars. Renders nothing for a
-// single-block program — there is nothing to switch between.
 export function BlockSelector({
   blocks,
   activeBlockSequence,

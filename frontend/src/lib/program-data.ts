@@ -68,24 +68,17 @@ export type Program = {
   id: string
   name: string
   startDate?: string
-  // Flat, global-order week list — every consumer (today position, calendar,
-  // next-workout, side panel) operates on this. `blocks` is a grouping on top.
   weeks: ProgramWeek[]
   blocks: ProgramBlock[]
 }
 
-// blockForWeek returns the block containing the given global week sequence, or
-// null when out of range. Blocks are contiguous and ordered.
 export function blockForWeek(blocks: ProgramBlock[], week: number): ProgramBlock | null {
   return blocks.find((b) => week >= b.weekStart && week <= b.weekEnd) ?? null
 }
 
 export const DAY_LETTERS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const
 
-export function formatReps(
-  min: number | null | undefined,
-  max: number | null | undefined
-): string {
+export function formatReps(min: number | null | undefined, max: number | null | undefined): string {
   const lo = min ?? undefined
   const hi = max ?? undefined
   if (lo == null && hi == null) return ""
